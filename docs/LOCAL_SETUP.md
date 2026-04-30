@@ -183,6 +183,28 @@ The local standalone sequencer commonly includes transactions on a roughly
 15-second cadence. Scripts that check account state should poll with a timeout
 instead of relying on a single short sleep.
 
+## Inspect A Private Membership Proof
+
+After a private account has been funded and synced, check that the sequencer can
+return a Merkle proof for its current commitment:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+export PRIVATE_ACCOUNT="<private-account-id-without-Private>"
+scripts/spike-02-inspect-membership-proof.sh
+```
+
+Expected output includes:
+
+```json
+{
+  "private_state_found": true,
+  "membership_proof_found": true,
+  "proof_depth": 4,
+  "commitment_root_hex": "<hex-32>"
+}
+```
+
 When `RISC0_DEV_MODE=0`, proof generation can take several minutes. Demo
 scripts should print progress markers to stderr, for example:
 

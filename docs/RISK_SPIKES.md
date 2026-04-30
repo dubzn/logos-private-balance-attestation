@@ -117,6 +117,40 @@ The automated fixture covers both sides of the branch: a positive gate where
 the private balance is above threshold, and a negative gate where the threshold
 is intentionally too high.
 
+## Blocker 1: Real Commitment Membership Proof
+
+LP-0005 requires the prover to consume a private account commitment and a real
+Merkle membership proof from the sequencer. This must work before the standalone
+circuit is useful.
+
+### Spike 02: Wallet Commitment To Sequencer Proof
+
+Question:
+
+```text
+Can the local wallet reconstruct the current private account commitment and get
+a membership proof through the real getProofForCommitment RPC?
+```
+
+Current harness:
+
+```sh
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+scripts/spike-02-inspect-membership-proof.sh
+```
+
+Pass condition:
+
+```text
+private_state_found = true
+membership_proof_found = true
+proof_depth > 0
+commitment_root_hex is present
+```
+
+This spike deliberately does not print private witness fields such as exact
+balance, `npk`, local private keys, or proof siblings.
+
 ## Modular Build Order
 
 After Blocker 0 passes, build in this order:
