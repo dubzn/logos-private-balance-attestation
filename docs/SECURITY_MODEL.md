@@ -24,6 +24,8 @@ The proof must not reveal:
 - account data
 - Merkle proof path siblings as private witness data, except what is required
   by the receipt public journal
+- the private commitment leaf, unless a future verifier path explicitly proves
+  it is safe to publish
 
 ## Public Values
 
@@ -31,10 +33,11 @@ The verifier learns:
 
 - threshold
 - context id
-- verifier/gate id
+- verifier/gate id or its hash
 - commitment root
 - context nullifier
 - presenter id
+- circuit image id
 - whether the proof verifies
 
 The presenter id is intentionally public because it is the identity allowed to
@@ -49,6 +52,7 @@ public data:
 context_id = SHA256(
   "logos-balance-attestation/v1/context"
   || chain_id
+  || circuit_image_id
   || verifier_id
   || gate_id
   || threshold
@@ -89,10 +93,34 @@ the private preimage.
 
 The prize explicitly asks submissions to address proof forwarding.
 
-This design uses two mechanisms:
+Spike 04 upgrades this from a documentation note into a circuit check. The
+current spike uses a synthetic 32-byte presenter secret:
+
+```text
+presenter_id = SHA256(
+  "logos-balance-attestation/v1/presenter"
+  || presenter_secret
+)
+```
+
+The circuit verifies that the private `presenter_secret` derives the public
+`presenter_id` committed in the journal. The context nullifier also includes
+that `presenter_id`, so the same private account produces different nullifiers
+for different presenters.
+
+Production V1 should keep this invariant, but the presenter adapter still needs
+one final decision before Milestone 1:
+
+```text
+Map presenter_secret/presenter_id to a wallet-compatible signing key, or keep
+the in-circuit presenter proof plus an envelope signature for fresh challenges.
+```
+
+The full design uses these mechanisms:
 
 1. The proof journal includes `presenter_id`.
-2. The verifier requires proof that the current presenter controls that id.
+2. The circuit proves knowledge of private presenter material for that id.
+3. The verifier requires proof that the current presenter controls that id.
 
 For off-chain verification:
 
@@ -122,9 +150,8 @@ The design prevents passive replay and accidental forwarding, not intentional
 credential sharing.
 
 If evaluator feedback requires the presenter secret to be committed inside the
-RISC Zero receipt itself, the presenter-binding design must be upgraded before
-Milestone 4. The stronger design would prove knowledge of presenter key
-material inside the circuit, at higher proving cost.
+RISC Zero receipt itself, Spike 04 already validates that circuit shape. The
+remaining work is mapping it to the real wallet/presenter key material.
 
 ## Threshold Privacy Limits
 

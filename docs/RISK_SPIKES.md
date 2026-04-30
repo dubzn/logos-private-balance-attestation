@@ -3,6 +3,19 @@
 The project should be built modularly. Each slice must prove one assumption
 before the next layer depends on it.
 
+## Current Spike Status
+
+| Spike | Status | Meaning |
+| --- | --- | --- |
+| 0A Direct receipt verification | failed/currently unsupported | Public LEZ execution can build `env::verify`, but runtime has no receipt assumption channel. |
+| 0B Recursive/native verifier path | not run | Still unknown; run or formally drop before building `lez/verifier-program`. |
+| 0C Logos-native private execution gate | passed locally | Useful fallback and learning path, but evaluator acceptance is still required for LP-0005. |
+| 02 Wallet commitment to sequencer proof | passed locally | Real wallet commitment and `getProofForCommitment` path works. |
+| 03 Balance attestation circuit | passed locally | Standalone RISC Zero circuit consumes LEZ commitment and Merkle proof. |
+| 04 Binding circuit | passed locally | Context binding, presenter binding, and context nullifier work in the circuit shape. |
+| 05 Dev/prod proving baseline | planned | Measure `RISC0_DEV_MODE=1` versus `0` with step-by-step timing tables. |
+| 06 On-chain path decision | planned | Close 0A/0B/0C before M1 implementation depends on a verifier shape. |
+
 ## Blocker 0: On-Chain Proof Path
 
 LP-0005 requires a LEZ verifier program that accepts/verifies a proof and gates
@@ -46,6 +59,14 @@ scripts/spike-00-run-direct-receipt-gate.sh
 The first runtime run is allowed to fail. If it fails because public LEZ
 execution cannot provide RISC Zero assumptions to `env::verify`, that result
 decides the next spike.
+
+Current result:
+
+```text
+Failed/currently unsupported.
+The program builds, but the sequencer rejects runtime execution with:
+sys_verify_integrity: no receipt found to resolve assumption.
+```
 
 ### Spike 0B: Recursive Or Native Verifier Path
 
@@ -194,9 +215,104 @@ The journal includes only public values: threshold, root, context id,
 commitment, proof index, and proof depth.
 ```
 
+### Spike 04: Binding Attestation Circuit
+
+Question:
+
+```text
+Can the standalone circuit bind the proof to a real context, presenter id, and
+context nullifier without publishing the commitment leaf?
+```
+
+Current harness:
+
+```sh
+scripts/spike-04-build-binding-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh
+
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+export THRESHOLD=25
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live
+
+export THRESHOLD=999999
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live-below-threshold
+```
+
+Pass condition:
+
+```text
+Fixture and live positive cases prove and verify.
+Threshold, Merkle root, presenter, and nullifier negative cases fail during
+guest execution.
+Changing the context changes both context_id and context_nullifier.
+The public journal does not include the commitment leaf.
+```
+
+## Blocker 3: Proving Baseline
+
+### Spike 05: RISC0_DEV_MODE Baseline
+
+Question:
+
+```text
+How different are build/prove/verify timings between RISC0_DEV_MODE=1 and
+RISC0_DEV_MODE=0 for the current binding circuit?
+```
+
+Planned harness:
+
+```sh
+scripts/spike-05-run-devmode-baseline.sh
+scripts/spike-05-run-prod-baseline.sh
+```
+
+Each script should print one Markdown table with every step:
+
+```text
+| Step | Command | Status | Output | Duration |
+| --- | --- | --- | --- | --- |
+```
+
+The final row must show total duration. The two outputs should be saved as
+separate files so they can be compared directly:
+
+```text
+.spike-results/spike-05-devmode.md
+.spike-results/spike-05-prod.md
+```
+
+Pass condition:
+
+```text
+Both scripts either complete successfully or fail with a precise step and
+captured output. The prod script records real proving time with
+RISC0_DEV_MODE=0.
+```
+
+## Blocker 4: On-Chain Path Decision
+
+### Spike 06: Verifier Path Closure
+
+Question:
+
+```text
+Do we have a supported on-chain verification path, or must the submission use
+Logos-native private execution plus evaluator approval?
+```
+
+Required outcome before M1:
+
+```text
+0A is marked failed/currently unsupported.
+0B is either executed with a result or formally dropped with a reason.
+0C is documented as fallback and sent to evaluators for acceptance.
+IDL and architecture docs no longer describe a known-broken public receipt
+verifier as the primary path.
+```
+
 ## Modular Build Order
 
-After Blocker 0 passes, build in this order:
+After Spikes 04, 05, and 06 are closed, build in this order:
 
 1. `attestation-core`: pure types, hashing, context ids, nullifiers, errors.
 2. `lez-commitment-adapter`: exact compatibility with LEZ commitment code.

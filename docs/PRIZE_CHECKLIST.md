@@ -14,11 +14,11 @@ Status legend:
 
 | Requirement | Status | Planned Artifact |
 | --- | --- | --- |
-| Generate client-side proof for `balance >= N` from a shielded token account. | planned | RISC Zero guest, `attestation-prover`, `attestation-cli prove`. |
-| Verify without revealing `npk`, exact balance, or private account identity. | planned | Public journal schema, verifier tests, security docs. |
-| Bind proof to a context to prevent cross-gate replay. | planned | `context_id` derivation in `attestation-core`. |
-| Bind proof to presenter identity to reduce forwarding. | planned | Public `presenter_id`, off-chain challenge signature, on-chain authorized account check. |
-| Target existing LEZ private account commitment format. | planned | Commitment compatibility tests against local LEZ. |
+| Generate client-side proof for `balance >= N` from a shielded token account. | in-progress | Spike 03/04 prove locally; production `attestation-prover` and CLI still needed. |
+| Verify without revealing `npk`, exact balance, or private account identity. | in-progress | Spike 04 journal omits private fields and commitment leaf; verifier crate still needed. |
+| Bind proof to a context to prevent cross-gate replay. | in-progress | Spike 04 derives `context_id` and context nullifier in-circuit. |
+| Bind proof to presenter identity to reduce forwarding. | in-progress | Spike 04 proves synthetic presenter-secret knowledge; wallet-compatible presenter adapter still needed. |
+| Target existing LEZ private account commitment format. | in-progress | Spike 03/04 use `nssa_core::Commitment::new` and live membership proofs. |
 | On-chain LEZ verifier gates an action. | blocker | Blocker 0 in `docs/RISK_SPIKES.md`, then `lez/verifier-program`. |
 | Off-chain path over Logos Messaging. | planned | Messaging adapter and token-gated group demo. |
 | Three distinct apps integrate on testnet, one outside team. | planned | Governance gate, Messaging group gate, third integration. |
@@ -45,7 +45,7 @@ Status legend:
 | Requirement | Status | Planned Artifact |
 | --- | --- | --- |
 | Document CU cost of on-chain operations. | planned | `docs/BENCHMARKS.md` after LEZ verifier exists. |
-| Proof generation benchmark. | planned | `scripts/bench-proof.sh` and recorded machine specs. |
+| Proof generation benchmark. | planned | Spike 05 dev/prod baseline scripts, then final benchmark docs. |
 
 ## Supportability
 
@@ -71,3 +71,12 @@ Before submitting, the repo must prove:
 5. The demo runs against a live local sequencer.
 6. The final demo uses `RISC0_DEV_MODE=0`.
 
+## Current Spike Evidence
+
+| Evidence | Status | Notes |
+| --- | --- | --- |
+| Direct public LEZ receipt verification | failed/currently unsupported | Runtime lacks receipt assumption channel for `env::verify`. |
+| Logos-native private execution gate | passed locally | Useful fallback, evaluator acceptance pending. |
+| Real `getProofForCommitment` path | passed locally | Spike 02 fetched live membership proof. |
+| Standalone balance circuit | passed locally | Spike 03 proved threshold + commitment + Merkle path. |
+| Binding/nullifier circuit | passed locally | Spike 04 adds presenter binding, context binding, and nullifier. |

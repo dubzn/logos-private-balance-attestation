@@ -104,11 +104,25 @@ Accounts:
 Errors:
 
 - `BA500 GateAlreadyInitialized`
-- `BA502 UnauthorizedPresenterAccount`
+- `BA503 InvalidGateAccount`
 
 ### `claim_access`
 
-Verifies a proof envelope and records access for the presenter/context.
+Verifies the selected on-chain proof path and records access for the
+presenter/context.
+
+Current status:
+
+```text
+Direct public verification of an external RISC Zero receipt is not currently
+supported by the tested LEZ public execution path because no assumption/receipt
+channel is available to env::verify.
+```
+
+Until Spike 06 closes the verifier path, this IDL should be read as the desired
+gate state interface rather than proof-verification implementation certainty.
+The likely local fallback is a Logos-native private execution gate that writes
+the same `GateClaim` shape.
 
 Inputs:
 

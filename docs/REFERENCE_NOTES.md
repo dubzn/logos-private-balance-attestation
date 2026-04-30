@@ -338,3 +338,74 @@ Interpretation:
 - This is still a spike, not the final proof envelope. Presenter binding,
   context-derived nullifiers, stable serialization, off-chain verifier crate,
   Messaging, and final `RISC0_DEV_MODE=0` proving are still pending.
+
+### Spike 04: Binding Attestation Circuit
+
+Date: 2026-04-30.
+
+Result:
+
+```text
+binding_attestation_spike.bin builds successfully.
+Fixture proving succeeds above threshold.
+Fixture proving fails for low balance, bad Merkle root, bad presenter id, and
+bad context nullifier.
+Changing gate/context data changes both context_id and context_nullifier.
+Live proving succeeds against a real private account and membership proof from
+the local sequencer.
+Live proving fails below threshold with the expected guest error.
+```
+
+Observed fixture context variant:
+
+```text
+context_ids_differ: true
+nullifiers_differ: true
+first_context_id_hex: 6a27267dd2bf9da5f9c07d3be0f4b06527f26ffacedcc3c383fda10fae659dd5
+second_context_id_hex: cc8f3348212596d23e8943dd02a03882fbcfda7fcfc1ee838d0f4cdef67b5bbd
+first_nullifier_hex: df2b243768e6a01f3087f3c0efab1e3f3b8e60115ac800cef8316693b6efacfb
+second_nullifier_hex: bf919e02413bd6f4d7706873b86deded6be9405f44e4d89057f615e74eada2be
+```
+
+Observed live success:
+
+```text
+account_id: Private/9S4E6fo9XzawrQAtmtnGdi3GPhtJ4yBprZyhnot1FnY7
+threshold: 25
+proved: true
+verified: true
+commitment_root_hex: 9b9eb2ccaea9a32aa5cdf1e79b987b31ee608e59d2ce56c7668946ee180001a8
+context_id_hex: 90ebee7a4b647880d0de91454879df52489fca255c614f883656ce61e328acd5
+context_nullifier_hex: d6c74e46b0fffd73311e6ace139d433ec53a5200e122c0b665e2bff78421ea5f
+presenter_id_hex: ecc0fef4cd3e706458caa9eb944f487c99fa74d6c2c6a02bdae786450b850a48
+proof_index: 8
+proof_depth: 4
+```
+
+Automated commands:
+
+```sh
+scripts/spike-04-build-binding-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh
+
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+THRESHOLD=25 \
+  RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live
+
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+THRESHOLD=999999 \
+  RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live-below-threshold
+```
+
+Interpretation:
+
+- Context binding is no longer just a passthrough journal field. The circuit
+  derives `context_id` from domain-separated gate data and the circuit image id.
+- Presenter binding is represented inside the circuit by proving knowledge of a
+  synthetic presenter secret that derives `presenter_id`.
+- The context nullifier is domain-separated and depends on `npk`, `context_id`,
+  and `presenter_id`.
+- The public journal no longer publishes the commitment leaf, reducing
+  linkability versus Spike 03.
+- The remaining production decision is mapping the synthetic presenter secret
+  to a real wallet-compatible presenter identity or envelope signature scheme.
