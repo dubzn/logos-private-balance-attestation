@@ -139,7 +139,14 @@ Purpose:
 Use real JSON-RPC getProofForCommitment, not invented endpoints.
 ```
 
-Future command:
+Current spike command:
+
+```sh
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+scripts/spike-02-inspect-membership-proof.sh
+```
+
+Future CLI command:
 
 ```sh
 cargo run -p attestation-cli -- fetch-membership-proof \
@@ -151,6 +158,7 @@ Pass:
 
 - initialized private account returns a membership proof
 - missing/stale private account returns a clear error
+- proof root can be computed from the returned path
 
 ## Layer 6: Balance Circuit
 

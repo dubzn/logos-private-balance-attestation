@@ -151,3 +151,11 @@ running in dev mode:
 ```sh
 RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
 ```
+
+Next, verify the prover-facing sequencer path for an initialized private
+account:
+
+```sh
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+  scripts/spike-02-inspect-membership-proof.sh
+```

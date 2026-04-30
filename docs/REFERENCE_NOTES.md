@@ -238,3 +238,42 @@ Interpretation:
   side effect can all work before the full E2E exists.
 - Account readback must poll rather than sleep a fixed short duration because
   the local sequencer currently produces blocks roughly every 15 seconds.
+
+### Spike 02: Private Commitment Membership Proof
+
+Date: 2026-04-30.
+
+Result:
+
+```text
+The local wallet can reconstruct a private account commitment and fetch a real
+membership proof through getProofForCommitment.
+```
+
+Observed fixture:
+
+```text
+account_id: Private/<redacted-private-account-id>
+private_state_found: true
+membership_proof_found: true
+proof_index: 8
+proof_depth: 4
+commitment_root_hex: 9b9eb2ccaea9a32aa5cdf1e79b987b31ee608e59d2ce56c7668946ee180001a8
+```
+
+Automated command:
+
+```sh
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+  scripts/spike-02-inspect-membership-proof.sh
+```
+
+Interpretation:
+
+- The sequencer adapter risk is lower: the required RPC exists and works
+  against live local sequencer state.
+- `WalletCore::get_private_account_commitment` and
+  `WalletCore::check_private_account_initialized` are the local APIs to wrap
+  before writing custom RPC plumbing.
+- The next risky step is putting the same commitment root calculation inside a
+  standalone RISC Zero guest and verifying it off-chain.
