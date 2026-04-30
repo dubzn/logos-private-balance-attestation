@@ -60,6 +60,7 @@ logos-private-balance-attestation/
 |   |-- IDL_DRAFT.md
 |   |-- IMPLEMENTATION_PLAN.md
 |   |-- LOCAL_SETUP.md
+|   |-- MODULAR_TEST_PLAN.md
 |   |-- PRIZE_CHECKLIST.md
 |   |-- RISK_SPIKES.md
 |   |-- SECURITY_MODEL.md
@@ -99,6 +100,8 @@ flow reproducible.
   acceptance criteria.
 - [Local Setup](docs/LOCAL_SETUP.md): sequencer, wallet, private account, and
   future demo commands.
+- [Modular Test Plan](docs/MODULAR_TEST_PLAN.md): isolated commands for each
+  layer before the final E2E.
 - [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to
   planned artifacts.
 - [Risk Spikes](docs/RISK_SPIKES.md): modular validation plan for the highest
@@ -135,3 +138,16 @@ wallet private account
 Only after that core loop is true should the project add the LEZ verifier
 program, Messaging path, Basecamp GUI, and external integrations.
 
+Start here:
+
+```sh
+scripts/spike-00-inspect-lez-proof-path.sh
+scripts/spike-00-build-lez-program.sh
+```
+
+Then test the Logos-native private execution gate with a local sequencer
+running in dev mode:
+
+```sh
+RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
+```

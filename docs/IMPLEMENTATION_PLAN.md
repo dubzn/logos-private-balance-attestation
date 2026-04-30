@@ -55,6 +55,15 @@ Acceptance:
 - If no path works, the project pauses before implementing lower-risk modules.
 - An external builder candidate for the third integration is identified early.
 
+Current automation:
+
+```sh
+scripts/spike-00-inspect-lez-proof-path.sh
+scripts/spike-00-build-lez-program.sh
+SPIKE_ACCOUNT=<id> scripts/spike-00-run-direct-receipt-gate.sh
+RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
+```
+
 ## Milestone 1: Rust Workspace And Shared Types
 
 Goal: create the reusable core interface before proving.

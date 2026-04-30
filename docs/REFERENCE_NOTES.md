@@ -157,3 +157,84 @@ submission requirement.
 LP-0005 requires an IDL using SPEL. The first implementation can document the
 program interface in a human-readable IDL, but final submission needs the actual
 SPEL artifact once the local toolchain path is clear.
+
+## Spike Results
+
+### Spike 00A: Direct Receipt Gate
+
+Date: 2026-04-29.
+
+Result:
+
+```text
+receipt_gate.bin builds successfully.
+Public transaction submission succeeds.
+Sequencer rejects execution because no RISC Zero assumption/receipt is available.
+```
+
+Observed sequencer error:
+
+```text
+ProgramExecutionFailed(
+  "sys_verify_integrity: no receipt found to resolve assumption: ..."
+)
+```
+
+Interpretation:
+
+- `risc0_zkvm::guest::env::verify` is available to the LEZ guest target.
+- Current public LEZ execution does not expose an assumption channel for a
+  submitted standalone receipt.
+- Direct public receipt verification is not viable unless LEZ adds a way to
+  pass assumptions/receipts into public execution.
+- Next spike is the Logos-native private execution gate.
+
+### Spike 01: Logos-Native Private Balance Gate
+
+Date: 2026-04-29.
+
+Result:
+
+```text
+private_balance_gate.bin builds successfully.
+Public -> private funding works with sequencer and wallet both in RISC0_DEV_MODE=1.
+A private LEZ transaction can read a private account balance, check a threshold,
+and write a marker into a public gate account.
+```
+
+Observed positive fixture:
+
+```text
+private account balance: 42
+threshold: 1
+result: public gate account contains marker "private-balance-gate-ok"
+```
+
+Observed negative fixture:
+
+```text
+private account balance: 42
+threshold: 43
+result: proving fails locally with "private balance is below threshold"
+```
+
+Automated command:
+
+```sh
+RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
+```
+
+Interpretation:
+
+- LEZ private execution is a viable development path for on-chain balance
+  gating.
+- The sequencer validates the private execution proof at the protocol layer,
+  rather than the program verifying a nested receipt.
+- This does not yet satisfy the LP-0005 wording by itself. The prize asks for
+  a reusable proof that can also be verified off-chain, so we still need the
+  standalone attestation circuit and verifier path.
+- This spike is valuable because it proves the local wallet, private state,
+  private transaction builder, sequencer proof validation, and public gated
+  side effect can all work before the full E2E exists.
+- Account readback must poll rather than sleep a fixed short duration because
+  the local sequencer currently produces blocks roughly every 15 seconds.

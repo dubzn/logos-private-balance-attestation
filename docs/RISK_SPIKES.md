@@ -33,6 +33,20 @@ Pass condition:
 Valid toy receipt accepted by LEZ verifier program on local sequencer.
 ```
 
+Current harness:
+
+```sh
+scripts/spike-00-inspect-lez-proof-path.sh
+scripts/spike-00-build-lez-program.sh
+
+export SPIKE_ACCOUNT=<public-account-id-without-Public>
+scripts/spike-00-run-direct-receipt-gate.sh
+```
+
+The first runtime run is allowed to fail. If it fails because public LEZ
+execution cannot provide RISC Zero assumptions to `env::verify`, that result
+decides the next spike.
+
 ### Spike 0B: Recursive Or Native Verifier Path
 
 Question:
@@ -82,6 +96,27 @@ Evaluator confirms this satisfies the on-chain path, or we keep it only as a
 development fallback.
 ```
 
+Current harness:
+
+```sh
+scripts/spike-01-build-private-gate.sh
+
+export PRIVATE_ACCOUNT=<private-account-id-without-Private>
+export GATE_ACCOUNT=<public-account-id-without-Public>
+export THRESHOLD=1
+scripts/spike-01-run-private-gate.sh
+```
+
+Automated local fixture:
+
+```sh
+RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
+```
+
+The automated fixture covers both sides of the branch: a positive gate where
+the private balance is above threshold, and a negative gate where the threshold
+is intentionally too high.
+
 ## Modular Build Order
 
 After Blocker 0 passes, build in this order:
@@ -109,4 +144,3 @@ Pause and re-plan if:
 - the sequencer cannot return membership proofs for initialized private accounts
 - presenter binding is rejected as insufficient by evaluators
 - Messaging requirements cannot be met with available Logos tooling
-

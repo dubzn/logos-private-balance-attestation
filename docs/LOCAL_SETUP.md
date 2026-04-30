@@ -50,7 +50,8 @@ In terminal 1:
 
 ```sh
 cd "$LOGOS_LEZ_REPO"
-RUST_LOG=info cargo run --features standalone -p sequencer_runner sequencer_runner/configs/debug
+RUST_LOG=info cargo run --features standalone -p sequencer_service \
+  sequencer/service/configs/debug/sequencer_config.json
 ```
 
 Healthy signs:
@@ -158,6 +159,29 @@ RISC0_DEV_MODE=1 cargo test
 ```
 
 The distinction must be visible in the final docs and video.
+
+For Spike 01 private execution tests, start the sequencer in dev mode too:
+
+```sh
+cd "$LOGOS_LEZ_REPO"
+RISC0_DEV_MODE=1 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+  sequencer/service/configs/debug/sequencer_config.json
+```
+
+Then run the automated private balance gate fixture from this repo:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
+```
+
+If the wallet generates dev-mode private proofs but the sequencer is not also
+running with `RISC0_DEV_MODE=1`, private transactions are rejected as
+`InvalidPrivacyPreservingProof`.
+
+The local standalone sequencer commonly includes transactions on a roughly
+15-second cadence. Scripts that check account state should poll with a timeout
+instead of relying on a single short sleep.
 
 When `RISC0_DEV_MODE=0`, proof generation can take several minutes. Demo
 scripts should print progress markers to stderr, for example:
