@@ -255,6 +255,76 @@ Expected live success output includes:
 The journal is public-only. It must not include the exact balance, `npk`,
 private keys, account nonce, account data, or Merkle proof siblings.
 
+## Run The Binding Circuit Spike
+
+Spike 04 adds context binding, presenter binding, and a context nullifier. It
+also removes the commitment leaf from the public journal.
+
+Build:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+scripts/spike-04-build-binding-circuit.sh
+```
+
+Run fixture checks:
+
+```sh
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh
+```
+
+Run against a real initialized private account. Keep the local sequencer running
+with `RISC0_DEV_MODE=1` in another terminal:
+
+```sh
+export PRIVATE_ACCOUNT="<private-account-id-without-Private>"
+export THRESHOLD=25
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live
+```
+
+Run the live negative check:
+
+```sh
+export THRESHOLD=999999
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live-below-threshold
+```
+
+Expected live success output includes:
+
+```json
+{
+  "mode": "live",
+  "proved": true,
+  "verified": true,
+  "journal": {
+    "threshold": "25",
+    "commitment_root_hex": "<hex-32>",
+    "context_id_hex": "<hex-32>",
+    "context_nullifier_hex": "<hex-32>",
+    "presenter_id_hex": "<hex-32>"
+  }
+}
+```
+
+## Planned Dev/Prod Baseline
+
+Spike 05 should keep two separate benchmark outputs:
+
+```sh
+scripts/spike-05-run-devmode-baseline.sh  # writes .spike-results/spike-05-devmode.md
+scripts/spike-05-run-prod-baseline.sh     # writes .spike-results/spike-05-prod.md
+```
+
+Each output must be a Markdown table:
+
+```text
+| Step | Command | Status | Output | Duration |
+| --- | --- | --- | --- | --- |
+```
+
+The final row must report total duration so `RISC0_DEV_MODE=1` and
+`RISC0_DEV_MODE=0` are easy to compare.
+
 When `RISC0_DEV_MODE=0`, proof generation can take several minutes. Demo
 scripts should print progress markers to stderr, for example:
 

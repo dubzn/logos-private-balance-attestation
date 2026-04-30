@@ -203,6 +203,70 @@ Pass:
   private keys, or Merkle siblings
 - tampered context, threshold, or root fails verification
 
+## Layer 6.5: Binding Circuit
+
+Purpose:
+
+```text
+Bind the proof to context, presenter, and nullifier before creating the
+production proof envelope.
+```
+
+Current spike commands:
+
+```sh
+scripts/spike-04-build-binding-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh
+
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+export THRESHOLD=25
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live
+
+export THRESHOLD=999999
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live-below-threshold
+```
+
+Pass:
+
+- proof succeeds above threshold
+- proof fails below threshold
+- bad Merkle root fails inside the guest
+- bad presenter id fails inside the guest
+- bad context nullifier fails inside the guest
+- changing the context changes `context_id` and `context_nullifier`
+- receipt journal does not include the commitment leaf
+
+## Layer 6.6: Dev/Prod Proving Baseline
+
+Purpose:
+
+```text
+Measure the current circuit with RISC0_DEV_MODE=1 and RISC0_DEV_MODE=0 before
+the final demo depends on real proving.
+```
+
+Planned commands:
+
+```sh
+scripts/spike-05-run-devmode-baseline.sh
+scripts/spike-05-run-prod-baseline.sh
+```
+
+Output contract:
+
+```text
+| Step | Command | Status | Output | Duration |
+| --- | --- | --- | --- | --- |
+| total | - | ok/fail | result file path | 00:00:00 |
+```
+
+Pass:
+
+- each step records status, important output, and duration
+- dev-mode and prod-mode results are written to separate Markdown files
+- prod mode runs with `RISC0_DEV_MODE=0`
+- failures identify the exact failing step
+
 ## Layer 7: Off-Chain Verification And Messaging
 
 Purpose:

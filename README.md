@@ -17,8 +17,8 @@ nonce, or account data.
 
 This repo is past the initial planning phase and now contains risk spikes for
 the highest-uncertainty LP-0005 pieces: on-chain proof path exploration,
-Logos-native private balance gating, real membership proof retrieval, and a
-standalone balance attestation circuit.
+Logos-native private balance gating, real membership proof retrieval, a
+standalone balance attestation circuit, and a binding/nullifier circuit.
 
 No prize submission should be made from this state. The project still needs the
 production proof envelope, CLI, LEZ verifier decision, Messaging integration,
@@ -171,3 +171,21 @@ PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
 THRESHOLD=25 \
   RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live
 ```
+
+Then run the binding/nullifier circuit spike:
+
+```sh
+scripts/spike-04-build-binding-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh
+
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+THRESHOLD=25 \
+  RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live
+```
+
+Before M1, close the remaining spike work:
+
+- Spike 05: compare `RISC0_DEV_MODE=1` and `RISC0_DEV_MODE=0` timings in
+  separate Markdown result files.
+- Spike 06: decide the on-chain verifier path now that direct public
+  `env::verify` failed locally.

@@ -98,8 +98,9 @@ paths:
     "context_id": "<hex-32>",
     "commitment_root": "<hex-32>",
     "context_nullifier": "<hex-32>",
-    "presenter_id": "Public/<account-or-app-identity>",
-    "verifier_id": "<program-id-or-app-id>"
+    "presenter_id": "<hex-32-or-public-account-id>",
+    "verifier_id": "<hex-32-or-program-id>",
+    "circuit_image_id": "<risc0-image-id-hex>"
   },
   "receipt": "<encoded-receipt>",
   "presenter_signature": "<signature-over-journal-and-challenge>"
@@ -128,6 +129,7 @@ Public journal:
 - context-bound nullifier
 - presenter id
 - verifier id
+- circuit image id
 
 The circuit checks:
 
@@ -136,6 +138,10 @@ The circuit checks:
 3. The Merkle path resolves to the public commitment root.
 4. The context nullifier is derived from the private account and public context.
 5. The public journal binds the proof to a presenter id and verifier/context id.
+
+The production journal should not publish the private commitment leaf. Spike 03
+published it for debugging; Spike 04 removes it from the public journal and
+keeps it as witness-only intermediate state.
 
 ## Context Binding
 
@@ -146,7 +152,7 @@ public data:
 context_id = SHA256(
   "logos-balance-attestation/v1/context"
   || chain_id
-  || image_id
+  || circuit_image_id
   || verifier_id
   || gate_id
   || threshold
@@ -172,8 +178,10 @@ Bob's presenter id or shares her private key. It does prevent a passive third
 party from reusing a captured proof as themselves.
 
 V1 uses a separate presenter signature over the proof journal and verifier
-challenge. If evaluator feedback requires presenter key knowledge inside the
-RISC Zero receipt, this layer must move into the circuit before Milestone 4.
+challenge. Spike 04 additionally validates the stronger shape where the circuit
+proves knowledge of presenter material that derives `presenter_id`; the
+production adapter still needs to map that to a real wallet-compatible
+presenter key.
 
 ## Off-Chain Path
 
@@ -206,10 +214,10 @@ sequenceDiagram
   participant P as LEZ Verifier Program
   participant S as Sequencer
 
-  A->>CLI: Generate proof envelope
+  A->>CLI: Generate proof or private gate witness
   CLI->>S: Submit gated action transaction
-  S->>P: Execute verifier program
-  P->>P: Verify proof envelope and presenter authorization
+  S->>P: Execute selected verifier/gate program
+  P->>P: Verify selected proof path and presenter authorization
   P->>S: Accept action or return deterministic error
 ```
 
@@ -228,13 +236,24 @@ The on-chain verifier must be a real LEZ program. A previous LP-0005 submission
 was rejected for using a standalone Rust verifier that could not be deployed to
 LEZ.
 
-The implementation must validate the exact feasible path for receipt
-verification inside a LEZ guest:
+The implementation already tested direct public receipt verification inside a
+LEZ guest. It builds, but runtime execution currently fails because public LEZ
+execution does not expose a RISC Zero assumption/receipt channel:
 
-- embedded RISC Zero receipt verification if supported in the LEZ guest
-  environment
-- recursive/composed proof strategy if direct verification is too expensive
-- LEZ-native verifier support if exposed by the current runtime
+```text
+sys_verify_integrity: no receipt found to resolve assumption
+```
+
+That makes direct public `env::verify` a failed/currently unsupported path, not
+the primary architecture.
+
+Remaining options:
+
+- run or formally drop the recursive/native verifier path, currently Spike 0B
+- use Logos-native private execution as the on-chain gate path if evaluators
+  confirm it satisfies LP-0005
+- keep host-side/off-chain receipt verification for Messaging and local app
+  flows
 
 Host-side pre-verification is useful for development, but it cannot satisfy the
 on-chain prize requirement by itself.
@@ -242,6 +261,8 @@ on-chain prize requirement by itself.
 This is a hard prerequisite, not a late implementation detail. See
 `docs/RISK_SPIKES.md` for the modular spike plan:
 
-1. direct RISC Zero receipt verification inside a LEZ guest
-2. recursive/native verifier support
-3. Logos-native private execution gate with explicit evaluator confirmation
+1. direct RISC Zero receipt verification inside a LEZ guest: failed/currently
+   unsupported
+2. recursive/native verifier support: not run yet
+3. Logos-native private execution gate with explicit evaluator confirmation:
+   passed locally, pending acceptance
