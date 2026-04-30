@@ -205,6 +205,56 @@ Expected output includes:
 }
 ```
 
+## Run The Balance Circuit Spike
+
+Build the standalone RISC Zero guest that checks the balance threshold,
+reconstructs the LEZ private account commitment, and verifies the Merkle path:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+scripts/spike-03-build-balance-circuit.sh
+```
+
+Run fast fixture checks without wallet/sequencer state:
+
+```sh
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh
+```
+
+Run against a real initialized private account. Keep the local sequencer running
+with `RISC0_DEV_MODE=1` in another terminal:
+
+```sh
+export PRIVATE_ACCOUNT="<private-account-id-without-Private>"
+export THRESHOLD=25
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live
+```
+
+Run the live negative check:
+
+```sh
+export THRESHOLD=999999
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live-below-threshold
+```
+
+Expected live success output includes:
+
+```json
+{
+  "mode": "live",
+  "proved": true,
+  "verified": true,
+  "journal": {
+    "threshold": "25",
+    "commitment_root_hex": "<hex-32>",
+    "proof_depth": 4
+  }
+}
+```
+
+The journal is public-only. It must not include the exact balance, `npk`,
+private keys, account nonce, account data, or Merkle proof siblings.
+
 When `RISC0_DEV_MODE=0`, proof generation can take several minutes. Demo
 scripts should print progress markers to stderr, for example:
 

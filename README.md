@@ -15,13 +15,14 @@ nonce, or account data.
 
 ## Status
 
-This repo is currently in the planning and architecture phase. The first slice
-is intentionally documentation-first so the implementation can continue across
-tools and sessions without losing context.
+This repo is past the initial planning phase and now contains risk spikes for
+the highest-uncertainty LP-0005 pieces: on-chain proof path exploration,
+Logos-native private balance gating, real membership proof retrieval, and a
+standalone balance attestation circuit.
 
 No prize submission should be made from this state. The project still needs the
-RISC Zero circuit, CLI, LEZ verifier program, Messaging integration, Basecamp
-GUI, tests, benchmarks, and demo video.
+production proof envelope, CLI, LEZ verifier decision, Messaging integration,
+Basecamp GUI, tests, benchmarks, and demo video.
 
 ## Target Verification Paths
 
@@ -158,4 +159,15 @@ account:
 ```sh
 PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
   scripts/spike-02-inspect-membership-proof.sh
+```
+
+Then run the standalone balance circuit spike:
+
+```sh
+scripts/spike-03-build-balance-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh
+
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+THRESHOLD=25 \
+  RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live
 ```

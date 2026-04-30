@@ -168,6 +168,20 @@ Purpose:
 Prove balance >= threshold over a real private account commitment.
 ```
 
+Current spike commands:
+
+```sh
+scripts/spike-03-build-balance-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh
+
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+export THRESHOLD=25
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live
+
+export THRESHOLD=999999
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live-below-threshold
+```
+
 Future command:
 
 ```sh
@@ -184,6 +198,9 @@ Pass:
 
 - proof succeeds above threshold
 - proof fails below threshold
+- bad Merkle root fails inside the guest
+- receipt journal does not include exact balance, `npk`, account data, nonce,
+  private keys, or Merkle siblings
 - tampered context, threshold, or root fails verification
 
 ## Layer 7: Off-Chain Verification And Messaging
