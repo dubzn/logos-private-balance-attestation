@@ -277,3 +277,64 @@ Interpretation:
   before writing custom RPC plumbing.
 - The next risky step is putting the same commitment root calculation inside a
   standalone RISC Zero guest and verifying it off-chain.
+
+### Spike 03: Balance Attestation Circuit
+
+Date: 2026-04-30.
+
+Result:
+
+```text
+balance_attestation_spike.bin builds successfully.
+Fixture proving succeeds above threshold and fails below threshold.
+Fixture proving fails if the expected commitment root is tampered.
+Live proving succeeds against a real private account and membership proof from
+the local sequencer.
+Live proving fails below threshold with the expected guest error.
+```
+
+Observed live success:
+
+```text
+account_id: Private/9S4E6fo9XzawrQAtmtnGdi3GPhtJ4yBprZyhnot1FnY7
+threshold: 25
+proved: true
+verified: true
+commitment_root_hex: 9b9eb2ccaea9a32aa5cdf1e79b987b31ee608e59d2ce56c7668946ee180001a8
+proof_index: 8
+proof_depth: 4
+```
+
+Observed live negative:
+
+```text
+threshold: 999999
+expected_failure_observed: true
+failure_contains: "Guest panicked: private balance is below threshold"
+```
+
+Automated commands:
+
+```sh
+scripts/spike-03-build-balance-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh
+
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+THRESHOLD=25 \
+  RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live
+
+PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
+THRESHOLD=999999 \
+  RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live-below-threshold
+```
+
+Interpretation:
+
+- The standalone circuit risk is lower: the guest can consume the same LEZ
+  account fields and Merkle proof shape used by the wallet/sequencer path.
+- The journal is intentionally public-only. It reports threshold, root, context
+  id, commitment, proof index, and proof depth, but not balance, `npk`, nonce,
+  account data, private keys, or proof siblings.
+- This is still a spike, not the final proof envelope. Presenter binding,
+  context-derived nullifiers, stable serialization, off-chain verifier crate,
+  Messaging, and final `RISC0_DEV_MODE=0` proving are still pending.

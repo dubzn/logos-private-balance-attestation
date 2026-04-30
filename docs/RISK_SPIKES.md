@@ -151,6 +151,49 @@ commitment_root_hex is present
 This spike deliberately does not print private witness fields such as exact
 balance, `npk`, local private keys, or proof siblings.
 
+## Blocker 2: Standalone Balance Circuit
+
+LP-0005 needs a reusable proof that can be verified off-chain and, depending on
+the final on-chain path, potentially submitted to a LEZ verifier. Before
+building a full SDK, we need to prove the core circuit can consume the real
+private account shape.
+
+### Spike 03: Balance Attestation Circuit
+
+Question:
+
+```text
+Can a standalone RISC Zero guest prove:
+  balance >= threshold
+  commitment == LEZ private account commitment
+  membership path resolves to the public commitment root
+without writing private account fields to the journal?
+```
+
+Current harness:
+
+```sh
+scripts/spike-03-build-balance-circuit.sh
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh
+
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+export THRESHOLD=25
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live
+
+export THRESHOLD=999999
+RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live-below-threshold
+```
+
+Pass condition:
+
+```text
+Fixture and live positive cases prove and verify.
+Fixture and live negative cases fail during guest execution with documented
+errors.
+The journal includes only public values: threshold, root, context id,
+commitment, proof index, and proof depth.
+```
+
 ## Modular Build Order
 
 After Blocker 0 passes, build in this order:
