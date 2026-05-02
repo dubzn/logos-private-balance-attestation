@@ -1,8 +1,8 @@
 # Local Setup
 
 This document describes the intended local development flow. Some commands are
-future-facing because the repo currently contains docs only. The LEZ and wallet
-commands are based on the local `logos-execution-zone` checkout.
+future-facing because the repo is still being built in layers. The LEZ and
+wallet commands are based on the local `logos-execution-zone` checkout.
 
 ## Expected Local Paths
 
@@ -43,6 +43,26 @@ the LEZ checkout changes.
 The implementation should add `scripts/check-risc0-version.sh` before the first
 Rust milestone. That script must compare the attestation workspace RISC Zero
 version against the local LEZ checkout and fail CI on mismatch.
+
+## Run The Core Unit Tests
+
+The first reusable crate does not need a sequencer, wallet, Docker, or RISC
+Zero proving. From the repo root:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+cargo test -p attestation-core
+```
+
+Expected result:
+
+```text
+11 passed
+```
+
+These tests cover context id derivation, presenter id derivation, context
+nullifier behavior, proof envelope shape, stable JSON encoding, and
+deterministic error-code mappings.
 
 ## Start Local Sequencer
 

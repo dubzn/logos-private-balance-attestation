@@ -28,7 +28,7 @@ Status legend:
 
 | Requirement | Status | Planned Artifact |
 | --- | --- | --- |
-| SDK/module for Logos modules. | planned | `attestation-core`, `attestation-verifier`, package docs. |
+| SDK/module for Logos modules. | in-progress | `attestation-core` exists and is tested; `attestation-verifier` and package docs still needed. |
 | Basecamp GUI with local build instructions. | planned | `apps/basecamp`, backend-backed `ui_qml`. |
 | SPEL IDL for LEZ program. | planned | `docs/IDL.md` or `lez/verifier-program/idl/`. |
 
@@ -36,9 +36,9 @@ Status legend:
 
 | Requirement | Status | Planned Artifact |
 | --- | --- | --- |
-| Proof generation failures surface clear errors. | planned | `AttestationError` enum and CLI error mapping. |
+| Proof generation failures surface clear errors. | in-progress | `AttestationError` and deterministic codes exist in `attestation-core`; CLI mapping still needed. |
 | Messaging verification failures do not expose private data. | planned | Sanitized errors and logging policy. |
-| Verifier returns deterministic documented error codes. | planned | Error code table shared by CLI and LEZ program. |
+| Verifier returns deterministic documented error codes. | in-progress | Error code table and Rust enum exist; LEZ/verifier mappings still needed. |
 
 ## Performance
 
@@ -81,4 +81,5 @@ Before submitting, the repo must prove:
 | Standalone balance circuit | passed locally | Spike 03 proved threshold + commitment + Merkle path. |
 | Binding/nullifier circuit | passed locally | Spike 04 adds presenter binding, context binding, and nullifier. |
 | Dev/prod proving baseline | passed locally | Spike 05 proved fixture with `RISC0_DEV_MODE=0`. |
-| On-chain path decision | in-progress | Spike 06 documents no local public external receipt verifier path; evaluator confirmation still needed. |
+| On-chain path decision | passed locally | Spike 06 documents no local public external receipt verifier path; evaluator confirmation still needed. |
+| `attestation-core` workspace | passed locally | M1 started with context hashing, nullifier/presenter helpers, envelope/journal types, and error-code tests. |

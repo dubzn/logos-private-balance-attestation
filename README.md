@@ -20,9 +20,13 @@ the highest-uncertainty LP-0005 pieces: on-chain proof path exploration,
 Logos-native private balance gating, real membership proof retrieval, a
 standalone balance attestation circuit, and a binding/nullifier circuit.
 
+Milestone 1 has started with a real Rust workspace and `attestation-core`, the
+runtime-independent crate that owns the proof envelope shape, public journal,
+context hashing, presenter/nullifier helpers, and deterministic error codes.
+
 No prize submission should be made from this state. The project still needs the
-production proof envelope, CLI, LEZ verifier decision, Messaging integration,
-Basecamp GUI, tests, benchmarks, and demo video.
+production prover, verifier, CLI, LEZ verifier decision, Messaging integration,
+Basecamp GUI, broader tests, benchmarks, and demo video.
 
 ## Target Verification Paths
 
@@ -195,3 +199,9 @@ Before M1, close the remaining spike work:
   `RISC0_DEV_MODE=0` Markdown result files.
 - Spike 06: passed as a documented decision; do not build M1 around public
   external receipt verification.
+
+Run the first reusable core tests:
+
+```sh
+cargo test -p attestation-core
+```
