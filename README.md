@@ -107,6 +107,8 @@ flow reproducible.
   future demo commands.
 - [Modular Test Plan](docs/MODULAR_TEST_PLAN.md): isolated commands for each
   layer before the final E2E.
+- [Next Steps](docs/NEXT_STEPS.md): ordered backlog from the current state to
+  the final submission.
 - [On-Chain Path Decision](docs/ONCHAIN_PATH_DECISION.md): Spike 06 result for
   the LEZ verifier path.
 - [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to

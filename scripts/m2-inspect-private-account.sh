@@ -108,6 +108,7 @@ edition = "2021"
 
 [dependencies]
 attestation-core = { path = "$REPO_ROOT/crates/attestation-core" }
+attestation-prover = { path = "$REPO_ROOT/crates/attestation-prover" }
 nssa = { path = "$LOGOS_LEZ_REPO/nssa" }
 nssa_core = { path = "$LOGOS_LEZ_REPO/nssa/core", features = ["host"] }
 wallet = { path = "$LOGOS_LEZ_REPO/wallet" }
@@ -124,24 +125,13 @@ use attestation_core::{
     compute_lez_membership_root, derive_lez_private_account_commitment, Digest32, HexBytes,
     LezMembershipProof, LezPrivateAccountCommitmentInput,
 };
+use attestation_prover::{
+    build_private_account_inspect_report, MembershipProofInspection, PrivateAccountInspectSource,
+    PrivateAccountInspectStatus,
+};
 use nssa::AccountId;
 use nssa_core::compute_digest_for_path;
-use serde::Serialize;
 use wallet::WalletCore;
-
-#[derive(Debug, Serialize)]
-struct PrivateAccountInspectReport {
-    account_id_redacted: String,
-    private_state_found: bool,
-    local_commitment_matches_wallet: bool,
-    membership_proof_found: bool,
-    proof_index: Option<usize>,
-    proof_depth: Option<usize>,
-    commitment_root_hex: Option<String>,
-    core_root_matches_wallet_root: Option<bool>,
-    proof_source: String,
-    redaction_policy: &'static str,
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -202,8 +192,7 @@ async fn main() -> Result<()> {
         anyhow::bail!("membership proof was not found for the current private commitment");
     }
 
-    let (proof_index, proof_depth, commitment_root_hex, core_root_matches_wallet_root) =
-        membership_proof.as_ref().map_or((None, None, None, None), |proof| {
+    let membership_proof = membership_proof.as_ref().map(|proof| {
             let wallet_root = compute_digest_for_path(&wallet_commitment, proof);
             let core_root = compute_lez_membership_root(
                 &core_commitment,
@@ -212,45 +201,29 @@ async fn main() -> Result<()> {
                     siblings: proof.1.iter().copied().map(Digest32).collect(),
                 },
             );
-            (
-                Some(proof.0),
-                Some(proof.1.len()),
-                Some(hex::encode(wallet_root)),
-                Some(core_root.as_bytes() == &wallet_root),
-            )
+            MembershipProofInspection {
+                proof_index: proof.0 as u64,
+                proof_depth: proof.1.len() as u64,
+                commitment_root: Digest32(wallet_root),
+                core_root_matches_wallet_root: core_root.as_bytes() == &wallet_root,
+            }
         });
 
-    let report = PrivateAccountInspectReport {
-        account_id_redacted: redact_private_account_id(&account_id_raw),
+    let report = build_private_account_inspect_report(PrivateAccountInspectStatus {
+        account_id_raw,
         private_state_found: true,
         local_commitment_matches_wallet: core_commitment.as_bytes() == &wallet_commitment_bytes,
-        membership_proof_found: membership_proof.is_some(),
-        proof_index,
-        proof_depth,
-        commitment_root_hex,
-        core_root_matches_wallet_root,
-        proof_source: if local_only {
-            "local wallet storage only; getProofForCommitment not requested".to_owned()
+        membership_proof,
+        source: if local_only {
+            PrivateAccountInspectSource::LocalOnly
         } else {
-            "WalletCore::check_private_account_initialized -> getProofForCommitment".to_owned()
+            PrivateAccountInspectSource::GetProofForCommitment
         },
-        redaction_policy:
-            "does not print npk, balance, nonce, data, commitment, membership siblings, or private keys",
-    };
+    });
 
     println!("{}", serde_json::to_string_pretty(&report)?);
 
     Ok(())
-}
-
-fn redact_private_account_id(account_id: &str) -> String {
-    if account_id.len() <= 12 {
-        return "Private/<redacted>".to_owned();
-    }
-
-    let start = &account_id[..6];
-    let end = &account_id[account_id.len() - 6..];
-    format!("Private/{start}...{end}")
 }
 EOF
 
