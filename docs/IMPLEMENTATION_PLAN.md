@@ -38,8 +38,8 @@ Spike order:
 1. Build a toy RISC Zero method and produce a receipt with the same RISC Zero
    version as LEZ.
 2. Try direct receipt verification inside a minimal LEZ guest program.
-3. If direct verification fails, test recursive/native verifier options exposed
-   by the current LEZ/RISC Zero runtime.
+3. If direct verification fails, inspect recursive/native verifier options
+   exposed by the current LEZ/RISC Zero runtime.
 4. In parallel, prototype a Logos-native private execution gate where LEZ
    private execution itself proves `balance >= threshold`, then ask the prize
    evaluators whether this satisfies the on-chain path.
@@ -62,6 +62,7 @@ scripts/spike-00-inspect-lez-proof-path.sh
 scripts/spike-00-build-lez-program.sh
 SPIKE_ACCOUNT=<id> scripts/spike-00-run-direct-receipt-gate.sh
 RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
+scripts/spike-06-inspect-onchain-path.sh
 ```
 
 ## Milestone 1: Rust Workspace And Shared Types
@@ -195,7 +196,17 @@ Acceptance:
 
 ## Milestone 5: LEZ Verifier Program
 
-Goal: satisfy the on-chain path with a deployable LEZ program.
+Goal: satisfy the on-chain path with a deployable LEZ program or
+evaluator-approved Logos-native private execution gate.
+
+Current blocker:
+
+```text
+Spike 06 found no local public LEZ path for verifying external standalone RISC
+Zero receipts. Do not implement Milestone 5 around direct public env::verify
+unless Logos exposes an assumption/native verifier path or evaluators give new
+guidance.
+```
 
 Implementation:
 

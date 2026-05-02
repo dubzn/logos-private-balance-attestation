@@ -269,6 +269,30 @@ Pass:
 - optional live mode is available with `SPIKE05_RUN_LIVE=1` and a running
   sequencer
 
+## Layer 6.7: On-Chain Path Decision
+
+Purpose:
+
+```text
+Close the direct public receipt verifier question before building M1 around an
+invalid on-chain shape.
+```
+
+Current command:
+
+```sh
+scripts/spike-06-inspect-onchain-path.sh
+```
+
+Pass:
+
+- direct public `env::verify` is marked failed/currently unsupported
+- recursive/native verifier support is inspected against local LEZ code
+- Logos-native private execution remains documented as the working local
+  fallback
+- M1 can proceed with off-chain proof primitives while the on-chain gate stays
+  behind an interface
+
 ## Layer 7: Off-Chain Verification And Messaging
 
 Purpose:

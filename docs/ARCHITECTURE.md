@@ -249,7 +249,6 @@ the primary architecture.
 
 Remaining options:
 
-- run or formally drop the recursive/native verifier path, currently Spike 0B
 - use Logos-native private execution as the on-chain gate path if evaluators
   confirm it satisfies LP-0005
 - keep host-side/off-chain receipt verification for Messaging and local app
@@ -259,10 +258,11 @@ Host-side pre-verification is useful for development, but it cannot satisfy the
 on-chain prize requirement by itself.
 
 This is a hard prerequisite, not a late implementation detail. See
-`docs/RISK_SPIKES.md` for the modular spike plan:
+`docs/ONCHAIN_PATH_DECISION.md` and `docs/RISK_SPIKES.md` for the modular spike
+plan:
 
 1. direct RISC Zero receipt verification inside a LEZ guest: failed/currently
    unsupported
-2. recursive/native verifier support: not run yet
+2. recursive/native verifier support: inspected; no local public LEZ path found
 3. Logos-native private execution gate with explicit evaluator confirmation:
    passed locally, pending acceptance

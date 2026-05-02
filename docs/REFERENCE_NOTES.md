@@ -485,3 +485,50 @@ Interpretation:
   reused cache, so compare proof rows more than total rows for this run.
 - The current fixture proof is feasible in real proving mode on this machine:
   dev proof was roughly 4 seconds, prod proof roughly 25 seconds.
+
+### Spike 06: On-Chain Path Decision
+
+Date: 2026-05-02.
+
+Result:
+
+```text
+The local public LEZ execution path does not expose an assumption injection
+point or native verifier API for an external standalone RISC Zero receipt.
+The Logos-native private execution path does use assumptions internally and is
+the only working local on-chain gate route found so far.
+```
+
+Automated command:
+
+```sh
+scripts/spike-06-inspect-onchain-path.sh
+```
+
+Observed inspection:
+
+```text
+public LEZ execution uses default executor: yes
+public LEZ execution adds receipt assumptions: 0
+private LEZ proof host adds assumptions: 1
+private LEZ guest calls env::verify: 1
+private LEZ proof uses succinct receipts: yes
+Spike 0A missing assumption error recorded: observed
+```
+
+Decision:
+
+```text
+Do not build M1 around public LEZ verification of external RISC Zero receipts.
+Build the reusable off-chain proof envelope/verifier first.
+Keep the on-chain path behind an interface and use Logos-native private
+execution as the working local fallback pending evaluator confirmation.
+```
+
+Interpretation:
+
+- 0A is failed/currently unsupported.
+- 0B was inspected; RISC Zero recursion exists, but no local deployable public
+  LEZ path was found for external receipt verification.
+- 0C remains the only local on-chain path that works today, but prize wording
+  still requires evaluator confirmation.

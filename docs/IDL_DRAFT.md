@@ -119,10 +119,11 @@ supported by the tested LEZ public execution path because no assumption/receipt
 channel is available to env::verify.
 ```
 
-Until Spike 06 closes the verifier path, this IDL should be read as the desired
-gate state interface rather than proof-verification implementation certainty.
-The likely local fallback is a Logos-native private execution gate that writes
-the same `GateClaim` shape.
+Spike 06 closes the current local decision: this IDL should be read as the
+desired gate state interface, not as proof that public receipt verification is
+currently deployable. The likely local fallback is a Logos-native private
+execution gate that writes the same `GateClaim` shape, pending evaluator
+confirmation.
 
 Inputs:
 

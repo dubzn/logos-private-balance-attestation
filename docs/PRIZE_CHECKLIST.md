@@ -19,7 +19,7 @@ Status legend:
 | Bind proof to a context to prevent cross-gate replay. | in-progress | Spike 04 derives `context_id` and context nullifier in-circuit. |
 | Bind proof to presenter identity to reduce forwarding. | in-progress | Spike 04 proves synthetic presenter-secret knowledge; wallet-compatible presenter adapter still needed. |
 | Target existing LEZ private account commitment format. | in-progress | Spike 03/04 use `nssa_core::Commitment::new` and live membership proofs. |
-| On-chain LEZ verifier gates an action. | blocker | Blocker 0 in `docs/RISK_SPIKES.md`, then `lez/verifier-program`. |
+| On-chain LEZ verifier gates an action. | blocker | Spike 06 says direct public receipt verification is unsupported locally; use private execution fallback pending evaluator confirmation. |
 | Off-chain path over Logos Messaging. | planned | Messaging adapter and token-gated group demo. |
 | Three distinct apps integrate on testnet, one outside team. | planned | Governance gate, Messaging group gate, third integration. |
 | Full docs and clean public repo. | in-progress | Current documentation baseline. |
@@ -80,3 +80,5 @@ Before submitting, the repo must prove:
 | Real `getProofForCommitment` path | passed locally | Spike 02 fetched live membership proof. |
 | Standalone balance circuit | passed locally | Spike 03 proved threshold + commitment + Merkle path. |
 | Binding/nullifier circuit | passed locally | Spike 04 adds presenter binding, context binding, and nullifier. |
+| Dev/prod proving baseline | passed locally | Spike 05 proved fixture with `RISC0_DEV_MODE=0`. |
+| On-chain path decision | in-progress | Spike 06 documents no local public external receipt verifier path; evaluator confirmation still needed. |
