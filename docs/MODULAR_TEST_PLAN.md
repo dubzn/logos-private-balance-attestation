@@ -198,7 +198,8 @@ Current status:
 
 ```text
 local-only wallet inspect passed locally.
-proof mode is implemented but requires a running local sequencer.
+proof mode passed locally against a running local sequencer.
+attestation-prover owns reusable report/redaction logic.
 ```
 
 ## Layer 6: Balance Circuit

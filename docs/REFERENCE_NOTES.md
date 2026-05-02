@@ -265,11 +265,47 @@ Proof mode is implemented through:
 WalletCore::check_private_account_initialized -> getProofForCommitment
 ```
 
-It was not run in this pass because `wallet check-health` reported connection
-refused on `127.0.0.1:3040`. Start the local sequencer, then run:
+Observed successful proof-mode result after starting the local sequencer:
 
-```sh
-PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --require-proof
+```text
+private_state_found = true
+local_commitment_matches_wallet = true
+membership_proof_found = true
+proof_depth = 4
+core_root_matches_wallet_root = true
+```
+
+Some local private accounts returned no proof. Interpretation: the private
+account exists in local wallet storage, but its current commitment is not in the
+loaded sequencer state.
+
+### Milestone 2 Prover Crate Start
+
+Date: 2026-05-02.
+
+Result:
+
+```text
+attestation-prover crate added.
+cargo test passes for attestation-core and attestation-prover.
+```
+
+The first `attestation-prover` slice owns:
+
+- private account id redaction
+- sanitized inspect report shape
+- local-only vs `getProofForCommitment` proof source labeling
+- membership proof summary fields
+- no-witness logging policy string
+
+The M2 script now uses this crate instead of defining the report and redaction
+logic inside the generated temporary Cargo project.
+
+Current workspace test result:
+
+```text
+attestation-core: 16 tests passed
+attestation-prover: 4 tests passed
 ```
 
 ### Spike 00A: Direct Receipt Gate

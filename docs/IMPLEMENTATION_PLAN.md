@@ -72,10 +72,10 @@ Goal: create the reusable core interface before proving.
 Current crate:
 
 - `attestation-core`
+- `attestation-prover`
 
 Later M1/M2 crates:
 
-- `attestation-prover`
 - `attestation-verifier`
 - `attestation-cli`
 
@@ -158,8 +158,8 @@ Local compatibility script passes against nssa_core for dummy, documented, and
 wide-value fixtures.
 Wallet local inspect script validates private account commitment reconstruction
 without printing witness data.
-Sequencer proof mode is implemented; it requires a running local sequencer on
-the wallet-configured RPC address.
+Sequencer proof mode passed locally against getProofForCommitment.
+attestation-prover now owns the reusable sanitized report/redaction logic.
 ```
 
 Planned CLI:

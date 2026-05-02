@@ -132,6 +132,15 @@ core_root_matches_wallet_root: true
 If `wallet check-health` fails with `Connection refused` on `127.0.0.1:3040`,
 start the local sequencer first.
 
+Observed successful local proof-mode result:
+
+```text
+private_state_found: true
+local_commitment_matches_wallet: true
+membership_proof_found: true
+core_root_matches_wallet_root: true
+```
+
 ## Start Local Sequencer
 
 In terminal 1:
