@@ -186,6 +186,8 @@ THRESHOLD=25 \
 Before M1, close the remaining spike work:
 
 - Spike 05: compare `RISC0_DEV_MODE=1` and `RISC0_DEV_MODE=0` timings in
-  separate Markdown result files.
+  separate Markdown result files:
+  `scripts/spike-05-run-devmode-baseline.sh` and
+  `scripts/spike-05-run-prod-baseline.sh`.
 - Spike 06: decide the on-chain verifier path now that direct public
   `env::verify` failed locally.
