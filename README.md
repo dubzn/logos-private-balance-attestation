@@ -23,6 +23,8 @@ standalone balance attestation circuit, and a binding/nullifier circuit.
 Milestone 1 has started with a real Rust workspace and `attestation-core`, the
 runtime-independent crate that owns the proof envelope shape, public journal,
 context hashing, presenter/nullifier helpers, and deterministic error codes.
+Milestone 2 now has a local-first `balance-attest inspect-private` command for
+sanitized wallet/sequencer inspection.
 
 No prize submission should be made from this state. The project still needs the
 production prover, verifier, CLI, LEZ verifier decision, Messaging integration,
@@ -217,13 +219,15 @@ scripts/m2-check-lez-commitment-compat.sh
 Inspect a local private account without printing witness data:
 
 ```sh
-PRIVATE_ACCOUNT=<private-account-id-without-Private> \
-  scripts/m2-inspect-private-account.sh --local-only
+cargo run -p attestation-cli -- inspect-private \
+  --account Private/<private-account-id> \
+  --local-only
 ```
 
 With a local sequencer running, request the real membership proof:
 
 ```sh
-PRIVATE_ACCOUNT=<private-account-id-without-Private> \
-  scripts/m2-inspect-private-account.sh --require-proof
+cargo run -p attestation-cli -- inspect-private \
+  --account Private/<private-account-id> \
+  --require-proof
 ```

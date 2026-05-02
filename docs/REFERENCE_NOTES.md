@@ -323,6 +323,40 @@ proof_depth = 4
 core_root_matches_wallet_root = true
 ```
 
+### Milestone 2 CLI Start
+
+Date: 2026-05-02.
+
+Result:
+
+```text
+attestation-cli crate added.
+balance-attest inspect-private passed local-only and require-proof modes.
+```
+
+The CLI currently bridges to `scripts/m2-inspect-private-account.sh`, which
+keeps the local LEZ `WalletCore` dependency isolated from the portable
+workspace while still giving a product-facing command.
+
+Observed command:
+
+```sh
+cargo run -p attestation-cli -- inspect-private \
+  --account Private/<redacted-private-account-id> \
+  --require-proof \
+  --wallet-home /Users/dub/logos/src/logos-execution-zone/.wallet-local
+```
+
+Observed result:
+
+```text
+private_state_found = true
+local_commitment_matches_wallet = true
+membership_proof_found = true
+proof_depth = 4
+core_root_matches_wallet_root = true
+```
+
 ### Spike 00A: Direct Receipt Gate
 
 Date: 2026-04-29.

@@ -16,6 +16,8 @@ Done locally:
   helpers
 - `attestation-prover` initial witness builder with redacted debug/summary
   output
+- `attestation-cli inspect-private` for local-only and real
+  `getProofForCommitment` inspection
 - M2 compatibility scripts against local `nssa_core` and `WalletCore`
 - real `getProofForCommitment` proof mode passed against a local sequencer
 
@@ -24,8 +26,8 @@ Current command set:
 ```sh
 cargo test
 scripts/m2-check-lez-commitment-compat.sh
-PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --local-only
-PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --require-proof
+cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
+cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
 ```
 
 ## Ordered Backlog
@@ -33,7 +35,8 @@ PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --require-proof
 1. Finish Milestone 2 as reusable product code.
    - Move the remaining M2 temporary wallet adapter into Rust.
    - Keep LEZ path dependencies isolated from the portable workspace.
-   - Add an `attestation-cli inspect-private` command.
+   - Replace the CLI's script bridge with a direct Rust adapter when packaging
+     the LEZ wallet dependency is clean.
    - Preserve the current redaction policy.
 
 2. Build the production RISC Zero method.
