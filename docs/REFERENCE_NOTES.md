@@ -729,3 +729,19 @@ Interpretation:
   LEZ path was found for external receipt verification.
 - 0C remains the only local on-chain path that works today, but prize wording
   still requires evaluator confirmation.
+
+## External Reference: LP-0016 PR #465 (syafiqeil)
+
+Date cloned: 2026-05-02.
+Local path: `logos/` (gitignored — not committed to this repo).
+HEAD commit: `8fbf9ebcf18306b61c67b20c1ce938eadbaf3b96` (syafiqeil:main).
+Analysis: [docs/REFERENCE_LP-0016_PR465.md](REFERENCE_LP-0016_PR465.md)
+
+Key facts:
+- Uses identical RISC Zero version: `risc0-zkvm = "3.0.5"`.
+- Ships `programs/membership_registry/` and `logos_moderation_sdk/` — on-chain program
+  simulation and WASM SDK patterns directly applicable to LP-0005.
+- Does NOT solve the Spike 0A public-execution blocker (host-side test only).
+- Confirms BIP340 Schnorr (`k256::schnorr`) as the presenter-binding primitive.
+- `nssa::merkle_tree::MerkleTree` is now public via this PR — usable for nullifier state.
+- WASM binding pattern (`wasm_bindgen` + `serde_wasm_bindgen`) is a direct Basecamp template.
