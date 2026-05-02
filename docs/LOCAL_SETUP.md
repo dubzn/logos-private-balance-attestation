@@ -306,9 +306,9 @@ Expected live success output includes:
 }
 ```
 
-## Planned Dev/Prod Baseline
+## Dev/Prod Baseline
 
-Spike 05 should keep two separate benchmark outputs:
+Spike 05 keeps two separate benchmark outputs:
 
 ```sh
 scripts/spike-05-run-devmode-baseline.sh  # writes .spike-results/spike-05-devmode.md
@@ -324,6 +324,31 @@ Each output must be a Markdown table:
 
 The final row must report total duration so `RISC0_DEV_MODE=1` and
 `RISC0_DEV_MODE=0` are easy to compare.
+
+Default baseline steps:
+
+```text
+check-risc0-version
+build-binding-circuit
+prove-fixture-valid
+total
+```
+
+Optional extra steps:
+
+```sh
+SPIKE05_INCLUDE_CONTEXT_VARIANT=1 scripts/spike-05-run-devmode-baseline.sh
+
+SPIKE05_SKIP_BUILD=1 scripts/spike-05-run-devmode-baseline.sh
+
+SPIKE05_RUN_LIVE=1 \
+PRIVATE_ACCOUNT="<private-account-id-without-Private>" \
+THRESHOLD=25 \
+  scripts/spike-05-run-devmode-baseline.sh
+```
+
+Use the same env vars with `scripts/spike-05-run-prod-baseline.sh` when you are
+ready to pay the real proving cost.
 
 When `RISC0_DEV_MODE=0`, proof generation can take several minutes. Demo
 scripts should print progress markers to stderr, for example:

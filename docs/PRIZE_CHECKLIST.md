@@ -45,7 +45,7 @@ Status legend:
 | Requirement | Status | Planned Artifact |
 | --- | --- | --- |
 | Document CU cost of on-chain operations. | planned | `docs/BENCHMARKS.md` after LEZ verifier exists. |
-| Proof generation benchmark. | planned | Spike 05 dev/prod baseline scripts, then final benchmark docs. |
+| Proof generation benchmark. | in-progress | Spike 05 dev/prod baseline passed locally; final benchmark docs still needed. |
 
 ## Supportability
 

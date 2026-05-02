@@ -409,3 +409,79 @@ Interpretation:
   linkability versus Spike 03.
 - The remaining production decision is mapping the synthetic presenter secret
   to a real wallet-compatible presenter identity or envelope signature scheme.
+
+### Spike 05: RISC0_DEV_MODE Baseline Harness
+
+Date: 2026-05-01.
+
+Result:
+
+```text
+Baseline scripts exist for dev-mode and prod-mode proving.
+Each script writes a Markdown table with per-step command, status, output, and
+duration, plus a total row.
+```
+
+Implemented commands:
+
+```sh
+scripts/spike-05-run-devmode-baseline.sh
+scripts/spike-05-run-prod-baseline.sh
+```
+
+Default output files:
+
+```text
+.spike-results/spike-05-devmode.md
+.spike-results/spike-05-prod.md
+```
+
+Observed dev-mode smoke:
+
+```text
+command: LEZ_REPO=/Users/dub/logos/src/logos-execution-zone \
+  SPIKE05_SKIP_BUILD=1 scripts/spike-05-run-devmode-baseline.sh
+result: ok
+prove-fixture-valid duration: 00:00:12
+total duration: 00:00:12
+```
+
+Observed initial full dev-mode baseline blocker:
+
+```text
+build-binding-circuit failed because Docker was not running:
+Cannot connect to the Docker daemon at unix:///Users/dub/.docker/run/docker.sock.
+```
+
+Observed full dev-mode baseline after Docker was started:
+
+```text
+output: .spike-results/spike-05-devmode.md
+RISC0_DEV_MODE: 1
+build-binding-circuit duration: 00:01:40
+prove-fixture-valid duration: 00:00:04
+total duration: 00:01:44
+dev-mode warning present: yes
+```
+
+Observed full prod-mode baseline:
+
+```text
+output: .spike-results/spike-05-prod.md
+RISC0_DEV_MODE: 0
+build-binding-circuit duration: 00:00:03
+prove-fixture-valid duration: 00:00:25
+total duration: 00:00:28
+dev-mode warning present: no
+```
+
+Interpretation:
+
+- The benchmark harness works and records failures in the requested table
+  format.
+- `SPIKE05_SKIP_BUILD=1` is useful when the ELF already exists and we only want
+  to compare proving/verification time.
+- The first full dev-mode run paid most of the Docker/build cost. The prod build
+  reused cache, so compare proof rows more than total rows for this run.
+- The current fixture proof is feasible in real proving mode on this machine:
+  dev proof was roughly 4 seconds, prod proof roughly 25 seconds.

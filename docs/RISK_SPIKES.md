@@ -13,7 +13,7 @@ before the next layer depends on it.
 | 02 Wallet commitment to sequencer proof | passed locally | Real wallet commitment and `getProofForCommitment` path works. |
 | 03 Balance attestation circuit | passed locally | Standalone RISC Zero circuit consumes LEZ commitment and Merkle proof. |
 | 04 Binding circuit | passed locally | Context binding, presenter binding, and context nullifier work in the circuit shape. |
-| 05 Dev/prod proving baseline | planned | Measure `RISC0_DEV_MODE=1` versus `0` with step-by-step timing tables. |
+| 05 Dev/prod proving baseline | passed locally | Dev-mode and prod-mode baselines completed with step-by-step timing tables. |
 | 06 On-chain path decision | planned | Close 0A/0B/0C before M1 implementation depends on a verifier shape. |
 
 ## Blocker 0: On-Chain Proof Path
@@ -259,7 +259,7 @@ How different are build/prove/verify timings between RISC0_DEV_MODE=1 and
 RISC0_DEV_MODE=0 for the current binding circuit?
 ```
 
-Planned harness:
+Current harness:
 
 ```sh
 scripts/spike-05-run-devmode-baseline.sh
@@ -287,6 +287,15 @@ Pass condition:
 Both scripts either complete successfully or fail with a precise step and
 captured output. The prod script records real proving time with
 RISC0_DEV_MODE=0.
+```
+
+Optional knobs:
+
+```sh
+SPIKE05_INCLUDE_CONTEXT_VARIANT=1  # also prove the context-variant fixture
+SPIKE05_RUN_LIVE=1                 # also run live mode; requires PRIVATE_ACCOUNT and sequencer
+SPIKE05_SKIP_BUILD=1               # reuse an existing binding_attestation_spike.bin
+SPIKE05_OUTPUT=<path>              # override the result markdown file
 ```
 
 ## Blocker 4: On-Chain Path Decision

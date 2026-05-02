@@ -245,7 +245,7 @@ Measure the current circuit with RISC0_DEV_MODE=1 and RISC0_DEV_MODE=0 before
 the final demo depends on real proving.
 ```
 
-Planned commands:
+Current commands:
 
 ```sh
 scripts/spike-05-run-devmode-baseline.sh
@@ -266,6 +266,8 @@ Pass:
 - dev-mode and prod-mode results are written to separate Markdown files
 - prod mode runs with `RISC0_DEV_MODE=0`
 - failures identify the exact failing step
+- optional live mode is available with `SPIKE05_RUN_LIVE=1` and a running
+  sequencer
 
 ## Layer 7: Off-Chain Verification And Messaging
 
