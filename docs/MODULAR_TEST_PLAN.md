@@ -158,16 +158,18 @@ Current local-only command:
 
 ```sh
 export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
-export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
-scripts/m2-inspect-private-account.sh --local-only
+cargo run -p attestation-cli -- inspect-private \
+  --account Private/<initialized-private-account-id> \
+  --local-only
 ```
 
 Current proof command:
 
 ```sh
 export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
-export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
-scripts/m2-inspect-private-account.sh --require-proof
+cargo run -p attestation-cli -- inspect-private \
+  --account Private/<initialized-private-account-id> \
+  --require-proof
 ```
 
 Legacy spike command:
@@ -177,12 +179,11 @@ export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
 scripts/spike-02-inspect-membership-proof.sh
 ```
 
-Future CLI command:
+M2 harness command:
 
 ```sh
-cargo run -p attestation-cli -- fetch-membership-proof \
-  --account Private/<id> \
-  --json
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+scripts/m2-inspect-private-account.sh --require-proof
 ```
 
 Pass:
@@ -201,6 +202,7 @@ local-only wallet inspect passed locally.
 proof mode passed locally against a running local sequencer.
 attestation-prover owns reusable report/redaction logic and initial witness
 builder logic.
+attestation-cli exposes inspect-private for local-only and require-proof modes.
 ```
 
 ## Layer 6: Balance Circuit

@@ -148,6 +148,8 @@ cargo test -p attestation-core
 scripts/m2-check-lez-commitment-compat.sh
 PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --local-only
 PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --require-proof
+cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
+cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
 ```
 
 Current status:
@@ -161,6 +163,8 @@ without printing witness data.
 Sequencer proof mode passed locally against getProofForCommitment.
 attestation-prover now owns reusable sanitized report/redaction logic and the
 initial balance attestation witness builder.
+attestation-cli exposes inspect-private as the product-facing command; it still
+bridges to the M2 script so LEZ wallet dependencies stay isolated.
 ```
 
 Planned CLI:

@@ -96,8 +96,9 @@ To validate the wallet-side adapter without a running sequencer:
 ```sh
 cd "$BALANCE_ATTEST_REPO"
 export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
-export PRIVATE_ACCOUNT="<private-account-id-without-Private>"
-scripts/m2-inspect-private-account.sh --local-only
+cargo run -p attestation-cli -- inspect-private \
+  --account Private/<private-account-id> \
+  --local-only
 ```
 
 Expected output:
@@ -116,8 +117,9 @@ With the sequencer running, request the real proof through the wallet path that
 calls `getProofForCommitment`:
 
 ```sh
-PRIVATE_ACCOUNT="<private-account-id-without-Private>" \
-  scripts/m2-inspect-private-account.sh --require-proof
+cargo run -p attestation-cli -- inspect-private \
+  --account Private/<private-account-id> \
+  --require-proof
 ```
 
 Expected proof-mode output:
@@ -139,6 +141,13 @@ private_state_found: true
 local_commitment_matches_wallet: true
 membership_proof_found: true
 core_root_matches_wallet_root: true
+```
+
+The older script remains useful as an M2 harness and Markdown report generator:
+
+```sh
+PRIVATE_ACCOUNT="<private-account-id-without-Private>" \
+  scripts/m2-inspect-private-account.sh --require-proof
 ```
 
 ## Start Local Sequencer

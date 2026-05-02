@@ -1,5 +1,9 @@
 [workspace]
-members = ["crates/attestation-core", "crates/attestation-prover"]
+members = [
+    "crates/attestation-core",
+    "crates/attestation-cli",
+    "crates/attestation-prover",
+]
 resolver = "2"
 
 [workspace.package]
