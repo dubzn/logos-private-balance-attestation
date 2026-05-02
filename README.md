@@ -103,6 +103,8 @@ flow reproducible.
   future demo commands.
 - [Modular Test Plan](docs/MODULAR_TEST_PLAN.md): isolated commands for each
   layer before the final E2E.
+- [On-Chain Path Decision](docs/ONCHAIN_PATH_DECISION.md): Spike 06 result for
+  the LEZ verifier path.
 - [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to
   planned artifacts.
 - [Risk Spikes](docs/RISK_SPIKES.md): modular validation plan for the highest
@@ -125,8 +127,12 @@ LP-0005 on-chain requirement:
 - Logos-native private execution gate accepted by evaluators as satisfying the
   on-chain proof path
 
-Only after Blocker 0 is green should the project build the core off-chain proof
-loop:
+Current Spike 06 decision: direct public `env::verify` is failed/currently
+unsupported, recursive/native public verifier support was not found in the
+local LEZ checkout, and Logos-native private execution is the only working
+local on-chain gate path pending evaluator confirmation.
+
+The core off-chain proof loop is now validated enough to start Milestone 1:
 
 ```text
 wallet private account
@@ -185,9 +191,7 @@ THRESHOLD=25 \
 
 Before M1, close the remaining spike work:
 
-- Spike 05: compare `RISC0_DEV_MODE=1` and `RISC0_DEV_MODE=0` timings in
-  separate Markdown result files:
-  `scripts/spike-05-run-devmode-baseline.sh` and
-  `scripts/spike-05-run-prod-baseline.sh`.
-- Spike 06: decide the on-chain verifier path now that direct public
-  `env::verify` failed locally.
+- Spike 05: passed locally with separate `RISC0_DEV_MODE=1` and
+  `RISC0_DEV_MODE=0` Markdown result files.
+- Spike 06: passed as a documented decision; do not build M1 around public
+  external receipt verification.

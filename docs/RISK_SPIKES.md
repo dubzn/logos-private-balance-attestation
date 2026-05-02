@@ -8,13 +8,13 @@ before the next layer depends on it.
 | Spike | Status | Meaning |
 | --- | --- | --- |
 | 0A Direct receipt verification | failed/currently unsupported | Public LEZ execution can build `env::verify`, but runtime has no receipt assumption channel. |
-| 0B Recursive/native verifier path | not run | Still unknown; run or formally drop before building `lez/verifier-program`. |
+| 0B Recursive/native verifier path | inspected/no local public path found | RISC Zero recursion exists, but LEZ public execution exposes no assumption/native verifier injection point. |
 | 0C Logos-native private execution gate | passed locally | Useful fallback and learning path, but evaluator acceptance is still required for LP-0005. |
 | 02 Wallet commitment to sequencer proof | passed locally | Real wallet commitment and `getProofForCommitment` path works. |
 | 03 Balance attestation circuit | passed locally | Standalone RISC Zero circuit consumes LEZ commitment and Merkle proof. |
 | 04 Binding circuit | passed locally | Context binding, presenter binding, and context nullifier work in the circuit shape. |
 | 05 Dev/prod proving baseline | passed locally | Dev-mode and prod-mode baselines completed with step-by-step timing tables. |
-| 06 On-chain path decision | planned | Close 0A/0B/0C before M1 implementation depends on a verifier shape. |
+| 06 On-chain path decision | passed locally | Use off-chain proof envelope plus Logos-native private execution fallback pending evaluator confirmation. |
 
 ## Blocker 0: On-Chain Proof Path
 
@@ -88,6 +88,15 @@ Pass condition:
 
 ```text
 At least one supported verifier path works in a minimal LEZ program.
+```
+
+Current result:
+
+```text
+Inspected in Spike 06.
+RISC Zero recursion/succinct tooling exists and LEZ private execution uses
+assumptions, but the local public LEZ execution path exposes no assumption
+injection point or native verifier API for an external standalone receipt.
 ```
 
 ### Spike 0C: Logos-Native Private Execution Gate
@@ -319,9 +328,24 @@ IDL and architecture docs no longer describe a known-broken public receipt
 verifier as the primary path.
 ```
 
+Current harness:
+
+```sh
+scripts/spike-06-inspect-onchain-path.sh
+```
+
+Current decision:
+
+```text
+Do not build M1 around public LEZ verification of external RISC Zero receipts.
+Build reusable off-chain proof primitives first.
+Keep the on-chain path behind an interface and use Logos-native private
+execution as the working local fallback pending evaluator confirmation.
+```
+
 ## Modular Build Order
 
-After Spikes 04, 05, and 06 are closed, build in this order:
+Spikes 04, 05, and 06 are closed enough to start M1. Build in this order:
 
 1. `attestation-core`: pure types, hashing, context ids, nullifiers, errors.
 2. `lez-commitment-adapter`: exact compatibility with LEZ commitment code.
