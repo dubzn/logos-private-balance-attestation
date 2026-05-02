@@ -205,3 +205,9 @@ Run the first reusable core tests:
 ```sh
 cargo test -p attestation-core
 ```
+
+Check the local LEZ commitment compatibility against `nssa_core`:
+
+```sh
+scripts/m2-check-lez-commitment-compat.sh
+```

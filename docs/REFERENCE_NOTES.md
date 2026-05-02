@@ -200,6 +200,41 @@ This follows the updated architecture/security docs. Spike 04 proved the
 binding shape, but production circuit code should import or mirror the M1 core
 helpers so hash ordering cannot drift again.
 
+### Milestone 2 Start: LEZ Commitment Compatibility
+
+Date: 2026-05-02.
+
+Result:
+
+```text
+attestation-core now includes pure LEZ commitment and Merkle root helpers.
+scripts/m2-check-lez-commitment-compat.sh passes against local nssa_core.
+```
+
+The compatibility script creates a temporary Cargo project that depends on:
+
+```text
+attestation-core from this repo
+nssa_core from /Users/dub/logos/src/logos-execution-zone/nssa/core
+```
+
+It compares:
+
+- `derive_lez_private_account_commitment` vs `nssa_core::Commitment::new`
+- `hash_lez_commitment_leaf` vs LEZ's empty membership proof digest
+- `compute_lez_membership_root` vs `nssa_core::compute_digest_for_path`
+
+Observed cases:
+
+| Case | Commitment | Leaf hash | Membership root |
+| --- | --- | --- | --- |
+| `dummy-default` | match | match | match |
+| `documented-fixture` | match | match | match |
+| `wide-values` | match | match | match |
+
+This does not yet read wallet state or call the sequencer. It proves the pure
+format compatibility layer before the wallet/sequencer adapter depends on it.
+
 ### Spike 00A: Direct Receipt Gate
 
 Date: 2026-04-29.

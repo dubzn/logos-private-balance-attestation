@@ -64,6 +64,31 @@ These tests cover context id derivation, presenter id derivation, context
 nullifier behavior, proof envelope shape, stable JSON encoding, and
 deterministic error-code mappings.
 
+## Check LEZ Commitment Compatibility
+
+This command creates a temporary Cargo project that depends on this repo's
+`attestation-core` and the local LEZ `nssa_core`, then compares the commitment
+and Merkle helpers against the real LEZ implementation:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+scripts/m2-check-lez-commitment-compat.sh
+```
+
+Expected result:
+
+```text
+commitment_match: true
+leaf_hash_match: true
+membership_root_match: true
+```
+
+The Markdown and JSON outputs are written under:
+
+```text
+.spike-results/m2-commitment-compat/
+```
+
 ## Start Local Sequencer
 
 In terminal 1:

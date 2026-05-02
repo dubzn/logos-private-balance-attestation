@@ -7,14 +7,19 @@
 mod bytes;
 mod error;
 mod hash;
+mod lez_commitment;
 mod serde_helpers;
 mod types;
 
 pub use bytes::{Digest32, HexBytes, HexParseError};
 pub use error::{AttestationError, AttestationErrorCode};
 pub use hash::{
-    derive_context_id, derive_context_nullifier, derive_presenter_id, hash_segments,
+    derive_context_id, derive_context_nullifier, derive_presenter_id, hash_segments, sha256_bytes,
     CONTEXT_DOMAIN, JOURNAL_DOMAIN, NULLIFIER_DOMAIN, PRESENTER_DOMAIN,
+};
+pub use lez_commitment::{
+    compute_lez_membership_root, derive_lez_private_account_commitment, hash_lez_commitment_leaf,
+    LezMembershipProof, LezPrivateAccountCommitmentInput, LEZ_COMMITMENT_PREFIX,
 };
 pub use types::{
     BalanceAttestationEnvelope, BalanceAttestationJournal, ContextBindingParams, ProofSystem,

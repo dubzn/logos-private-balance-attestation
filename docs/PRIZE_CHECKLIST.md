@@ -18,7 +18,7 @@ Status legend:
 | Verify without revealing `npk`, exact balance, or private account identity. | in-progress | Spike 04 journal omits private fields and commitment leaf; verifier crate still needed. |
 | Bind proof to a context to prevent cross-gate replay. | in-progress | Spike 04 derives `context_id` and context nullifier in-circuit. |
 | Bind proof to presenter identity to reduce forwarding. | in-progress | Spike 04 proves synthetic presenter-secret knowledge; wallet-compatible presenter adapter still needed. |
-| Target existing LEZ private account commitment format. | in-progress | Spike 03/04 use `nssa_core::Commitment::new` and live membership proofs. |
+| Target existing LEZ private account commitment format. | in-progress | Spike 03/04 use `nssa_core::Commitment::new`; M2 core helpers match `nssa_core` fixtures. |
 | On-chain LEZ verifier gates an action. | blocker | Spike 06 says direct public receipt verification is unsupported locally; use private execution fallback pending evaluator confirmation. |
 | Off-chain path over Logos Messaging. | planned | Messaging adapter and token-gated group demo. |
 | Three distinct apps integrate on testnet, one outside team. | planned | Governance gate, Messaging group gate, third integration. |
@@ -83,3 +83,4 @@ Before submitting, the repo must prove:
 | Dev/prod proving baseline | passed locally | Spike 05 proved fixture with `RISC0_DEV_MODE=0`. |
 | On-chain path decision | passed locally | Spike 06 documents no local public external receipt verifier path; evaluator confirmation still needed. |
 | `attestation-core` workspace | passed locally | M1 started with context hashing, nullifier/presenter helpers, envelope/journal types, and error-code tests. |
+| LEZ commitment helper compatibility | passed locally | M2 script compares commitment, leaf hash, and Merkle root helpers against local `nssa_core`. |

@@ -31,7 +31,7 @@ flowchart LR
 
 | Component | Responsibility |
 | --- | --- |
-| `attestation-core` | Shared types, error codes, public journal schema, context hashing, nullifier derivation, LEZ-compatible commitment helpers. |
+| `attestation-core` | Shared types, error codes, public journal schema, context hashing, nullifier derivation, LEZ-compatible commitment and Merkle root helpers. |
 | `attestation-prover` | Reads local wallet state, fetches the Merkle membership proof from the sequencer, builds the witness, and runs the RISC Zero prover. |
 | `attestation-verifier` | Verifies an attestation envelope locally without submitting a transaction. |
 | `attestation-cli` | Developer CLI for proving, verifying, sending, receiving, and invoking the on-chain path. |
@@ -64,6 +64,19 @@ SHA256(
 
 The circuit must match the implementation, not only the simplified prize text.
 This is a hard compatibility requirement.
+
+Milestone 2 starts this as pure Rust in `attestation-core`:
+
+```text
+LezPrivateAccountCommitmentInput
+  -> derive_lez_private_account_commitment(...)
+  -> hash_lez_commitment_leaf(...)
+  -> compute_lez_membership_root(...)
+```
+
+The local compatibility script compares these helpers against
+`nssa_core::Commitment::new` and `nssa_core::compute_digest_for_path` from the
+checked-out LEZ repo.
 
 ## Merkle Membership
 
