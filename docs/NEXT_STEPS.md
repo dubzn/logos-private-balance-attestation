@@ -14,6 +14,8 @@ Done locally:
   presenter/nullifier helpers, LEZ commitment helpers, and Merkle root helpers
 - `attestation-prover` initial sanitized private account inspection report
   helpers
+- `attestation-prover` initial witness builder with redacted debug/summary
+  output
 - M2 compatibility scripts against local `nssa_core` and `WalletCore`
 - real `getProofForCommitment` proof mode passed against a local sequencer
 
@@ -29,7 +31,7 @@ PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --require-proof
 ## Ordered Backlog
 
 1. Finish Milestone 2 as reusable product code.
-   - Move more of the M2 temporary wallet adapter into Rust.
+   - Move the remaining M2 temporary wallet adapter into Rust.
    - Keep LEZ path dependencies isolated from the portable workspace.
    - Add an `attestation-cli inspect-private` command.
    - Preserve the current redaction policy.

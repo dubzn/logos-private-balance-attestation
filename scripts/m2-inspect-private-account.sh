@@ -121,13 +121,10 @@ EOF
 
   cat > "$TMP_DIR/src/main.rs" <<'EOF'
 use anyhow::{Context, Result};
-use attestation_core::{
-    compute_lez_membership_root, derive_lez_private_account_commitment, Digest32, HexBytes,
-    LezMembershipProof, LezPrivateAccountCommitmentInput,
-};
+use attestation_core::{Digest32, HexBytes, LezMembershipProof};
 use attestation_prover::{
-    build_private_account_inspect_report, MembershipProofInspection, PrivateAccountInspectSource,
-    PrivateAccountInspectStatus,
+    build_private_account_inspect_report, inspect_membership_proof, PrivateAccountInspectSource,
+    PrivateAccountInspectStatus, PrivateAccountWitness,
 };
 use nssa::AccountId;
 use nssa_core::compute_digest_for_path;
@@ -169,15 +166,14 @@ async fn main() -> Result<()> {
         .context("private account commitment should exist in local wallet storage")?;
     let wallet_commitment_bytes = wallet_commitment.to_byte_array();
 
-    let core_commitment = derive_lez_private_account_commitment(
-        &LezPrivateAccountCommitmentInput {
-            npk: Digest32(key_chain.nullifier_public_key.to_byte_array()),
-            program_owner: account.program_owner,
-            balance: account.balance,
-            nonce: account.nonce.0,
-            data: HexBytes::new(account.data.as_ref().to_vec()),
-        },
-    );
+    let private_account = PrivateAccountWitness {
+        npk: Digest32(key_chain.nullifier_public_key.to_byte_array()),
+        program_owner: account.program_owner,
+        balance: account.balance,
+        nonce: account.nonce.0,
+        data: HexBytes::new(account.data.as_ref().to_vec()),
+    };
+    let core_commitment = private_account.commitment();
 
     let membership_proof = if local_only {
         None
@@ -193,21 +189,13 @@ async fn main() -> Result<()> {
     }
 
     let membership_proof = membership_proof.as_ref().map(|proof| {
-            let wallet_root = compute_digest_for_path(&wallet_commitment, proof);
-            let core_root = compute_lez_membership_root(
-                &core_commitment,
-                &LezMembershipProof {
-                    index: proof.0 as u64,
-                    siblings: proof.1.iter().copied().map(Digest32).collect(),
-                },
-            );
-            MembershipProofInspection {
-                proof_index: proof.0 as u64,
-                proof_depth: proof.1.len() as u64,
-                commitment_root: Digest32(wallet_root),
-                core_root_matches_wallet_root: core_root.as_bytes() == &wallet_root,
-            }
-        });
+        let wallet_root = compute_digest_for_path(&wallet_commitment, proof);
+        let core_proof = LezMembershipProof {
+            index: proof.0 as u64,
+            siblings: proof.1.iter().copied().map(Digest32).collect(),
+        };
+        inspect_membership_proof(&private_account, &core_proof, Some(Digest32(wallet_root)))
+    });
 
     let report = build_private_account_inspect_report(PrivateAccountInspectStatus {
         account_id_raw,

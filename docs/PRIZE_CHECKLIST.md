@@ -87,3 +87,4 @@ Before submitting, the repo must prove:
 | Sanitized private account inspect | passed local-only | M2 script reads wallet private state and checks commitment reconstruction without printing witness data. |
 | Real proof-mode private inspect | passed locally | M2 script calls `WalletCore::check_private_account_initialized` and verifies core root matches wallet root. |
 | `attestation-prover` initial crate | passed locally | Reusable sanitized report/redaction logic has unit coverage. |
+| Initial witness builder | passed locally | `attestation-prover` builds witness fields from private account, membership proof, context, and presenter inputs with redacted debug/summary output. |
