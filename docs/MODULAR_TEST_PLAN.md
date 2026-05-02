@@ -99,7 +99,7 @@ Purpose:
 Make pure logic testable without sequencer, wallet, RISC Zero, or Basecamp.
 ```
 
-Future command:
+Current command:
 
 ```sh
 cargo test -p attestation-core
@@ -111,6 +111,12 @@ Pass:
 - nullifier derivation is domain-separated
 - proof envelope serialization is stable
 - deterministic error codes round-trip
+
+Current status:
+
+```text
+11 attestation-core tests pass locally.
+```
 
 ## Layer 4: LEZ Commitment Compatibility
 

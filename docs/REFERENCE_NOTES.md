@@ -160,6 +160,46 @@ SPEL artifact once the local toolchain path is clear.
 
 ## Spike Results
 
+### Milestone 1 Start: attestation-core
+
+Date: 2026-05-02.
+
+Result:
+
+```text
+Rust workspace created.
+attestation-core compiles and passes 11 unit tests.
+```
+
+Implemented reusable pieces:
+
+- hex-encoded `Digest32` and `HexBytes`
+- `ContextBindingParams`
+- `BalanceAttestationJournal`
+- `BalanceAttestationEnvelope`
+- context id derivation
+- presenter id derivation
+- context nullifier derivation
+- journal digest helper
+- deterministic LP-0005 error-code enum
+
+Canonical context id order for M1:
+
+```text
+SHA256(
+  "logos-balance-attestation/v1/context"
+  || chain_id
+  || circuit_image_id
+  || verifier_id
+  || gate_id
+  || threshold
+)
+```
+
+This follows the updated architecture/security docs. Spike 04 proved the
+binding shape, but production circuit code should import or mirror the M1 core
+helpers so hash ordering cannot drift again.
+
 ### Spike 00A: Direct Receipt Gate
 
 Date: 2026-04-29.

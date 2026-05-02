@@ -69,9 +69,12 @@ scripts/spike-06-inspect-onchain-path.sh
 
 Goal: create the reusable core interface before proving.
 
-Planned crates:
+Current crate:
 
 - `attestation-core`
+
+Later M1/M2 crates:
+
 - `attestation-prover`
 - `attestation-verifier`
 - `attestation-cli`
@@ -101,11 +104,19 @@ pub struct BalanceAttestationEnvelope {
 
 Acceptance:
 
-- `cargo test` passes.
-- Journal serialization is stable.
-- Context id derivation is deterministic.
-- Nullifier derivation changes across contexts and presenters.
-- Error codes are enumerated and documented.
+- `cargo test -p attestation-core` passes.
+- Journal serialization is stable and hex-encoded.
+- Context id derivation is deterministic and changes when any context field
+  changes.
+- Nullifier derivation changes across contexts, presenters, and private account
+  nullifier keys.
+- Error codes are enumerated, documented, and round-trip by code string.
+
+Current automation:
+
+```sh
+cargo test -p attestation-core
+```
 
 ## Milestone 2: LEZ Commitment And Sequencer Adapter
 
