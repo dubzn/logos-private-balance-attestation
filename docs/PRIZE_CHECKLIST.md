@@ -84,3 +84,4 @@ Before submitting, the repo must prove:
 | On-chain path decision | passed locally | Spike 06 documents no local public external receipt verifier path; evaluator confirmation still needed. |
 | `attestation-core` workspace | passed locally | M1 started with context hashing, nullifier/presenter helpers, envelope/journal types, and error-code tests. |
 | LEZ commitment helper compatibility | passed locally | M2 script compares commitment, leaf hash, and Merkle root helpers against local `nssa_core`. |
+| Sanitized private account inspect | passed local-only | M2 script reads wallet private state and checks commitment reconstruction without printing witness data. |

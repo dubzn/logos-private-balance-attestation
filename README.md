@@ -211,3 +211,17 @@ Check the local LEZ commitment compatibility against `nssa_core`:
 ```sh
 scripts/m2-check-lez-commitment-compat.sh
 ```
+
+Inspect a local private account without printing witness data:
+
+```sh
+PRIVATE_ACCOUNT=<private-account-id-without-Private> \
+  scripts/m2-inspect-private-account.sh --local-only
+```
+
+With a local sequencer running, request the real membership proof:
+
+```sh
+PRIVATE_ACCOUNT=<private-account-id-without-Private> \
+  scripts/m2-inspect-private-account.sh --require-proof
+```
