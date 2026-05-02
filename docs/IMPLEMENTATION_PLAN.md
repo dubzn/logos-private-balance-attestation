@@ -159,7 +159,8 @@ wide-value fixtures.
 Wallet local inspect script validates private account commitment reconstruction
 without printing witness data.
 Sequencer proof mode passed locally against getProofForCommitment.
-attestation-prover now owns the reusable sanitized report/redaction logic.
+attestation-prover now owns reusable sanitized report/redaction logic and the
+initial balance attestation witness builder.
 ```
 
 Planned CLI:

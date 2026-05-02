@@ -297,6 +297,10 @@ The first `attestation-prover` slice owns:
 - local-only vs `getProofForCommitment` proof source labeling
 - membership proof summary fields
 - no-witness logging policy string
+- initial `PrivateAccountWitness`
+- initial `BalanceAttestationWitness`
+- witness summary with only public fields
+- redacted `Debug` output for private witness fields
 
 The M2 script now uses this crate instead of defining the report and redaction
 logic inside the generated temporary Cargo project.
@@ -305,7 +309,18 @@ Current workspace test result:
 
 ```text
 attestation-core: 16 tests passed
-attestation-prover: 4 tests passed
+attestation-prover: 8 tests passed
+```
+
+After the witness refactor, `scripts/m2-inspect-private-account.sh
+--require-proof` passed again against a running local sequencer:
+
+```text
+private_state_found = true
+local_commitment_matches_wallet = true
+membership_proof_found = true
+proof_depth = 4
+core_root_matches_wallet_root = true
 ```
 
 ### Spike 00A: Direct Receipt Gate
