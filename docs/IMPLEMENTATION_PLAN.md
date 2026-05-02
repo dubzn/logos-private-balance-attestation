@@ -135,9 +135,27 @@ Acceptance:
 
 - A fixture test compares local commitment reconstruction against LEZ
   `Commitment::new`.
+- A fixture test compares local Merkle root reconstruction against LEZ
+  `compute_digest_for_path`.
 - The CLI can inspect a private account commitment without exposing witness data
   in normal output.
 - The CLI can fetch a membership proof for an initialized private account.
+
+Current automation:
+
+```sh
+cargo test -p attestation-core
+scripts/m2-check-lez-commitment-compat.sh
+```
+
+Current status:
+
+```text
+Pure commitment helpers exist in attestation-core.
+Local compatibility script passes against nssa_core for dummy, documented, and
+wide-value fixtures.
+Wallet/sequencer adapter still needed.
+```
 
 Planned CLI:
 

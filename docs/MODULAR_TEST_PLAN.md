@@ -126,16 +126,25 @@ Purpose:
 Prove our commitment helper matches the local LEZ implementation exactly.
 ```
 
-Future command:
+Current commands:
 
 ```sh
-cargo test -p attestation-core commitment
+cargo test -p attestation-core
+scripts/m2-check-lez-commitment-compat.sh
 ```
 
 Pass:
 
 - our helper matches `nssa_core::Commitment::new`
 - domain prefix and endian encoding are covered by tests
+- our Merkle root helper matches `nssa_core::compute_digest_for_path`
+
+Current status:
+
+```text
+attestation-core commitment tests pass locally.
+M2 compatibility script passes against local nssa_core for 3 fixtures.
+```
 
 ## Layer 5: Sequencer Adapter
 

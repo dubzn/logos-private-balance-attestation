@@ -46,6 +46,15 @@ pub fn hash_segments(segments: &[&[u8]]) -> Digest32 {
     Digest32(digest)
 }
 
+pub fn sha256_bytes(bytes: &[u8]) -> Digest32 {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+
+    let mut digest = [0_u8; 32];
+    digest.copy_from_slice(&hasher.finalize());
+    Digest32(digest)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
