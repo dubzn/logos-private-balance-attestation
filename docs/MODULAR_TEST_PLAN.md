@@ -154,7 +154,23 @@ Purpose:
 Use real JSON-RPC getProofForCommitment, not invented endpoints.
 ```
 
-Current spike command:
+Current local-only command:
+
+```sh
+export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+scripts/m2-inspect-private-account.sh --local-only
+```
+
+Current proof command:
+
+```sh
+export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
+scripts/m2-inspect-private-account.sh --require-proof
+```
+
+Legacy spike command:
 
 ```sh
 export PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private>
@@ -171,9 +187,19 @@ cargo run -p attestation-cli -- fetch-membership-proof \
 
 Pass:
 
+- local wallet private state is found
+- local commitment reconstruction matches wallet commitment
 - initialized private account returns a membership proof
 - missing/stale private account returns a clear error
 - proof root can be computed from the returned path
+- normal output redacts account id and does not print witness data
+
+Current status:
+
+```text
+local-only wallet inspect passed locally.
+proof mode is implemented but requires a running local sequencer.
+```
 
 ## Layer 6: Balance Circuit
 

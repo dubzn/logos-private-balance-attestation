@@ -146,6 +146,8 @@ Current automation:
 ```sh
 cargo test -p attestation-core
 scripts/m2-check-lez-commitment-compat.sh
+PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --local-only
+PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --require-proof
 ```
 
 Current status:
@@ -154,7 +156,10 @@ Current status:
 Pure commitment helpers exist in attestation-core.
 Local compatibility script passes against nssa_core for dummy, documented, and
 wide-value fixtures.
-Wallet/sequencer adapter still needed.
+Wallet local inspect script validates private account commitment reconstruction
+without printing witness data.
+Sequencer proof mode is implemented; it requires a running local sequencer on
+the wallet-configured RPC address.
 ```
 
 Planned CLI:

@@ -235,6 +235,43 @@ Observed cases:
 This does not yet read wallet state or call the sequencer. It proves the pure
 format compatibility layer before the wallet/sequencer adapter depends on it.
 
+### Milestone 2 Wallet Adapter: Sanitized Private Inspect
+
+Date: 2026-05-02.
+
+Result:
+
+```text
+scripts/m2-inspect-private-account.sh --local-only passed against local wallet
+storage.
+```
+
+Observed safe report fields:
+
+```text
+private_state_found = true
+local_commitment_matches_wallet = true
+membership_proof_found = false
+```
+
+The successful local-only run used `NSSA_WALLET_HOME_DIR` pointing at the LEZ
+checkout wallet home and a private account id redacted in output. The script
+does not print `npk`, balance, nonce, account data, private keys, raw
+commitment, or Merkle siblings.
+
+Proof mode is implemented through:
+
+```text
+WalletCore::check_private_account_initialized -> getProofForCommitment
+```
+
+It was not run in this pass because `wallet check-health` reported connection
+refused on `127.0.0.1:3040`. Start the local sequencer, then run:
+
+```sh
+PRIVATE_ACCOUNT=<id> scripts/m2-inspect-private-account.sh --require-proof
+```
+
 ### Spike 00A: Direct Receipt Gate
 
 Date: 2026-04-29.
