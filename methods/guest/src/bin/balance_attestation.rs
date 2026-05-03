@@ -39,8 +39,10 @@ struct BalanceAttestationInput {
     verifier_id: [u8; 32],
     gate_id: [u8; 32],
     circuit_image_id: [u8; 32],
-    // Presenter binding.
-    presenter_secret: [u8; 32],
+    // Presenter binding: 32-byte BIP-340 x-only Schnorr pubkey. The circuit only
+    // hashes it; the off-chain Schnorr signature in the envelope proves knowledge
+    // of the matching secret (no in-circuit ECC).
+    presenter_pubkey: [u8; 32],
     presenter_id: [u8; 32],
     // Anti-replay: prover pre-computes the expected nullifier; circuit verifies it.
     expected_context_nullifier: [u8; 32],
@@ -79,11 +81,12 @@ pub fn main() {
         "commitment membership proof does not resolve to expected root"
     );
 
-    // 3. Presenter binding: verify secret derives to the claimed public presenter_id.
-    let presenter_id = derive_presenter_id(&input.presenter_secret);
+    // 3. Presenter binding: verify pubkey hashes to the claimed public presenter_id.
+    // Knowledge-of-secret is proved off-circuit by the BIP-340 signature in the envelope.
+    let presenter_id = derive_presenter_id(&input.presenter_pubkey);
     assert_eq!(
         presenter_id, input.presenter_id,
-        "presenter secret does not match presenter id"
+        "presenter pubkey does not match presenter id"
     );
 
     // 4. Context binding: derive context_id from public gate params.
@@ -158,8 +161,8 @@ fn compute_membership_root(commitment: [u8; 32], index: u64, siblings: &[[u8; 32
 
 // --- Attestation derivation functions ---
 
-fn derive_presenter_id(presenter_secret: &[u8; 32]) -> [u8; 32] {
-    hash_segments(&[PRESENTER_DOMAIN, presenter_secret])
+fn derive_presenter_id(presenter_pubkey: &[u8; 32]) -> [u8; 32] {
+    hash_segments(&[PRESENTER_DOMAIN, presenter_pubkey])
 }
 
 fn derive_context_id(
