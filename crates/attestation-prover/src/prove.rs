@@ -56,14 +56,28 @@ struct JournalDecoded {
     proof_depth: u64,
 }
 
+/// The canonical image ID of the production circuit as [u8; 32].
+pub fn balance_attestation_image_id() -> [u8; 32] {
+    Digest::from(BALANCE_ATTESTATION_ID)
+        .as_bytes()
+        .try_into()
+        .expect("Digest is always 32 bytes")
+}
+
 /// Prove a balance attestation and return a ready-to-transport envelope.
 ///
 /// `params` must be the same params used to build `witness`; `chain_id` and `gate_id`
 /// are not stored in the witness and are required to reconstruct the guest input.
+///
+/// `circuit_image_id` in the returned envelope is always `BALANCE_ATTESTATION_ID`
+/// from the compiled `methods` crate — the caller's `witness.circuit_image_id` is ignored.
 pub fn prove_attestation(
     witness: &BalanceAttestationWitness,
     params: &AttestationPublicParams,
 ) -> Result<BalanceAttestationEnvelope, ProveError> {
+    // Always use the compiled image ID, not whatever the witness says.
+    let circuit_image_id = balance_attestation_image_id();
+
     let input = GuestInput {
         npk: witness.private_account.npk.0,
         program_owner: witness.private_account.program_owner,
@@ -77,7 +91,7 @@ pub fn prove_attestation(
         chain_id: params.chain_id.0,
         verifier_id: witness.verifier_id.0,
         gate_id: params.gate_id.0,
-        circuit_image_id: witness.circuit_image_id.0,
+        circuit_image_id,
         presenter_secret: witness.presenter.presenter_secret.0,
         presenter_id: witness.presenter_id.0,
         expected_context_nullifier: witness.context_nullifier.0,
@@ -142,12 +156,14 @@ mod tests {
     }
 
     fn fixture() -> (BalanceAttestationWitness, AttestationPublicParams) {
+        // circuit_image_id must match the compiled circuit so the guest's context_id
+        // derivation produces the same context_nullifier stored in the witness.
         let params = AttestationPublicParams {
             threshold: 25,
             chain_id: digest(0x10),
             verifier_id: digest(0x20),
             gate_id: digest(0x30),
-            circuit_image_id: digest(0x40),
+            circuit_image_id: Digest32(balance_attestation_image_id()),
         };
         let witness = build_balance_attestation_witness(
             PrivateAccountWitness {
@@ -183,6 +199,8 @@ mod tests {
         assert_eq!(envelope.journal.context_id, witness.context_id);
         assert_eq!(envelope.journal.context_nullifier, witness.context_nullifier);
         assert_eq!(envelope.journal.presenter_id, witness.presenter_id);
+        // circuit_image_id must be the compiled ID, not the fixture's witness value.
+        assert_eq!(envelope.journal.circuit_image_id, Digest32(balance_attestation_image_id()));
         assert_eq!(envelope.journal.proof_index, witness.membership_proof.index);
         assert_eq!(
             envelope.journal.proof_depth,

@@ -43,6 +43,7 @@ pub struct BalanceAttestationWitness {
     pub private_account: PrivateAccountWitness,
     pub membership_proof: LezMembershipProof,
     pub presenter: PresenterWitness,
+    #[serde(with = "u128_decimal")]
     pub threshold: u128,
     pub commitment_root: Digest32,
     pub context_id: Digest32,
