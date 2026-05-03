@@ -9,4 +9,7 @@ name = "balance-attest"
 path = "src/main.rs"
 
 [dependencies]
+attestation-core.workspace = true
+attestation-prover.workspace = true
+serde.workspace = true
 serde_json.workspace = true
