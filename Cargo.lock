@@ -1137,6 +1137,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-gate-example"
+version = "0.1.0"
+dependencies = [
+ "attestation-core",
+ "attestation-prover",
+ "attestation-verifier",
+ "hex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
