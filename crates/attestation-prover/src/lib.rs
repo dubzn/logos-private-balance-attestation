@@ -5,6 +5,7 @@
 //! the reusable report/redaction logic can be tested without a sequencer or wallet.
 
 mod inspect;
+mod prove;
 mod witness;
 
 pub use inspect::{
@@ -12,6 +13,7 @@ pub use inspect::{
     PrivateAccountInspectReport, PrivateAccountInspectSource, PrivateAccountInspectStatus,
     REDACTION_POLICY,
 };
+pub use prove::{prove_attestation, ProveError};
 pub use witness::{
     build_balance_attestation_witness, inspect_membership_proof, AttestationPublicParams,
     BalanceAttestationWitness, BalanceAttestationWitnessSummary, PresenterWitness,
