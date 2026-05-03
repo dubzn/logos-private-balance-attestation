@@ -4,7 +4,7 @@
 
 use attestation_core::{
     derive_context_id, derive_context_nullifier, derive_presenter_id, BalanceAttestationJournal,
-    ContextBindingParams, Digest32,
+    ContextBindingParams, Digest32, PresenterSecret,
 };
 use attestation_prover::{
     build_balance_attestation_witness, AttestationPublicParams, PresenterWitness,
@@ -31,7 +31,7 @@ struct BalanceAttestationInput {
     verifier_id: [u8; 32],
     gate_id: [u8; 32],
     circuit_image_id: [u8; 32],
-    presenter_secret: [u8; 32],
+    presenter_pubkey: [u8; 32],
     presenter_id: [u8; 32],
     expected_context_nullifier: [u8; 32],
 }
@@ -83,7 +83,7 @@ fn fixture_witness(params: &AttestationPublicParams) -> attestation_prover::Bala
         siblings: vec![digest(0x11), digest(0x22), digest(0x33), digest(0x44)],
     };
     let presenter = PresenterWitness {
-        presenter_secret: digest(0x77),
+        presenter_secret: PresenterSecret::new([0x77; 32]).unwrap(),
     };
     build_balance_attestation_witness(private_account, proof, presenter, *params)
 }
@@ -129,7 +129,7 @@ fn build_input(
         verifier_id: witness.verifier_id.0,
         gate_id,
         circuit_image_id: witness.circuit_image_id.0,
-        presenter_secret: witness.presenter.presenter_secret.0,
+        presenter_pubkey: *witness.presenter.pubkey().as_bytes(),
         presenter_id,
         expected_context_nullifier,
     }
@@ -234,7 +234,7 @@ fn context_id_matches_host_derivation() {
     );
 
     // Presenter and nullifier also match canonical derivations.
-    let host_presenter_id = derive_presenter_id(&witness.presenter.presenter_secret);
+    let host_presenter_id = derive_presenter_id(&witness.presenter.pubkey());
     assert_eq!(j.presenter_id, host_presenter_id.0);
 
     let host_nullifier = derive_context_nullifier(
@@ -286,7 +286,7 @@ fn bad_presenter_fails_with_expected_message() {
 
     let err = prove(&input).expect_err("bad presenter should fail proving");
     assert!(
-        err.contains("presenter secret does not match presenter id"),
+        err.contains("presenter pubkey does not match presenter id"),
         "unexpected error: {err}"
     );
 }

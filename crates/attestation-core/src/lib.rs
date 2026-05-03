@@ -8,6 +8,7 @@ mod bytes;
 mod error;
 mod hash;
 mod lez_commitment;
+mod presenter;
 mod serde_helpers;
 mod types;
 
@@ -20,6 +21,10 @@ pub use hash::{
 pub use lez_commitment::{
     compute_lez_membership_root, derive_lez_private_account_commitment, hash_lez_commitment_leaf,
     LezMembershipProof, LezPrivateAccountCommitmentInput, LEZ_COMMITMENT_PREFIX,
+};
+pub use presenter::{
+    PresenterError, PresenterPubkey, PresenterSecret, PresenterSignature, PRESENTER_PUBKEY_LEN,
+    PRESENTER_SECRET_LEN, PRESENTER_SIGNATURE_LEN,
 };
 pub use types::{
     BalanceAttestationEnvelope, BalanceAttestationJournal, ContextBindingParams, ProofSystem,

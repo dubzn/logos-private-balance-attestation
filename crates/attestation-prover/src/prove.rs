@@ -36,7 +36,7 @@ struct GuestInput {
     verifier_id: [u8; 32],
     gate_id: [u8; 32],
     circuit_image_id: [u8; 32],
-    presenter_secret: [u8; 32],
+    presenter_pubkey: [u8; 32],
     presenter_id: [u8; 32],
     expected_context_nullifier: [u8; 32],
 }
@@ -71,12 +71,17 @@ pub fn balance_attestation_image_id() -> [u8; 32] {
 ///
 /// `circuit_image_id` in the returned envelope is always `BALANCE_ATTESTATION_ID`
 /// from the compiled `methods` crate — the caller's `witness.circuit_image_id` is ignored.
+///
+/// The envelope carries the presenter's BIP-340 x-only pubkey and a Schnorr signature
+/// over `journal.digest()`. Verifiers must check both: `H(pubkey) == journal.presenter_id`
+/// and `Schnorr_verify(pubkey, journal.digest(), sig)`.
 pub fn prove_attestation(
     witness: &BalanceAttestationWitness,
     params: &AttestationPublicParams,
 ) -> Result<BalanceAttestationEnvelope, ProveError> {
     // Always use the compiled image ID, not whatever the witness says.
     let circuit_image_id = balance_attestation_image_id();
+    let presenter_pubkey = witness.presenter.pubkey();
 
     let input = GuestInput {
         npk: witness.private_account.npk.0,
@@ -92,7 +97,7 @@ pub fn prove_attestation(
         verifier_id: witness.verifier_id.0,
         gate_id: params.gate_id.0,
         circuit_image_id,
-        presenter_secret: witness.presenter.presenter_secret.0,
+        presenter_pubkey: *presenter_pubkey.as_bytes(),
         presenter_id: witness.presenter_id.0,
         expected_context_nullifier: witness.context_nullifier.0,
     };
@@ -142,13 +147,23 @@ pub fn prove_attestation(
     let receipt_bytes = serde_json::to_vec(&prove_info.receipt)
         .map_err(|e| ProveError(format!("receipt serialization failed: {e}")))?;
 
-    Ok(BalanceAttestationEnvelope::new_risc0(journal, receipt_bytes))
+    let signature = witness
+        .presenter
+        .presenter_secret
+        .sign_journal_digest(&journal.digest());
+
+    Ok(BalanceAttestationEnvelope::new_risc0(
+        journal,
+        receipt_bytes,
+        presenter_pubkey.as_bytes().to_vec(),
+        signature.as_bytes().to_vec(),
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use attestation_core::{HexBytes, LezMembershipProof};
+    use attestation_core::{HexBytes, LezMembershipProof, PresenterSecret};
     use crate::{build_balance_attestation_witness, PresenterWitness, PrivateAccountWitness};
 
     fn digest(seed: u8) -> Digest32 {
@@ -177,7 +192,9 @@ mod tests {
                 index: 5,
                 siblings: vec![digest(0x11), digest(0x22), digest(0x33), digest(0x44)],
             },
-            PresenterWitness { presenter_secret: digest(0x77) },
+            PresenterWitness {
+                presenter_secret: PresenterSecret::new([0x77; 32]).unwrap(),
+            },
             params,
         );
         (witness, params)
@@ -214,5 +231,20 @@ mod tests {
         receipt
             .verify(Digest::from(BALANCE_ATTESTATION_ID))
             .expect("deserialized receipt should verify");
+
+        // Presenter binding: pubkey hashes to journal.presenter_id and signature verifies.
+        let pubkey = attestation_core::PresenterPubkey::from_slice(
+            envelope.presenter_pubkey.as_bytes(),
+        )
+        .expect("envelope pubkey should be valid");
+        assert_eq!(pubkey.presenter_id(), envelope.journal.presenter_id);
+
+        let sig = attestation_core::PresenterSignature::from_slice(
+            envelope.presenter_signature.as_bytes(),
+        )
+        .expect("envelope signature should be 64 bytes");
+        pubkey
+            .verify_journal_digest(&envelope.journal.digest(), &sig)
+            .expect("presenter signature should verify against journal digest");
     }
 }
