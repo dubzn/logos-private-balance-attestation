@@ -1,0 +1,135 @@
+{
+  "$schema": "https://logos.co/spel/v0/idl.schema.json",
+  "name": "balance_attestation_verifier",
+  "version": "1.0.0",
+  "description": "LEZ on-chain gate that admits a presenter once per (gate, nullifier) after recursively verifying a balance-attestation receipt. Implements the Spike-0C / Logos-native private execution path described in docs/ONCHAIN_PATH_DECISION.md.",
+  "metadata": {
+    "license": "MIT OR Apache-2.0",
+    "lp_prize": "LP-0005",
+    "outer_image_id_const": "LEZ_BALANCE_GATE_ID (in lez-verifier::methods)",
+    "inner_image_id_const": "BALANCE_ATTESTATION_ID (in methods crate)"
+  },
+  "instructions": [
+    {
+      "name": "init_gate",
+      "discriminator": 0,
+      "description": "Initialize a fresh gate state account pinned to a (chain_id, verifier_id, gate_id, threshold) tuple. The expected_inner_image_id is also recorded so future admit calls can reject outer receipts with a different inner circuit.",
+      "args": [
+        { "name": "chain_id", "type": { "array": ["u8", 32] } },
+        { "name": "verifier_id", "type": { "array": ["u8", 32] } },
+        { "name": "gate_id", "type": { "array": ["u8", 32] } },
+        { "name": "threshold", "type": "u128" },
+        { "name": "expected_inner_image_id", "type": { "array": ["u8", 32] } }
+      ],
+      "accounts": [
+        { "name": "gate_state", "writable": true, "signer": false, "notes": "Must be uninitialized." },
+        { "name": "admin", "writable": false, "signer": true, "notes": "Deployer or governance owner." }
+      ],
+      "errors": ["BA500", "BA503"]
+    },
+    {
+      "name": "admit",
+      "discriminator": 1,
+      "description": "Validate an outer LEZ-gate receipt and admit the presenter. Steps mirror lez_verifier::LezGateProgram::admit: (1) outer receipt verifies against the pinned LEZ_BALANCE_GATE_ID, (2) outer journal version + inner_image_id match the gate state, (3) gate_context_id matches the gate, (4) accepted_threshold >= gate.threshold, (5) accepted_context_nullifier is not already in admitted_nullifiers, (6) presenter LEZ tx-signing account hashes to accepted_presenter_id.",
+      "args": [
+        { "name": "outer_receipt_bytes", "type": "bytes", "notes": "JSON-encoded risc0_zkvm::Receipt; see lez-verifier::prove_lez_gate." }
+      ],
+      "accounts": [
+        { "name": "gate_state", "writable": true, "signer": false, "notes": "Stores admitted_nullifiers." },
+        { "name": "presenter", "writable": false, "signer": true, "notes": "LEZ account whose hash must equal outer_journal.accepted_presenter_id." }
+      ],
+      "errors": ["BA100", "BA102", "BA200", "BA201", "BA202", "BA203", "BA204", "BA206", "BA501", "BA502", "BA503"]
+    },
+    {
+      "name": "read_gate",
+      "discriminator": 2,
+      "description": "Read-only helper used by CLI / Basecamp runners. Returns the gate state's pinned (chain_id, verifier_id, gate_id, threshold, expected_inner_image_id) and the list of admitted nullifiers. Does not mutate state.",
+      "args": [],
+      "accounts": [
+        { "name": "gate_state", "writable": false, "signer": false, "notes": "Initialized gate state." }
+      ],
+      "errors": ["BA501"]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GateState",
+      "discriminator": "BAT1",
+      "description": "Per-gate state owned by balance_attestation_verifier.",
+      "fields": [
+        { "name": "version", "type": "u16" },
+        { "name": "chain_id", "type": { "array": ["u8", 32] } },
+        { "name": "verifier_id", "type": { "array": ["u8", 32] } },
+        { "name": "gate_id", "type": { "array": ["u8", 32] } },
+        { "name": "threshold", "type": "u128" },
+        { "name": "expected_inner_image_id", "type": { "array": ["u8", 32] } },
+        { "name": "admitted_nullifiers", "type": { "vec": { "array": ["u8", 32] } } }
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "BalanceAttestationJournal",
+      "description": "Inner journal committed by the balance-attestation circuit. Mirrors attestation_core::BalanceAttestationJournal byte-for-byte.",
+      "fields": [
+        { "name": "version", "type": "u16" },
+        { "name": "threshold", "type": "u128" },
+        { "name": "commitment_root", "type": { "array": ["u8", 32] } },
+        { "name": "context_id", "type": { "array": ["u8", 32] } },
+        { "name": "context_nullifier", "type": { "array": ["u8", 32] } },
+        { "name": "presenter_id", "type": { "array": ["u8", 32] } },
+        { "name": "verifier_id", "type": { "array": ["u8", 32] } },
+        { "name": "circuit_image_id", "type": { "array": ["u8", 32] } },
+        { "name": "proof_index", "type": "u64" },
+        { "name": "proof_depth", "type": "u64" }
+      ]
+    },
+    {
+      "name": "BalanceAttestationEnvelope",
+      "description": "Off-chain transport envelope. The on-chain admit() does NOT consume this directly — it consumes the outer LEZ-gate receipt produced by lez_verifier::prove_lez_gate(envelope).",
+      "fields": [
+        { "name": "version", "type": "u16" },
+        { "name": "proof_system", "type": "string", "notes": "= \"risc0\" in V1" },
+        { "name": "image_id", "type": { "array": ["u8", 32] } },
+        { "name": "journal", "type": { "defined": "BalanceAttestationJournal" } },
+        { "name": "receipt", "type": "bytes" },
+        { "name": "presenter_pubkey", "type": { "array": ["u8", 32] }, "notes": "BIP-340 x-only Schnorr pubkey. Off-chain only." },
+        { "name": "presenter_signature", "type": { "array": ["u8", 64] }, "notes": "BIP-340 Schnorr sig over journal.digest(). Off-chain only." }
+      ]
+    },
+    {
+      "name": "LezGateJournal",
+      "description": "Journal committed by the outer lez_balance_gate guest. Decoded by admit() and compared against gate state.",
+      "fields": [
+        { "name": "version", "type": "u16" },
+        { "name": "inner_image_id", "type": { "array": ["u8", 32] } },
+        { "name": "gate_context_id", "type": { "array": ["u8", 32] } },
+        { "name": "accepted_context_nullifier", "type": { "array": ["u8", 32] } },
+        { "name": "accepted_presenter_id", "type": { "array": ["u8", 32] } },
+        { "name": "accepted_threshold", "type": "u128" }
+      ]
+    }
+  ],
+  "errors": [
+    { "code": "BA100", "name": "InvalidEnvelopeVersion" },
+    { "code": "BA101", "name": "InvalidProofSystem" },
+    { "code": "BA102", "name": "InvalidImageId" },
+    { "code": "BA103", "name": "MalformedEnvelope" },
+    { "code": "BA104", "name": "MalformedJournal" },
+    { "code": "BA200", "name": "InvalidReceipt" },
+    { "code": "BA201", "name": "ThresholdMismatch" },
+    { "code": "BA202", "name": "ContextMismatch" },
+    { "code": "BA203", "name": "PresenterMismatch" },
+    { "code": "BA204", "name": "InvalidPresenterSignature" },
+    { "code": "BA206", "name": "DuplicateNullifier" },
+    { "code": "BA500", "name": "GateAlreadyInitialized" },
+    { "code": "BA501", "name": "GateNotInitialized" },
+    { "code": "BA502", "name": "UnauthorizedPresenterAccount" },
+    { "code": "BA503", "name": "InvalidGateAccount" }
+  ],
+  "encoding": {
+    "wire": "borsh-v1",
+    "developer_interchange": "json",
+    "notes": "CLI tooling reads/writes JSON; the LEZ runtime serializes program account data as Borsh V1. Receipt bytes inside the envelope are serde_json-encoded risc0_zkvm::Receipt for transport (verifiers deserialize and call .verify())."
+  }
+}
