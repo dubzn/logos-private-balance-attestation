@@ -310,6 +310,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "attestation-sdk"
+version = "0.1.0"
+dependencies = [
+ "attestation-core",
+ "attestation-prover",
+ "attestation-verifier",
+ "lez-verifier",
+]
+
+[[package]]
 name = "attestation-verifier"
 version = "0.1.0"
 dependencies = [
