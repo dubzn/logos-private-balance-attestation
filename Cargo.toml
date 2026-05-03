@@ -4,6 +4,7 @@ members = [
     "crates/attestation-cli",
     "crates/attestation-prover",
     "crates/attestation-verifier",
+    "examples/governance-gate",
     "methods",
 ]
 resolver = "2"
