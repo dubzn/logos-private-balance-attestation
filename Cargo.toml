@@ -3,6 +3,7 @@ members = [
     "crates/attestation-core",
     "crates/attestation-cli",
     "crates/attestation-prover",
+    "crates/attestation-verifier",
     "methods",
 ]
 resolver = "2"

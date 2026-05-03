@@ -13,7 +13,7 @@ pub use inspect::{
     PrivateAccountInspectReport, PrivateAccountInspectSource, PrivateAccountInspectStatus,
     REDACTION_POLICY,
 };
-pub use prove::{prove_attestation, ProveError};
+pub use prove::{balance_attestation_image_id, prove_attestation, ProveError};
 pub use witness::{
     build_balance_attestation_witness, inspect_membership_proof, AttestationPublicParams,
     BalanceAttestationWitness, BalanceAttestationWitnessSummary, PresenterWitness,

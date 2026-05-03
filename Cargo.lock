@@ -282,6 +282,7 @@ version = "0.1.0"
 dependencies = [
  "attestation-core",
  "attestation-prover",
+ "attestation-verifier",
  "serde",
  "serde_json",
 ]
@@ -302,6 +303,19 @@ name = "attestation-prover"
 version = "0.1.0"
 dependencies = [
  "attestation-core",
+ "methods",
+ "risc0-zkvm",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "attestation-verifier"
+version = "0.1.0"
+dependencies = [
+ "attestation-core",
+ "attestation-prover",
+ "hex",
  "methods",
  "risc0-zkvm",
  "serde",
