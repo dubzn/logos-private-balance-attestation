@@ -6,6 +6,7 @@ members = [
     "crates/attestation-verifier",
     "examples/chat-gate",
     "examples/governance-gate",
+    "lez-verifier",
     "methods",
 ]
 resolver = "2"
