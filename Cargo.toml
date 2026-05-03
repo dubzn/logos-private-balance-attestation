@@ -4,6 +4,7 @@ members = [
     "crates/attestation-cli",
     "crates/attestation-prover",
     "crates/attestation-verifier",
+    "examples/chat-gate",
     "examples/governance-gate",
     "methods",
 ]
