@@ -2,8 +2,8 @@
 //!
 //! `verify_envelope` performs all checks required to admit a presenter to a gate:
 //! receipt verification against the pinned RISC Zero image id, journal shape,
-//! context binding, threshold check, presenter pubkey ↔ id, and BIP-340 signature
-//! over the journal digest.
+//! context binding, exact threshold check, presenter pubkey ↔ id, and BIP-340
+//! signature over the journal digest.
 //!
 //! On-chain verifiers and reference integrations should call this same function
 //! (or duplicate its checks deterministically) so failure modes match.
@@ -34,8 +34,8 @@ pub enum VerifyError {
         expected: Digest32,
         actual: Digest32,
     },
-    /// `journal.threshold` is below what the verifier requires (we accept >=, not strict ==).
-    ThresholdNotMet { required: u128, journal: u128 },
+    /// `journal.threshold` does not match the context-bound gate threshold.
+    ThresholdMismatch { expected: u128, journal: u128 },
     /// `H(envelope.presenter_pubkey) != journal.presenter_id`.
     PresenterMismatch,
     /// Pubkey bytes were not a valid BIP-340 x-only Schnorr key.
@@ -62,10 +62,10 @@ impl fmt::Display for VerifyError {
                 expected.to_hex(),
                 actual.to_hex()
             ),
-            Self::ThresholdNotMet { required, journal } => {
+            Self::ThresholdMismatch { expected, journal } => {
                 write!(
                     f,
-                    "threshold not met: required >= {required}, journal commits {journal}"
+                    "threshold mismatch: expected context-bound {expected}, journal commits {journal}"
                 )
             }
             Self::PresenterMismatch => {
@@ -94,7 +94,7 @@ impl VerifyError {
             Self::ImageIdMismatch => AttestationErrorCode::InvalidImageId,
             Self::JournalBytesMismatch(_) => AttestationErrorCode::MalformedJournal,
             Self::ContextMismatch { .. } => AttestationErrorCode::ContextMismatch,
-            Self::ThresholdNotMet { .. } => AttestationErrorCode::ThresholdMismatch,
+            Self::ThresholdMismatch { .. } => AttestationErrorCode::ThresholdMismatch,
             Self::PresenterMismatch => AttestationErrorCode::PresenterMismatch,
             Self::InvalidPresenterPubkey => AttestationErrorCode::PresenterMismatch,
             Self::InvalidPresenterSignature => AttestationErrorCode::InvalidPresenterSignature,
@@ -102,14 +102,14 @@ impl VerifyError {
     }
 }
 
-/// Verifier's expectation of which gate is being claimed and what the minimum
-/// threshold is. The expected `context_id` is computed by the verifier from
+/// Verifier's expectation of which gate is being claimed and what exact
+/// threshold is bound into that gate. The expected `context_id` is computed by the verifier from
 /// its own `(chain_id, circuit_image_id, verifier_id, gate_id, threshold)` —
 /// we do not trust the journal's `context_id` blindly.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExpectedGate {
     pub context_id: Digest32,
-    pub min_threshold: u128,
+    pub threshold: u128,
 }
 
 /// Verify a balance attestation envelope end-to-end.
@@ -178,10 +178,12 @@ pub fn verify_envelope(
         });
     }
 
-    // 6. Threshold check (we accept journal.threshold >= required).
-    if envelope.journal.threshold < expected.min_threshold {
-        return Err(VerifyError::ThresholdNotMet {
-            required: expected.min_threshold,
+    // 6. Threshold check. V1 binds the threshold into context_id, so gates are
+    // exact-threshold credentials rather than reusable "prove >= any lower
+    // threshold" credentials.
+    if envelope.journal.threshold != expected.threshold {
+        return Err(VerifyError::ThresholdMismatch {
+            expected: expected.threshold,
             journal: envelope.journal.threshold,
         });
     }
@@ -272,7 +274,7 @@ mod tests {
         };
         let expected = ExpectedGate {
             context_id: derive_context_id(&ctx_params),
-            min_threshold: 25,
+            threshold: 25,
         };
         (envelope, expected)
     }
@@ -295,11 +297,11 @@ mod tests {
 
     #[test]
     #[ignore = "requires RISC0_DEV_MODE=1"]
-    fn verify_envelope_rejects_threshold_not_met() {
+    fn verify_envelope_rejects_threshold_mismatch() {
         let (envelope, mut expected) = fixture();
-        expected.min_threshold = 1_000_000;
+        expected.threshold = 1_000_000;
         let err = verify_envelope(&envelope, &expected).unwrap_err();
-        assert!(matches!(err, VerifyError::ThresholdNotMet { .. }));
+        assert!(matches!(err, VerifyError::ThresholdMismatch { .. }));
     }
 
     #[test]

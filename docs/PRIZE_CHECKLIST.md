@@ -17,12 +17,12 @@ Status legend:
 | Generate client-side proof for `balance >= N` from a shielded token account. | done | `attestation-prover::prove_attestation` over `methods/` production circuit. |
 | Verify without revealing `npk`, exact balance, or private account identity. | done | Journal commits only public fields; `attestation-verifier::verify_envelope`. |
 | Bind proof to a context to prevent cross-gate replay. | done | `attestation_core::derive_context_id` over `(chain_id, circuit_image_id, verifier_id, gate_id, threshold)`; circuit asserts. |
-| Bind proof to presenter identity to reduce forwarding. | done | BIP-340 Schnorr: `presenter_id = H(pubkey)` in circuit, signature over `journal.digest()` in envelope; `attestation-core::presenter`. |
+| Bind proof to presenter identity to reduce forwarding. | partial | BIP-340 Schnorr: `presenter_id = H(pubkey)` in circuit, signature over `journal.digest()` in envelope; fresh verifier challenge/session binding is still needed to prevent first-use replay of a captured envelope. |
 | Target existing LEZ private account commitment format. | done | `attestation_core::derive_lez_private_account_commitment` mirrors `nssa_core` byte-for-byte (compat script + tests). |
-| On-chain LEZ verifier gates an action. | done (recursion-ready) | `lez-verifier/` outer guest + `LezGateProgram`; deployment to live LEZ testnet pending. |
+| On-chain LEZ verifier gates an action. | partial (recursion-ready) | `lez-verifier/` outer guest + `LezGateProgram` model presenter-id checks and nullifier dedup; live LEZ signer/account adapter and testnet deployment pending. |
 | Off-chain path over Logos Messaging. | done (transport-agnostic) | `attestation-verifier` + `examples/chat-gate` (envelope JSON shipped as wire bytes). |
 | Three distinct apps integrate on testnet, one outside team. | partial | `examples/governance-gate` + `examples/chat-gate` shipped; third + external integrator still pending. |
-| Full docs and clean public repo. | done | README + `docs/`, IDL artifact, demo script, CI green. |
+| Full docs and clean public repo. | in-progress | README + `docs/`, IDL artifact, smoke demo script, CI; final testnet deployment docs and Basecamp docs pending. |
 
 ## Usability
 
@@ -52,10 +52,10 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | Program deployed and tested on devnet/testnet. | planned | Deployment glue + verified program id. |
-| E2E tests against standalone LEZ sequencer in CI. | done (in-memory rehearsal) | Workspace E2E suites: `lez-verifier`, `governance-gate`, `chat-gate`, `methods`. Live-sequencer harness still pending. |
+| E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites: `lez-verifier`, `governance-gate`, `chat-gate`, `methods` are in-memory/synthetic. Live wallet + sequencer + `getProofForCommitment` harness still pending. |
 | CI green on default branch. | done | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`). |
 | README covers CLI and Basecamp for both paths. | done (CLI side) | `README.md` quick-start; Basecamp section pending the GUI. |
-| Reproducible demo script with `RISC0_DEV_MODE=0`. | done | `scripts/demo-end-to-end.sh` (defaults to dev mode; `RISC0_DEV_MODE=0` for the real-prover variant). |
+| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | `scripts/demo-end-to-end.sh` can run synthetic fixtures with `RISC0_DEV_MODE=0`; final clean sequencer E2E with wallet state is pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 
 ## Submission Blockers To Clear

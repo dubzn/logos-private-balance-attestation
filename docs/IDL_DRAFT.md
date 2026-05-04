@@ -10,7 +10,8 @@ prover wraps the inner balance-attestation receipt with `lez_verifier::prove_lez
 into an outer LEZ-gate receipt; the LEZ program's `admit` instruction consumes
 the outer receipt and checks (a) it verifies against the pinned `LEZ_BALANCE_GATE_ID`,
 (b) `outer_journal.inner_image_id == BALANCE_ATTESTATION_ID`, (c) gate context match,
-(d) threshold floor, (e) nullifier dedup, (f) presenter LEZ tx-signing account hash.
+(d) exact context-bound threshold, (e) nullifier dedup, (f) presenter LEZ
+tx-signing account hash.
 
 ## Program
 
@@ -52,7 +53,7 @@ The program checks:
 
 ```text
 presenter_account.is_authorized == true
-presenter_account.account_id == proof.journal.presenter_id
+derive_presenter_id(presenter_account) == proof.journal.presenter_id
 ```
 
 ## Data Types

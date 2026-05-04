@@ -1,7 +1,6 @@
 # Logos Private Balance Attestation
 
-Documentation-first implementation plan for LP-0005: Private Token Balance
-Attestation.
+Implementation workspace for LP-0005: Private Token Balance Attestation.
 
 This repository targets a reusable Logos primitive that lets a holder of a
 private LEZ account prove:
@@ -15,7 +14,7 @@ nonce, or account data.
 
 ## Status
 
-The full LP-0005 primitive is implemented end-to-end:
+The core LP-0005 primitive is implemented as a local development base:
 
 - **attestation-core** — proof envelope, journal, context/nullifier derivation,
   BIP-340 Schnorr presenter binding, deterministic error codes.
@@ -25,8 +24,8 @@ The full LP-0005 primitive is implemented end-to-end:
 - **attestation-prover** — `prove_attestation(witness, params) -> envelope`,
   signs `journal.digest()` with the presenter Schnorr secret.
 - **attestation-verifier** — `verify_envelope(envelope, expected_gate)`
-  performs all 8 checks (receipt, image_id, journal match, context, threshold,
-  presenter pubkey hash, signature).
+  performs all 8 checks (receipt, image_id, journal match, context, exact
+  threshold, presenter pubkey hash, signature).
 - **lez-verifier/** — Spike-0C on-chain path: outer RISC Zero guest that nests
   the inner balance-attestation receipt via `env::verify`; `LezGateProgram` is
   an in-memory rehearsal of the LEZ on-chain program semantics.
@@ -41,22 +40,24 @@ The full LP-0005 primitive is implemented end-to-end:
 - **CI** — `.github/workflows/ci.yml` runs fmt + clippy + workspace tests
   (default + `--include-ignored` E2E suites) under RISC0_DEV_MODE=1.
 
-What's still pending for prize submission: a third reference integration (one
-externally built), a Basecamp app GUI, a real-prover demo video, and the
-on-chain deployment to a live LEZ testnet (the program code is ready; the
-deployment glue is what's missing).
+What's still pending for prize submission: a real local-sequencer E2E using
+wallet state and `getProofForCommitment`, a fresh challenge/session binding for
+forwarded envelopes, the live LEZ signer/account adapter for the on-chain gate,
+a third reference integration (one externally built), a Basecamp app GUI, a
+real-prover demo video, and deployment to a live LEZ testnet.
 
 ## Quick start: end-to-end demo
 
-Reproducible script that exercises the full off-chain path
-(prove → envelope → verify):
+Reproducible smoke script that exercises the full off-chain proof path
+(synthetic witness → envelope → verify):
 
 ```sh
 scripts/demo-end-to-end.sh
 ```
 
-In dev mode (default) the run takes a few seconds. For a real-prover demo
-that LP-0005 evaluators can inspect:
+In dev mode (default) the run takes a few seconds. This uses deterministic
+fixtures, not a wallet account or live sequencer membership proof. To compare
+the same smoke path with real RISC Zero proving:
 
 ```sh
 RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
@@ -87,8 +88,10 @@ RISC0_DEV_MODE=1 cargo test -p lez-verifier -- --include-ignored
 ```
 
 The recursion test wraps the off-chain envelope with `prove_lez_gate`
-(producing an outer RISC Zero receipt) and feeds it to `LezGateProgram::admit`
-— exactly the semantics the deployed LEZ program will execute.
+(producing an outer RISC Zero receipt) and feeds it to
+`LezGateProgram::admit(&proof, presenter_id)`. This rehearses the intended LEZ
+program logic in-memory; the deployed adapter must derive `presenter_id` from
+the authenticated LEZ signer/account.
 
 ## Target Verification Paths
 

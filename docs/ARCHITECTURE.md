@@ -196,19 +196,23 @@ binds the proof to a presenter via BIP-340 Schnorr over secp256k1:
 - Off-chain: the prover signs `journal.digest()` with the secret. The
   envelope carries `(pubkey, signature)`. The off-chain verifier
   (`attestation_verifier::verify_envelope`) checks both
-  `H(pubkey) == journal.presenter_id` and the Schnorr signature.
-- On-chain: the LEZ tx is signed by the presenter account; the LEZ program
-  asserts that account's hash equals `journal.presenter_id`. The on-chain
-  path does not need the off-chain Schnorr signature because LEZ tx signing
-  already enforces presenter identity.
+  `H(pubkey) == journal.presenter_id` and the Schnorr signature. A fresh
+  verifier nonce/session signature is still required before this closes
+  first-use replay of a captured complete envelope.
+- On-chain: the LEZ tx must be signed by, or otherwise authenticated to, the
+  presenter account. The LEZ program must assert the runtime-derived presenter
+  id equals `journal.presenter_id`. The in-memory `LezGateProgram` models this
+  as `admit(proof, presenter_id)`; the live LEZ adapter still needs to derive
+  that presenter id from real signer/account context.
 
 The circuit only hashes the pubkey (no in-circuit ECC). Knowledge-of-secret
 is proved off-circuit by the BIP-340 signature: only the secret-holder can
 produce a signature that verifies under the pubkey committed in the journal.
 
 This does not prevent voluntary collusion where Alice generates a proof for
-Bob's presenter id or shares her secret. It does prevent a passive third party
-from reusing a captured proof as themselves.
+Bob's presenter id or shares her secret. It also does not yet prevent first-use
+replay of a captured complete envelope until a fresh challenge/session binding
+is added.
 
 ## Off-Chain Path
 
@@ -219,7 +223,7 @@ sequenceDiagram
   participant M as Logos Messaging
   participant V as Recipient Verifier
 
-  V->>A: Fresh challenge + gate context
+  V->>A: Gate context (fresh challenge pending)
   A->>W: Prove balance >= threshold
   W->>W: Build witness from local wallet state
   W->>V: Optional local verify before send
@@ -249,25 +253,26 @@ sequenceDiagram
   A->>CLI: prove_attestation(witness, params) -> envelope
   CLI->>L: prove_lez_gate(envelope, gate_config)
   L->>L: Outer guest: env::verify(BALANCE_ATTESTATION_ID, inner_journal)
-  L->>L: Recompute context_id, assert match, threshold floor, verifier_id
+  L->>L: Recompute context_id, assert match, exact threshold, verifier_id
   L->>CLI: LezGateProof { outer_journal, outer_receipt_bytes }
   CLI->>S: Submit (outer_receipt_bytes, presenter_account)
-  S->>P: admit(outer_receipt_bytes)
+  S->>P: admit(outer_receipt_bytes, presenter_account)
   P->>P: Verify outer receipt against pinned LEZ_BALANCE_GATE_ID
   P->>P: Assert outer_journal.inner_image_id == BALANCE_ATTESTATION_ID
-  P->>P: Assert gate_context_id matches; dedup nullifier
+  P->>P: Assert gate_context_id and presenter match; dedup nullifier
   P->>S: Admit or return deterministic BAxxx error
 ```
 
 The outer LEZ-gate guest lives at `lez-verifier/guest/src/bin/lez_balance_gate.rs`
 and is built into a self-contained image (`LEZ_BALANCE_GATE_ID`). The LEZ
-on-chain program (modeled in-memory by `lez_verifier::LezGateProgram`) runs
-exactly the steps above.
+on-chain program is modeled in-memory by `lez_verifier::LezGateProgram`; the
+remaining live adapter work is deriving `presenter_account` from real LEZ
+transaction/account context instead of passing a test `presenter_id`.
 
 The first gated action is intentionally small:
 
 ```text
-admit(outer_receipt_bytes) -> Result<recorded_nullifier, BAxxx>
+admit(outer_receipt_bytes, presenter_account) -> Result<recorded_nullifier, BAxxx>
 ```
 
 The program writes public state `(gate_context_id → set<context_nullifier>)`

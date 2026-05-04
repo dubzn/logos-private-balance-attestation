@@ -35,7 +35,7 @@ impl GateConfig {
         };
         ExpectedGate {
             context_id: derive_context_id(&ctx_params),
-            min_threshold: self.threshold,
+            threshold: self.threshold,
         }
     }
 }

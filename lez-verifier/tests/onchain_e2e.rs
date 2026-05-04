@@ -79,7 +79,9 @@ fn admits_valid_envelope_via_outer_receipt() {
     let outer = prove_lez_gate(&inner, &gate).expect("outer prove succeeds");
 
     let mut program = LezGateProgram::new(gate);
-    let nullifier = program.admit(&outer).expect("program should admit");
+    let nullifier = program
+        .admit(&outer, inner.journal.presenter_id)
+        .expect("program should admit");
 
     assert_eq!(nullifier, inner.journal.context_nullifier);
     assert_eq!(program.admitted_count(), 1);
@@ -95,9 +97,13 @@ fn rejects_replay_with_same_outer_receipt() {
     let outer = prove_lez_gate(&inner, &gate).expect("outer prove succeeds");
 
     let mut program = LezGateProgram::new(gate);
-    program.admit(&outer).expect("first admission OK");
+    program
+        .admit(&outer, inner.journal.presenter_id)
+        .expect("first admission OK");
 
-    let err = program.admit(&outer).expect_err("replay must be rejected");
+    let err = program
+        .admit(&outer, inner.journal.presenter_id)
+        .expect_err("replay must be rejected");
     assert!(matches!(err, LezGateProgramError::NullifierReplay { .. }));
     assert_eq!(program.admitted_count(), 1);
 }
@@ -118,10 +124,30 @@ fn rejects_outer_receipt_for_different_gate() {
     // Program is pinned to the canonical gate.
     let mut program = LezGateProgram::new(gate());
     let err = program
-        .admit(&outer)
+        .admit(&outer, inner.journal.presenter_id)
         .expect_err("wrong gate must be rejected");
     assert!(matches!(
         err,
         LezGateProgramError::GateContextMismatch { .. }
     ));
+}
+
+#[test]
+#[ignore = "requires RISC0_DEV_MODE=1"]
+fn rejects_forwarded_receipt_from_wrong_presenter() {
+    std::env::set_var("RISC0_DEV_MODE", "1");
+
+    let gate = gate();
+    let inner = build_envelope(0x77, 0xAA, 100, &gate);
+    let outer = prove_lez_gate(&inner, &gate).expect("outer prove succeeds");
+
+    let mut program = LezGateProgram::new(gate);
+    let err = program
+        .admit(&outer, digest(0x99))
+        .expect_err("wrong presenter signer must be rejected");
+    assert!(matches!(
+        err,
+        LezGateProgramError::PresenterSignerMismatch { .. }
+    ));
+    assert_eq!(program.admitted_count(), 0);
 }

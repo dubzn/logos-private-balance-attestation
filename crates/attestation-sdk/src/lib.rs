@@ -24,8 +24,9 @@
 //! 1..3. Same as off-chain — produces BalanceAttestationEnvelope.
 //! 4. prove_lez_gate(&envelope, &lez_gate_config) -> LezGateProof
 //! 5. The LEZ on-chain program (modeled by LezGateProgram) calls
-//!    LezGateProgram::admit(&proof) which verifies the outer receipt and
-//!    dedups journal.context_nullifier.
+//!    LezGateProgram::admit(&proof, presenter_id) which verifies the outer
+//!    receipt, checks the authenticated presenter, and dedups
+//!    journal.context_nullifier.
 //! ```
 //!
 //! ## Application layer (NOT included)
