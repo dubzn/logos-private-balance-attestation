@@ -3,7 +3,7 @@ use std::fmt;
 use attestation_core::{
     compute_lez_membership_root, derive_context_id, derive_context_nullifier,
     derive_lez_private_account_commitment, derive_presenter_id, Digest32, HexBytes,
-    LezMembershipProof, LezPrivateAccountCommitmentInput,
+    LezMembershipProof, LezPrivateAccountCommitmentInput, PresenterPubkey, PresenterSecret,
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,9 +23,41 @@ pub struct PrivateAccountWitness {
     pub data: HexBytes,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "PresenterWitnessRepr", into = "PresenterWitnessRepr")]
 pub struct PresenterWitness {
-    pub presenter_secret: Digest32,
+    pub presenter_secret: PresenterSecret,
+}
+
+#[derive(Serialize, Deserialize)]
+struct PresenterWitnessRepr {
+    presenter_secret: Digest32,
+}
+
+impl TryFrom<PresenterWitnessRepr> for PresenterWitness {
+    type Error = String;
+
+    fn try_from(value: PresenterWitnessRepr) -> Result<Self, Self::Error> {
+        let secret = PresenterSecret::new(value.presenter_secret.0)
+            .map_err(|e| format!("invalid presenter_secret: {e}"))?;
+        Ok(Self {
+            presenter_secret: secret,
+        })
+    }
+}
+
+impl From<PresenterWitness> for PresenterWitnessRepr {
+    fn from(value: PresenterWitness) -> Self {
+        Self {
+            presenter_secret: Digest32(*value.presenter_secret.as_bytes()),
+        }
+    }
+}
+
+impl PresenterWitness {
+    pub fn pubkey(&self) -> PresenterPubkey {
+        self.presenter_secret.pubkey()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -43,10 +75,13 @@ pub struct BalanceAttestationWitness {
     pub private_account: PrivateAccountWitness,
     pub membership_proof: LezMembershipProof,
     pub presenter: PresenterWitness,
+    #[serde(with = "u128_decimal")]
     pub threshold: u128,
     pub commitment_root: Digest32,
     pub context_id: Digest32,
     pub context_nullifier: Digest32,
+    /// Cached `presenter_secret.pubkey()` so the prover doesn't recompute it.
+    pub presenter_pubkey: Digest32,
     pub presenter_id: Digest32,
     pub verifier_id: Digest32,
     pub circuit_image_id: Digest32,
@@ -58,6 +93,7 @@ pub struct BalanceAttestationWitnessSummary {
     pub commitment_root_hex: String,
     pub context_id_hex: String,
     pub context_nullifier_hex: String,
+    pub presenter_pubkey_hex: String,
     pub presenter_id_hex: String,
     pub verifier_id_hex: String,
     pub circuit_image_id_hex: String,
@@ -75,7 +111,8 @@ pub fn build_balance_attestation_witness(
     let commitment = private_account.commitment();
     let commitment_root = compute_lez_membership_root(&commitment, &membership_proof);
     let context_id = derive_context_id(&params.into());
-    let presenter_id = derive_presenter_id(&presenter.presenter_secret);
+    let presenter_pubkey = presenter.pubkey();
+    let presenter_id = derive_presenter_id(&presenter_pubkey);
     let context_nullifier =
         derive_context_nullifier(&private_account.npk, &context_id, &presenter_id);
 
@@ -87,6 +124,7 @@ pub fn build_balance_attestation_witness(
         commitment_root,
         context_id,
         context_nullifier,
+        presenter_pubkey: Digest32(*presenter_pubkey.as_bytes()),
         presenter_id,
         verifier_id: params.verifier_id,
         circuit_image_id: params.circuit_image_id,
@@ -135,6 +173,7 @@ impl BalanceAttestationWitness {
             commitment_root_hex: self.commitment_root.to_hex(),
             context_id_hex: self.context_id.to_hex(),
             context_nullifier_hex: self.context_nullifier.to_hex(),
+            presenter_pubkey_hex: self.presenter_pubkey.to_hex(),
             presenter_id_hex: self.presenter_id.to_hex(),
             verifier_id_hex: self.verifier_id.to_hex(),
             circuit_image_id_hex: self.circuit_image_id.to_hex(),
@@ -190,6 +229,7 @@ impl fmt::Debug for BalanceAttestationWitness {
             .field("commitment_root", &self.commitment_root)
             .field("context_id", &self.context_id)
             .field("context_nullifier", &self.context_nullifier)
+            .field("presenter_pubkey", &self.presenter_pubkey)
             .field("presenter_id", &self.presenter_id)
             .field("verifier_id", &self.verifier_id)
             .field("circuit_image_id", &self.circuit_image_id)
@@ -251,14 +291,18 @@ mod tests {
         }
     }
 
+    fn presenter_witness() -> PresenterWitness {
+        PresenterWitness {
+            presenter_secret: PresenterSecret::new([0x77; 32]).unwrap(),
+        }
+    }
+
     #[test]
     fn builds_balance_attestation_witness_from_private_account_and_context() {
         let witness = build_balance_attestation_witness(
             private_account(),
             proof(),
-            PresenterWitness {
-                presenter_secret: digest(0x77),
-            },
+            presenter_witness(),
             params(),
         );
 
@@ -271,13 +315,19 @@ mod tests {
             witness.context_id.to_hex(),
             "7467919be9a46e7e31823a93178a6f32b22e1f77d24c8fd3782423bccc67f9aa"
         );
+        // presenter_id is now H(PRESENTER_DOMAIN || pubkey). Verify internal
+        // consistency rather than pinning hex (pubkey derivation is via k256).
         assert_eq!(
-            witness.presenter_id.to_hex(),
-            "ecc0fef4cd3e706458caa9eb944f487c99fa74d6c2c6a02bdae786450b850a48"
+            witness.presenter_id,
+            derive_presenter_id(&witness.presenter.pubkey())
         );
         assert_eq!(
-            witness.context_nullifier.to_hex(),
-            "4a46dca676b96af04d1733a5c02bdc1aa9bee24d32615fa851491ad94ac46f14"
+            witness.presenter_pubkey.0,
+            *witness.presenter.pubkey().as_bytes()
+        );
+        assert_eq!(
+            witness.context_nullifier,
+            derive_context_nullifier(&digest(0x07), &witness.context_id, &witness.presenter_id)
         );
     }
 
@@ -286,9 +336,7 @@ mod tests {
         let witness = build_balance_attestation_witness(
             private_account(),
             proof(),
-            PresenterWitness {
-                presenter_secret: digest(0x77),
-            },
+            presenter_witness(),
             params(),
         );
         let summary = witness.summary();
@@ -298,6 +346,7 @@ mod tests {
         assert_eq!(summary.proof_index, 5);
         assert_eq!(summary.proof_depth, 4);
         assert!(json.contains("context_nullifier_hex"));
+        assert!(json.contains("presenter_pubkey_hex"));
         assert!(!json.contains("witness fixture"));
         assert!(!json.contains("123456"));
         assert!(!json.contains("presenter_secret"));
@@ -308,9 +357,7 @@ mod tests {
         let witness = build_balance_attestation_witness(
             private_account(),
             proof(),
-            PresenterWitness {
-                presenter_secret: digest(0x77),
-            },
+            presenter_witness(),
             params(),
         );
         let debug = format!("{witness:?}");
@@ -318,7 +365,6 @@ mod tests {
         assert!(debug.contains("<redacted>"));
         assert!(!debug.contains("witness fixture"));
         assert!(!debug.contains("123456"));
-        assert!(!debug.contains("presenter_secret: Digest32"));
     }
 
     #[test]

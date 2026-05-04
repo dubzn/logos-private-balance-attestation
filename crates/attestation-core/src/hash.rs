@@ -1,4 +1,4 @@
-use crate::{ContextBindingParams, Digest32};
+use crate::{ContextBindingParams, Digest32, PresenterPubkey};
 use sha2::{Digest, Sha256};
 
 pub const CONTEXT_DOMAIN: &[u8] = b"logos-balance-attestation/v1/context";
@@ -30,8 +30,13 @@ pub fn derive_context_nullifier(
     ])
 }
 
-pub fn derive_presenter_id(presenter_secret: &Digest32) -> Digest32 {
-    hash_segments(&[PRESENTER_DOMAIN, presenter_secret.as_bytes()])
+/// Derive the public `presenter_id` from a Schnorr x-only pubkey.
+///
+/// The journal commits to this id and the circuit verifies it inside the proof.
+/// The pubkey itself travels in the envelope so verifiers can recompute the id
+/// and check the Schnorr signature.
+pub fn derive_presenter_id(presenter_pubkey: &PresenterPubkey) -> Digest32 {
+    hash_segments(&[PRESENTER_DOMAIN, presenter_pubkey.as_bytes()])
 }
 
 pub fn hash_segments(segments: &[&[u8]]) -> Digest32 {

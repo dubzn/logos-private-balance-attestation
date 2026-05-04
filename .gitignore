@@ -1,3 +1,5 @@
 .spike-results/
+.demo-runs/
 target/
 .DS_Store
+logos/

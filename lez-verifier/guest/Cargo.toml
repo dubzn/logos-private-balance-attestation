@@ -1,0 +1,15 @@
+[workspace]
+
+[package]
+name = "lez-balance-gate-guest"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "lez_balance_gate"
+path = "src/bin/lez_balance_gate.rs"
+
+[dependencies]
+risc0-zkvm = { version = "3.0.5", default-features = false, features = ["std"] }
+serde = { version = "1", default-features = false, features = ["derive"] }

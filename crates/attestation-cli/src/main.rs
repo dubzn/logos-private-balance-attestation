@@ -5,6 +5,16 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use attestation_core::{
+    derive_context_id, BalanceAttestationEnvelope, ContextBindingParams, Digest32,
+};
+use attestation_prover::{
+    balance_attestation_image_id, prove_attestation, AttestationPublicParams,
+    BalanceAttestationWitness,
+};
+use attestation_verifier::{verify_envelope, ExpectedGate, VerifyError};
+use serde::Deserialize;
+
 const INSPECT_SCRIPT: &str = "scripts/m2-inspect-private-account.sh";
 
 fn main() -> ExitCode {
@@ -25,6 +35,8 @@ fn run(args: Vec<String>) -> Result<(), CliError> {
             Ok(())
         }
         CommandArgs::InspectPrivate(options) => run_inspect_private(options),
+        CommandArgs::Prove(options) => run_prove(options),
+        CommandArgs::Verify(options) => run_verify(options),
     }
 }
 
@@ -32,7 +44,207 @@ fn run(args: Vec<String>) -> Result<(), CliError> {
 enum CommandArgs {
     Help,
     InspectPrivate(InspectPrivateOptions),
+    Prove(ProveOptions),
+    Verify(VerifyOptions),
 }
+
+// ── prove ─────────────────────────────────────────────────────────────────────
+
+/// Input file format for `balance-attest prove`.
+/// chain_id and gate_id are separated out because BalanceAttestationWitness
+/// consumes them into context_id during build and does not store them.
+#[derive(Deserialize)]
+struct ProveInput {
+    witness: BalanceAttestationWitness,
+    chain_id: Digest32,
+    gate_id: Digest32,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct ProveOptions {
+    witness: PathBuf,
+    out: Option<PathBuf>,
+}
+
+fn parse_prove(args: Vec<String>) -> Result<ProveOptions, CliError> {
+    let mut witness = None;
+    let mut out = None;
+    let mut args = args.into_iter();
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "-h" | "--help" => return Err(CliError::Usage(prove_help())),
+            "--witness" => {
+                witness = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--witness needs a value".to_owned())
+                })?));
+            }
+            "--out" => {
+                out = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--out needs a value".to_owned())
+                })?));
+            }
+            _ => return Err(CliError::Usage(format!("unknown prove argument: {arg}"))),
+        }
+    }
+
+    let witness =
+        witness.ok_or_else(|| CliError::Usage("prove needs --witness <path>".to_owned()))?;
+
+    Ok(ProveOptions { witness, out })
+}
+
+fn run_prove(options: ProveOptions) -> Result<(), CliError> {
+    let json = fs::read_to_string(&options.witness).map_err(|source| CliError::FileRead {
+        path: options.witness.clone(),
+        source,
+    })?;
+
+    let input: ProveInput =
+        serde_json::from_str(&json).map_err(|source| CliError::WitnessParse {
+            path: options.witness.clone(),
+            source,
+        })?;
+
+    let params = AttestationPublicParams {
+        threshold: input.witness.threshold,
+        chain_id: input.chain_id,
+        verifier_id: input.witness.verifier_id,
+        gate_id: input.gate_id,
+        circuit_image_id: input.witness.circuit_image_id,
+    };
+
+    let envelope =
+        prove_attestation(&input.witness, &params).map_err(|e| CliError::Prove(e.to_string()))?;
+
+    let output = serde_json::to_string_pretty(&envelope).expect("envelope should serialize");
+
+    match &options.out {
+        Some(path) => {
+            fs::write(path, &output).map_err(|source| CliError::FileRead {
+                path: path.clone(),
+                source,
+            })?;
+            eprintln!("envelope written to {}", path.display());
+        }
+        None => println!("{output}"),
+    }
+
+    Ok(())
+}
+
+// ── verify ────────────────────────────────────────────────────────────────────
+
+/// Gate file format for `balance-attest verify`.
+/// circuit_image_id is omitted on purpose — the verifier always uses the
+/// compiled BALANCE_ATTESTATION_ID, so the user can never accidentally
+/// verify against the wrong image.
+#[derive(Deserialize)]
+struct GateFile {
+    chain_id: Digest32,
+    verifier_id: Digest32,
+    gate_id: Digest32,
+    #[serde(with = "u128_decimal")]
+    threshold: u128,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct VerifyOptions {
+    envelope: PathBuf,
+    gate: PathBuf,
+}
+
+fn parse_verify(args: Vec<String>) -> Result<VerifyOptions, CliError> {
+    let mut envelope = None;
+    let mut gate = None;
+    let mut args = args.into_iter();
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "-h" | "--help" => return Err(CliError::Usage(verify_help())),
+            "--envelope" => {
+                envelope = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--envelope needs a value".to_owned())
+                })?));
+            }
+            "--gate" => {
+                gate = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--gate needs a value".to_owned())
+                })?));
+            }
+            _ => return Err(CliError::Usage(format!("unknown verify argument: {arg}"))),
+        }
+    }
+
+    let envelope =
+        envelope.ok_or_else(|| CliError::Usage("verify needs --envelope <path>".to_owned()))?;
+    let gate = gate.ok_or_else(|| CliError::Usage("verify needs --gate <path>".to_owned()))?;
+
+    Ok(VerifyOptions { envelope, gate })
+}
+
+fn run_verify(options: VerifyOptions) -> Result<(), CliError> {
+    let envelope_json =
+        fs::read_to_string(&options.envelope).map_err(|source| CliError::FileRead {
+            path: options.envelope.clone(),
+            source,
+        })?;
+    let envelope: BalanceAttestationEnvelope =
+        serde_json::from_str(&envelope_json).map_err(|source| CliError::WitnessParse {
+            path: options.envelope.clone(),
+            source,
+        })?;
+
+    let gate_json = fs::read_to_string(&options.gate).map_err(|source| CliError::FileRead {
+        path: options.gate.clone(),
+        source,
+    })?;
+    let gate: GateFile =
+        serde_json::from_str(&gate_json).map_err(|source| CliError::WitnessParse {
+            path: options.gate.clone(),
+            source,
+        })?;
+
+    let ctx_params = ContextBindingParams {
+        chain_id: gate.chain_id,
+        circuit_image_id: Digest32(balance_attestation_image_id()),
+        verifier_id: gate.verifier_id,
+        gate_id: gate.gate_id,
+        threshold: gate.threshold,
+    };
+    let expected = ExpectedGate {
+        context_id: derive_context_id(&ctx_params),
+        threshold: gate.threshold,
+    };
+
+    match verify_envelope(&envelope, &expected) {
+        Ok(()) => {
+            println!(
+                "{{\"status\":\"ok\",\"presenter_id\":\"{}\",\"context_id\":\"{}\",\"context_nullifier\":\"{}\",\"threshold\":\"{}\"}}",
+                envelope.journal.presenter_id.to_hex(),
+                envelope.journal.context_id.to_hex(),
+                envelope.journal.context_nullifier.to_hex(),
+                envelope.journal.threshold,
+            );
+            Ok(())
+        }
+        Err(error) => Err(CliError::Verify(error)),
+    }
+}
+
+mod u128_decimal {
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<u128, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        value.parse::<u128>().map_err(serde::de::Error::custom)
+    }
+}
+
+// ── inspect-private ───────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct InspectPrivateOptions {
@@ -47,35 +259,6 @@ struct InspectPrivateOptions {
 enum InspectMode {
     LocalOnly,
     RequireProof,
-}
-
-#[derive(Debug)]
-enum CliError {
-    Usage(String),
-    Io(io::Error),
-    ScriptFailed {
-        status: String,
-        stdout: String,
-        stderr: String,
-    },
-    JsonMissing(PathBuf),
-    JsonRead {
-        path: PathBuf,
-        source: io::Error,
-    },
-}
-
-fn parse_args(args: Vec<String>) -> Result<CommandArgs, CliError> {
-    let mut args = args.into_iter();
-    let Some(command) = args.next() else {
-        return Ok(CommandArgs::Help);
-    };
-
-    match command.as_str() {
-        "-h" | "--help" | "help" => Ok(CommandArgs::Help),
-        "inspect-private" => parse_inspect_private(args.collect()).map(CommandArgs::InspectPrivate),
-        _ => Err(CliError::Usage(format!("unknown command: {command}"))),
-    }
 }
 
 fn parse_inspect_private(args: Vec<String>) -> Result<InspectPrivateOptions, CliError> {
@@ -183,7 +366,7 @@ fn run_inspect_private(options: InspectPrivateOptions) -> Result<(), CliError> {
     }
 
     let json_path = find_single_json_file(&result_dir)?;
-    let json = fs::read_to_string(&json_path).map_err(|source| CliError::JsonRead {
+    let json = fs::read_to_string(&json_path).map_err(|source| CliError::FileRead {
         path: json_path,
         source,
     })?;
@@ -196,6 +379,25 @@ fn run_inspect_private(options: InspectPrivateOptions) -> Result<(), CliError> {
 
     Ok(())
 }
+
+// ── arg parsing ───────────────────────────────────────────────────────────────
+
+fn parse_args(args: Vec<String>) -> Result<CommandArgs, CliError> {
+    let mut args = args.into_iter();
+    let Some(command) = args.next() else {
+        return Ok(CommandArgs::Help);
+    };
+
+    match command.as_str() {
+        "-h" | "--help" | "help" => Ok(CommandArgs::Help),
+        "inspect-private" => parse_inspect_private(args.collect()).map(CommandArgs::InspectPrivate),
+        "prove" => parse_prove(args.collect()).map(CommandArgs::Prove),
+        "verify" => parse_verify(args.collect()).map(CommandArgs::Verify),
+        _ => Err(CliError::Usage(format!("unknown command: {command}"))),
+    }
+}
+
+// ── utilities ─────────────────────────────────────────────────────────────────
 
 fn normalize_private_account_id(account: &str) -> String {
     account
@@ -239,45 +441,100 @@ fn find_single_json_file(dir: &Path) -> Result<PathBuf, CliError> {
         .ok_or_else(|| CliError::JsonMissing(dir.to_path_buf()))
 }
 
+// ── help text ─────────────────────────────────────────────────────────────────
+
 fn print_help() {
     println!(
-        "usage:\n  balance-attest inspect-private --account Private/<id> [--local-only|--require-proof] [--lez-repo <path>] [--wallet-home <path>] [--report]\n\ncommands:\n  inspect-private   Inspect local private wallet state without printing witness data"
+        "usage:\n  balance-attest <command> [options]\n\ncommands:\n  inspect-private   Inspect local private wallet state\n  prove             Prove a balance attestation from a witness JSON file\n  verify            Verify a balance attestation envelope against a gate file\n\nRun `balance-attest <command> --help` for command-specific usage."
     );
+}
+
+fn verify_help() -> String {
+    "usage: balance-attest verify --envelope <path.json> --gate <path.json>\n\n\
+     Verifies a balance attestation envelope (produced by `prove`) against the\n\
+     verifier's expected gate parameters. The gate file format is:\n\
+     { \"chain_id\": \"hex\", \"verifier_id\": \"hex\", \"gate_id\": \"hex\", \"threshold\": \"<u128 decimal>\" }\n\n\
+     The circuit_image_id used for verification is always the compiled\n\
+     BALANCE_ATTESTATION_ID — callers cannot override it.\n\
+     On success, prints a one-line JSON status with the journal's public fields.\n\
+     On failure, exits non-zero with a structured error code."
+        .to_owned()
+}
+
+fn prove_help() -> String {
+    "usage: balance-attest prove --witness <path.json> [--out <path.json>]\n\n\
+     Reads a witness JSON file (produced by build-witness or manually assembled),\n\
+     generates a RISC Zero balance attestation proof, and writes the envelope JSON\n\
+     to <out> or stdout. Set RISC0_DEV_MODE=1 for fast (non-production) proving.\n\n\
+     The witness file must contain: { witness: {...}, chain_id: \"hex\", gate_id: \"hex\" }\n\
+     WARNING: the witness file contains private key material — handle it securely."
+        .to_owned()
 }
 
 fn inspect_private_help() -> String {
     "usage: balance-attest inspect-private --account Private/<id> [--local-only|--require-proof] [--lez-repo <path>] [--wallet-home <path>] [--report]".to_owned()
 }
 
+// ── error ─────────────────────────────────────────────────────────────────────
+
+#[derive(Debug)]
+enum CliError {
+    Usage(String),
+    Io(io::Error),
+    FileRead {
+        path: PathBuf,
+        source: io::Error,
+    },
+    ScriptFailed {
+        status: String,
+        stdout: String,
+        stderr: String,
+    },
+    JsonMissing(PathBuf),
+    WitnessParse {
+        path: PathBuf,
+        source: serde_json::Error,
+    },
+    Prove(String),
+    Verify(VerifyError),
+}
+
 impl std::fmt::Display for CliError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Usage(message) => write!(formatter, "{message}"),
-            Self::Io(error) => write!(formatter, "{error}"),
+            Self::Usage(message) => write!(f, "{message}"),
+            Self::Io(error) => write!(f, "{error}"),
+            Self::FileRead { path, source } => {
+                write!(f, "failed to read {}: {source}", path.display())
+            }
             Self::ScriptFailed {
                 status,
                 stdout,
                 stderr,
             } => {
-                writeln!(formatter, "inspect-private failed with status {status}")?;
+                writeln!(f, "inspect-private failed with status {status}")?;
                 if !stderr.trim().is_empty() {
-                    writeln!(formatter, "\nstderr:\n{stderr}")?;
+                    writeln!(f, "\nstderr:\n{stderr}")?;
                 }
                 if !stdout.trim().is_empty() {
-                    writeln!(formatter, "\nstdout:\n{stdout}")?;
+                    writeln!(f, "\nstdout:\n{stdout}")?;
                 }
                 Ok(())
             }
-            Self::JsonMissing(path) => {
+            Self::JsonMissing(path) => write!(
+                f,
+                "inspect-private produced no json under {}",
+                path.display()
+            ),
+            Self::WitnessParse { path, source } => {
                 write!(
-                    formatter,
-                    "inspect-private produced no json under {}",
+                    f,
+                    "failed to parse witness file {}: {source}",
                     path.display()
                 )
             }
-            Self::JsonRead { path, source } => {
-                write!(formatter, "failed to read {}: {source}", path.display())
-            }
+            Self::Prove(message) => write!(f, "proving failed: {message}"),
+            Self::Verify(error) => write!(f, "verify failed [{}]: {error}", error.code()),
         }
     }
 }
@@ -289,6 +546,8 @@ impl From<io::Error> for CliError {
         Self::Io(value)
     }
 }
+
+// ── tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
@@ -360,5 +619,103 @@ mod tests {
                 report: true,
             })
         );
+    }
+
+    #[test]
+    fn parses_prove_with_witness_file() {
+        let parsed = parse_args(vec![
+            "prove".to_owned(),
+            "--witness".to_owned(),
+            "/tmp/witness.json".to_owned(),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            parsed,
+            CommandArgs::Prove(ProveOptions {
+                witness: PathBuf::from("/tmp/witness.json"),
+                out: None,
+            })
+        );
+    }
+
+    #[test]
+    fn parses_prove_with_out_path() {
+        let parsed = parse_args(vec![
+            "prove".to_owned(),
+            "--witness".to_owned(),
+            "witness.json".to_owned(),
+            "--out".to_owned(),
+            "envelope.json".to_owned(),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            parsed,
+            CommandArgs::Prove(ProveOptions {
+                witness: PathBuf::from("witness.json"),
+                out: Some(PathBuf::from("envelope.json")),
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_prove_without_witness() {
+        let error = parse_args(vec!["prove".to_owned()]).unwrap_err();
+        assert!(error.to_string().contains("--witness"));
+    }
+
+    #[test]
+    fn rejects_unknown_prove_flag() {
+        let error = parse_args(vec![
+            "prove".to_owned(),
+            "--witness".to_owned(),
+            "w.json".to_owned(),
+            "--bogus".to_owned(),
+        ])
+        .unwrap_err();
+        assert!(error.to_string().contains("--bogus"));
+    }
+
+    #[test]
+    fn parses_verify_with_envelope_and_gate() {
+        let parsed = parse_args(vec![
+            "verify".to_owned(),
+            "--envelope".to_owned(),
+            "envelope.json".to_owned(),
+            "--gate".to_owned(),
+            "gate.json".to_owned(),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            parsed,
+            CommandArgs::Verify(VerifyOptions {
+                envelope: PathBuf::from("envelope.json"),
+                gate: PathBuf::from("gate.json"),
+            })
+        );
+    }
+
+    #[test]
+    fn rejects_verify_without_envelope() {
+        let error = parse_args(vec![
+            "verify".to_owned(),
+            "--gate".to_owned(),
+            "g.json".to_owned(),
+        ])
+        .unwrap_err();
+        assert!(error.to_string().contains("--envelope"));
+    }
+
+    #[test]
+    fn rejects_verify_without_gate() {
+        let error = parse_args(vec![
+            "verify".to_owned(),
+            "--envelope".to_owned(),
+            "e.json".to_owned(),
+        ])
+        .unwrap_err();
+        assert!(error.to_string().contains("--gate"));
     }
 }

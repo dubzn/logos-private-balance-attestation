@@ -3,6 +3,13 @@ members = [
     "crates/attestation-core",
     "crates/attestation-cli",
     "crates/attestation-prover",
+    "crates/attestation-sdk",
+    "crates/attestation-verifier",
+    "examples/chat-gate",
+    "examples/demo-runner",
+    "examples/governance-gate",
+    "lez-verifier",
+    "methods",
 ]
 resolver = "2"
 
@@ -12,7 +19,13 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 attestation-core = { path = "crates/attestation-core" }
+attestation-prover = { path = "crates/attestation-prover" }
+attestation-verifier = { path = "crates/attestation-verifier" }
+methods = { path = "methods" }
 hex = "0.4"
+k256 = { version = "0.13", features = ["schnorr"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+risc0-zkvm = { version = "3.0.5", features = ["std"] }
+risc0-build = "3.0.5"

@@ -6,5 +6,7 @@ license.workspace = true
 
 [dependencies]
 attestation-core.workspace = true
+methods.workspace = true
+risc0-zkvm.workspace = true
 serde.workspace = true
 serde_json.workspace = true

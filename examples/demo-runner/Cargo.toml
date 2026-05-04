@@ -1,0 +1,15 @@
+[package]
+name = "demo-runner"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "build-demo-fixtures"
+path = "src/build_demo_fixtures.rs"
+
+[dependencies]
+attestation-sdk = { path = "../../crates/attestation-sdk" }
+serde.workspace = true
+serde_json.workspace = true

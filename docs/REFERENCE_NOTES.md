@@ -729,3 +729,42 @@ Interpretation:
   LEZ path was found for external receipt verification.
 - 0C remains the only local on-chain path that works today, but prize wording
   still requires evaluator confirmation.
+
+## External Reference: LP-0016 PR #465 (syafiqeil)
+
+Date cloned: 2026-05-02.
+Local path: `logos/` (gitignored — not committed to this repo).
+HEAD commit: `8fbf9ebcf18306b61c67b20c1ce938eadbaf3b96` (syafiqeil:main).
+Analysis: [docs/REFERENCE_LP-0016_PR465.md](REFERENCE_LP-0016_PR465.md)
+
+Key facts:
+- Uses identical RISC Zero version: `risc0-zkvm = "3.0.5"`.
+- Ships `programs/membership_registry/` and `logos_moderation_sdk/` — on-chain program
+  simulation and WASM SDK patterns directly applicable to LP-0005.
+- Does NOT solve the Spike 0A public-execution blocker (host-side test only).
+- Confirms BIP340 Schnorr (`k256::schnorr`) as the presenter-binding primitive.
+- `nssa::merkle_tree::MerkleTree` is now public via this PR — usable for nullifier state.
+- WASM binding pattern (`wasm_bindgen` + `serde_wasm_bindgen`) is a direct Basecamp template.
+
+## Production Circuit: methods/
+
+Date added: 2026-05-03.
+Location: `methods/` (workspace crate) + `methods/guest/` (isolated guest workspace).
+
+The production RISC Zero circuit that replaces Spike 04. Three divergences fixed vs
+`spikes/binding-circuit/lez/guest/src/bin/binding_attestation_spike.rs`:
+
+1. **`derive_context_id` field order corrected** — canonical order matches
+   `crates/attestation-core/src/hash.rs:9-18`:
+   `[domain, chain_id, circuit_image_id, verifier_id, gate_id, threshold]`.
+   Spike 04 had a different order that silently produced different context_ids.
+2. **Journal types corrected** — `version: u16`, `proof_index: u64`, `proof_depth: u64`
+   (Spike 04 used `u32`/`usize`, incompatible with `BalanceAttestationJournal`).
+3. **No `nssa`/`nssa_core` dep** — commitment and Merkle logic reimplemented
+   inline in the guest using `risc0_zkvm::sha::Impl` (accelerated); formula
+   is byte-identical to `crates/attestation-core/src/lez_commitment.rs`.
+
+Contract test: `methods/tests/journal_roundtrip.rs` — 6 tests assert the guest journal
+decodes field-for-field to `attestation_core::BalanceAttestationJournal` and that all
+host derivations (`derive_context_id`, `derive_context_nullifier`, `derive_presenter_id`)
+match guest output exactly.

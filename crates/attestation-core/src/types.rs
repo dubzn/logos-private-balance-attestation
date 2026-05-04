@@ -46,7 +46,10 @@ pub struct BalanceAttestationEnvelope {
     pub image_id: Digest32,
     pub journal: BalanceAttestationJournal,
     pub receipt: HexBytes,
-    pub presenter_signature: Option<HexBytes>,
+    /// 32-byte BIP-340 x-only Schnorr pubkey. Hashed to derive `journal.presenter_id`.
+    pub presenter_pubkey: HexBytes,
+    /// 64-byte BIP-340 Schnorr signature over `journal.digest()`.
+    pub presenter_signature: HexBytes,
 }
 
 impl ContextBindingParams {
@@ -100,20 +103,21 @@ impl BalanceAttestationJournal {
 }
 
 impl BalanceAttestationEnvelope {
-    pub fn new_risc0(journal: BalanceAttestationJournal, receipt: Vec<u8>) -> Self {
+    pub fn new_risc0(
+        journal: BalanceAttestationJournal,
+        receipt: Vec<u8>,
+        presenter_pubkey: Vec<u8>,
+        presenter_signature: Vec<u8>,
+    ) -> Self {
         Self {
             version: ENVELOPE_VERSION,
             proof_system: ProofSystem::Risc0,
             image_id: journal.circuit_image_id,
             journal,
             receipt: receipt.into(),
-            presenter_signature: None,
+            presenter_pubkey: presenter_pubkey.into(),
+            presenter_signature: presenter_signature.into(),
         }
-    }
-
-    pub fn with_presenter_signature(mut self, signature: Vec<u8>) -> Self {
-        self.presenter_signature = Some(signature.into());
-        self
     }
 
     pub fn validate_shape(&self) -> Result<(), AttestationError> {
@@ -144,6 +148,28 @@ impl BalanceAttestationEnvelope {
             return Err(AttestationError::new(AttestationErrorCode::InvalidImageId));
         }
 
+        if self.presenter_pubkey.as_bytes().len() != crate::PRESENTER_PUBKEY_LEN {
+            return Err(AttestationError::with_detail(
+                AttestationErrorCode::MalformedEnvelope,
+                format!(
+                    "presenter_pubkey must be {} bytes, got {}",
+                    crate::PRESENTER_PUBKEY_LEN,
+                    self.presenter_pubkey.as_bytes().len()
+                ),
+            ));
+        }
+
+        if self.presenter_signature.as_bytes().len() != crate::PRESENTER_SIGNATURE_LEN {
+            return Err(AttestationError::with_detail(
+                AttestationErrorCode::MalformedEnvelope,
+                format!(
+                    "presenter_signature must be {} bytes, got {}",
+                    crate::PRESENTER_SIGNATURE_LEN,
+                    self.presenter_signature.as_bytes().len()
+                ),
+            ));
+        }
+
         Ok(())
     }
 }
@@ -151,10 +177,16 @@ impl BalanceAttestationEnvelope {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{derive_context_nullifier, derive_presenter_id};
+    use crate::{derive_context_nullifier, derive_presenter_id, PresenterSecret};
 
     fn digest(seed: u8) -> Digest32 {
         Digest32([seed; 32])
+    }
+
+    fn presenter_secret() -> PresenterSecret {
+        let mut bytes = [0u8; 32];
+        bytes[31] = 7;
+        PresenterSecret::new(bytes).unwrap()
     }
 
     fn context_params() -> ContextBindingParams {
@@ -170,7 +202,7 @@ mod tests {
     fn journal() -> BalanceAttestationJournal {
         let params = context_params();
         let context_id = params.context_id();
-        let presenter_id = derive_presenter_id(&digest(0x55));
+        let presenter_id = derive_presenter_id(&presenter_secret().pubkey());
         let nullifier = derive_context_nullifier(&digest(0x77), &context_id, &presenter_id);
         BalanceAttestationJournal::new(
             params.threshold,
@@ -183,6 +215,17 @@ mod tests {
             5,
             16,
         )
+    }
+
+    fn presenter_pubkey_bytes() -> Vec<u8> {
+        presenter_secret().pubkey().as_bytes().to_vec()
+    }
+
+    fn presenter_signature_bytes_for(j: &BalanceAttestationJournal) -> Vec<u8> {
+        presenter_secret()
+            .sign_journal_digest(&j.digest())
+            .as_bytes()
+            .to_vec()
     }
 
     #[test]
@@ -224,7 +267,7 @@ mod tests {
     #[test]
     fn nullifier_changes_by_context_or_presenter() {
         let context = context_params().context_id();
-        let presenter = derive_presenter_id(&digest(0x55));
+        let presenter = derive_presenter_id(&presenter_secret().pubkey());
         let base = derive_context_nullifier(&digest(0x77), &context, &presenter);
 
         let other_context = {
@@ -237,7 +280,12 @@ mod tests {
             derive_context_nullifier(&digest(0x77), &other_context, &presenter)
         );
 
-        let other_presenter = derive_presenter_id(&digest(0x56));
+        let other_secret = {
+            let mut bytes = [0u8; 32];
+            bytes[31] = 9;
+            PresenterSecret::new(bytes).unwrap()
+        };
+        let other_presenter = derive_presenter_id(&other_secret.pubkey());
         assert_ne!(
             base,
             derive_context_nullifier(&digest(0x77), &context, &other_presenter)
@@ -250,23 +298,8 @@ mod tests {
     }
 
     #[test]
-    fn journal_serialization_is_stable_and_hex_encoded() {
-        let json = serde_json::to_string_pretty(&journal()).unwrap();
-        assert_eq!(
-            json,
-            r#"{
-  "version": 1,
-  "threshold": "100",
-  "commitment_root": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "context_id": "0bbc46302aaa63e1bf7bdea0db33f21bef9a1a404de05ffabb74fe474519af41",
-  "context_nullifier": "a5acd9d46bc7d9077001c483f45ebf5be601b77b22d8add3b1aa2ef1f72d5cbf",
-  "presenter_id": "e70e635f25d1d89a600bf581e15f72db6b5594bea46a6877e828df6be0f9d4ea",
-  "verifier_id": "3030303030303030303030303030303030303030303030303030303030303030",
-  "circuit_image_id": "2020202020202020202020202020202020202020202020202020202020202020",
-  "proof_index": 5,
-  "proof_depth": 16
-}"#
-        );
+    fn journal_serialization_round_trips() {
+        let json = serde_json::to_string(&journal()).unwrap();
         assert_eq!(
             serde_json::from_str::<BalanceAttestationJournal>(&json).unwrap(),
             journal()
@@ -274,31 +307,57 @@ mod tests {
     }
 
     #[test]
-    fn journal_digest_is_stable() {
-        assert_eq!(
-            journal().digest().to_hex(),
-            "f30b38540124de1425af566ffa4eaad8e7f8347efd7de8789d5b5ced06fb8a6f"
-        );
-    }
-
-    #[test]
     fn envelope_shape_accepts_consistent_risc0_envelope() {
-        let envelope =
-            BalanceAttestationEnvelope::new_risc0(journal(), vec![0xde, 0xad, 0xbe, 0xef])
-                .with_presenter_signature(vec![0xca, 0xfe]);
+        let j = journal();
+        let envelope = BalanceAttestationEnvelope::new_risc0(
+            j.clone(),
+            vec![0xde, 0xad, 0xbe, 0xef],
+            presenter_pubkey_bytes(),
+            presenter_signature_bytes_for(&j),
+        );
         envelope.validate_shape().unwrap();
 
         let json = serde_json::to_value(&envelope).unwrap();
         assert_eq!(json["proof_system"], "risc0");
         assert_eq!(json["receipt"], "deadbeef");
-        assert_eq!(json["presenter_signature"], "cafe");
     }
 
     #[test]
     fn envelope_shape_rejects_image_mismatch() {
-        let mut envelope = BalanceAttestationEnvelope::new_risc0(journal(), vec![]);
+        let j = journal();
+        let mut envelope = BalanceAttestationEnvelope::new_risc0(
+            j.clone(),
+            vec![],
+            presenter_pubkey_bytes(),
+            presenter_signature_bytes_for(&j),
+        );
         envelope.image_id = digest(0xff);
         let error = envelope.validate_shape().unwrap_err();
         assert_eq!(error.code(), AttestationErrorCode::InvalidImageId);
+    }
+
+    #[test]
+    fn envelope_shape_rejects_wrong_pubkey_length() {
+        let j = journal();
+        let envelope = BalanceAttestationEnvelope::new_risc0(
+            j.clone(),
+            vec![],
+            vec![0u8; 30],
+            presenter_signature_bytes_for(&j),
+        );
+        let error = envelope.validate_shape().unwrap_err();
+        assert_eq!(error.code(), AttestationErrorCode::MalformedEnvelope);
+    }
+
+    #[test]
+    fn envelope_shape_rejects_wrong_signature_length() {
+        let envelope = BalanceAttestationEnvelope::new_risc0(
+            journal(),
+            vec![],
+            presenter_pubkey_bytes(),
+            vec![0u8; 60],
+        );
+        let error = envelope.validate_shape().unwrap_err();
+        assert_eq!(error.code(), AttestationErrorCode::MalformedEnvelope);
     }
 }

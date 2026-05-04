@@ -1,8 +1,17 @@
 # LEZ Verifier IDL Draft
 
-This is a human-readable interface draft for the `balance_attestation_verifier`
-program. LP-0005 requires a SPEL IDL before submission; this file is the design
-source until the SPEL artifact is added.
+This is the **human-readable** companion to `idl/balance-attestation-verifier.json`,
+the SPEL-compatible IDL artifact. The two MUST be kept in sync; the JSON is
+authoritative for tooling, this file is authoritative for prose.
+
+The architecture has resolved to **Spike 0C** (per `docs/ONCHAIN_PATH_DECISION.md`):
+the LEZ program does NOT verify the off-chain envelope directly. Instead the
+prover wraps the inner balance-attestation receipt with `lez_verifier::prove_lez_gate`
+into an outer LEZ-gate receipt; the LEZ program's `admit` instruction consumes
+the outer receipt and checks (a) it verifies against the pinned `LEZ_BALANCE_GATE_ID`,
+(b) `outer_journal.inner_image_id == BALANCE_ATTESTATION_ID`, (c) gate context match,
+(d) exact context-bound threshold, (e) nullifier dedup, (f) presenter LEZ
+tx-signing account hash.
 
 ## Program
 
@@ -44,7 +53,7 @@ The program checks:
 
 ```text
 presenter_account.is_authorized == true
-presenter_account.account_id == proof.journal.presenter_id
+derive_presenter_id(presenter_account) == proof.journal.presenter_id
 ```
 
 ## Data Types

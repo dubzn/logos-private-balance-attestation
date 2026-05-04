@@ -91,52 +91,70 @@ the private preimage.
 
 ## Presenter Binding
 
-The prize explicitly asks submissions to address proof forwarding.
-
-Spike 04 upgrades this from a documentation note into a circuit check. The
-current spike uses a synthetic 32-byte presenter secret:
+The implementation binds the proof to the presenter via BIP-340 Schnorr over
+secp256k1. The presenter holds a 32-byte secret; its public counterpart is a
+32-byte x-only Schnorr public key.
 
 ```text
 presenter_id = SHA256(
   "logos-balance-attestation/v1/presenter"
-  || presenter_secret
+  || presenter_pubkey
 )
 ```
 
-The circuit verifies that the private `presenter_secret` derives the public
-`presenter_id` committed in the journal. The context nullifier also includes
-that `presenter_id`, so the same private account produces different nullifiers
-for different presenters.
+The journal commits `presenter_id`. The envelope additionally carries the raw
+`presenter_pubkey` (32 bytes) and a `presenter_signature` (64-byte BIP-340
+signature over `journal.digest()`). The context nullifier includes
+`presenter_id`, so the same private account produces different nullifiers per
+presenter.
 
-Production V1 should keep this invariant, but the presenter adapter still needs
-one final decision before Milestone 1:
-
-```text
-Map presenter_secret/presenter_id to a wallet-compatible signing key, or keep
-the in-circuit presenter proof plus an envelope signature for fresh challenges.
-```
+The circuit only hashes the pubkey (no in-circuit ECC). Knowledge-of-secret is
+proved off-circuit by the BIP-340 signature: only the secret-holder can produce
+a signature that verifies under the pubkey committed in the journal.
 
 The full design uses these mechanisms:
 
-1. The proof journal includes `presenter_id`.
-2. The circuit proves knowledge of private presenter material for that id.
-3. The verifier requires proof that the current presenter controls that id.
+1. The proof journal includes `presenter_id = H(presenter_pubkey)`.
+2. The envelope carries the raw pubkey + a Schnorr signature over the journal.
+3. Off-chain verifiers (`attestation_verifier::verify_envelope`) check both
+   `H(pubkey) == journal.presenter_id` and the Schnorr signature over
+   `journal.digest()`.
 
 For off-chain verification:
 
 ```text
-signature = Sign(presenter_secret, SHA256(journal || verifier_challenge))
+signature = BIP340_Schnorr_Sign(presenter_secret, journal.digest())
+verify_envelope:
+  - H(envelope.presenter_pubkey) == envelope.journal.presenter_id
+  - BIP340_Schnorr_Verify(envelope.presenter_pubkey, journal.digest(), signature)
 ```
 
-The verifier checks the RISC Zero receipt and the presenter signature. A passive
-third party who captures the proof cannot answer a fresh challenge.
+A third party who only sees the journal cannot construct a new valid envelope
+because they do not have the presenter secret. A third party who captures the
+complete envelope, however, also captures the signature over `journal.digest()`
+and can try to present that same envelope first. V1 therefore binds the proof
+to a presenter key, but it does not fully close first-use replay until the
+recipient supplies a fresh verifier nonce/session challenge and verifies a
+signature over `(journal.digest(), challenge)`, or until the proof is bound to
+an authenticated transport/account controlled by the same presenter key.
 
-For on-chain verification:
+For on-chain verification (Spike 0C path):
 
-- the transaction includes the presenter account
-- the presenter account must be authorized by LEZ
-- the LEZ verifier program checks that this account matches `presenter_id` in
-  the proof journal
+- the LEZ tx must be signed by the presenter account, or otherwise carry an
+  authenticated presenter account from the runtime
+- the LEZ program must assert the signer/account-derived presenter id equals
+  `journal.presenter_id`
+- the in-memory `LezGateProgram` now models this as
+  `admit(proof, presenter_id)`; the live LEZ adapter still needs to derive that
+  `presenter_id` from real transaction/account context
+- once that adapter exists, the on-chain path does not need the off-chain
+  Schnorr signature because LEZ tx signing enforces presenter identity
+
+This is the resolution of the open decision flagged in earlier drafts of this
+doc ("map presenter_secret to a wallet-compatible signing key or keep the
+in-circuit proof"). The chosen design is the cheap path: presenter_id binds to
+a Schnorr pubkey hashed in-circuit, knowledge-of-secret is proved by the
+signature, and no in-circuit ECC is required.
 
 ## Remaining Forwarding Limitations
 
@@ -146,8 +164,9 @@ No proof system can stop voluntary collusion by itself. Alice can still:
 - share her presenter private key
 - act online as a signing service for Bob
 
-The design prevents passive replay and accidental forwarding, not intentional
-credential sharing.
+The current V1 design reduces accidental forwarding and binds the proof to a
+presenter key. It does not yet prevent first-use replay of a captured complete
+envelope without a fresh challenge/session binding.
 
 If evaluator feedback requires the presenter secret to be committed inside the
 RISC Zero receipt itself, Spike 04 already validates that circuit shape. The

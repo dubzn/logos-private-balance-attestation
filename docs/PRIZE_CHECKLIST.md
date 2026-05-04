@@ -12,50 +12,50 @@ Status legend:
 
 ## Functionality
 
-| Requirement | Status | Planned Artifact |
+| Requirement | Status | Artifact |
 | --- | --- | --- |
-| Generate client-side proof for `balance >= N` from a shielded token account. | in-progress | Spike 03/04 prove locally; production `attestation-prover` and CLI still needed. |
-| Verify without revealing `npk`, exact balance, or private account identity. | in-progress | Spike 04 journal omits private fields and commitment leaf; verifier crate still needed. |
-| Bind proof to a context to prevent cross-gate replay. | in-progress | Spike 04 derives `context_id` and context nullifier in-circuit. |
-| Bind proof to presenter identity to reduce forwarding. | in-progress | Spike 04 proves synthetic presenter-secret knowledge; wallet-compatible presenter adapter still needed. |
-| Target existing LEZ private account commitment format. | in-progress | Spike 03/04 use `nssa_core::Commitment::new`; M2 core helpers match `nssa_core` fixtures. |
-| On-chain LEZ verifier gates an action. | blocker | Spike 06 says direct public receipt verification is unsupported locally; use private execution fallback pending evaluator confirmation. |
-| Off-chain path over Logos Messaging. | planned | Messaging adapter and token-gated group demo. |
-| Three distinct apps integrate on testnet, one outside team. | planned | Governance gate, Messaging group gate, third integration. |
-| Full docs and clean public repo. | in-progress | Current documentation baseline. |
+| Generate client-side proof for `balance >= N` from a shielded token account. | done | `attestation-prover::prove_attestation` over `methods/` production circuit. |
+| Verify without revealing `npk`, exact balance, or private account identity. | done | Journal commits only public fields; `attestation-verifier::verify_envelope`. |
+| Bind proof to a context to prevent cross-gate replay. | done | `attestation_core::derive_context_id` over `(chain_id, circuit_image_id, verifier_id, gate_id, threshold)`; circuit asserts. |
+| Bind proof to presenter identity to reduce forwarding. | partial | BIP-340 Schnorr: `presenter_id = H(pubkey)` in circuit, signature over `journal.digest()` in envelope; fresh verifier challenge/session binding is still needed to prevent first-use replay of a captured envelope. |
+| Target existing LEZ private account commitment format. | done | `attestation_core::derive_lez_private_account_commitment` mirrors `nssa_core` byte-for-byte (compat script + tests). |
+| On-chain LEZ verifier gates an action. | partial (recursion-ready) | `lez-verifier/` outer guest + `LezGateProgram` model presenter-id checks and nullifier dedup; live LEZ signer/account adapter and testnet deployment pending. |
+| Off-chain path over Logos Messaging. | done (transport-agnostic) | `attestation-verifier` + `examples/chat-gate` (envelope JSON shipped as wire bytes). |
+| Three distinct apps integrate on testnet, one outside team. | partial | `examples/governance-gate` + `examples/chat-gate` shipped; third + external integrator still pending. |
+| Full docs and clean public repo. | in-progress | README + `docs/`, IDL artifact, smoke demo script, CI; final testnet deployment docs and Basecamp docs pending. |
 
 ## Usability
 
-| Requirement | Status | Planned Artifact |
+| Requirement | Status | Artifact |
 | --- | --- | --- |
-| SDK/module for Logos modules. | in-progress | `attestation-core` exists and is tested; `attestation-verifier` and package docs still needed. |
+| SDK/module for Logos modules. | done | `crates/attestation-sdk/` umbrella; off-chain default + `on-chain` feature. |
 | Basecamp GUI with local build instructions. | planned | `apps/basecamp`, backend-backed `ui_qml`. |
-| SPEL IDL for LEZ program. | planned | `docs/IDL.md` or `lez/verifier-program/idl/`. |
+| SPEL IDL for LEZ program. | done | `idl/balance-attestation-verifier.json`; `docs/IDL_DRAFT.md` is the prose companion. |
 
 ## Reliability
 
-| Requirement | Status | Planned Artifact |
+| Requirement | Status | Artifact |
 | --- | --- | --- |
-| Proof generation failures surface clear errors. | in-progress | `AttestationError` and deterministic codes exist in `attestation-core`; CLI mapping still needed. |
-| Messaging verification failures do not expose private data. | planned | Sanitized errors and logging policy. |
-| Verifier returns deterministic documented error codes. | in-progress | Error code table and Rust enum exist; LEZ/verifier mappings still needed. |
+| Proof generation failures surface clear errors. | done | `ProveError`, `LezGateError` carry structured detail; CLI maps to non-zero exit + message. |
+| Messaging verification failures do not expose private data. | done | `VerifyError::*` carries no journal/witness internals; envelope is public by construction. |
+| Verifier returns deterministic documented error codes. | done | `AttestationErrorCode` BAxxx codes exposed via `VerifyError::code()` and `LezGateProgramError`. |
 
 ## Performance
 
-| Requirement | Status | Planned Artifact |
+| Requirement | Status | Artifact |
 | --- | --- | --- |
-| Document CU cost of on-chain operations. | planned | `docs/BENCHMARKS.md` after LEZ verifier exists. |
-| Proof generation benchmark. | in-progress | Spike 05 dev/prod baseline passed locally; final benchmark docs still needed. |
+| Document CU cost of on-chain operations. | planned | `docs/BENCHMARKS.md` after live LEZ deploy. |
+| Proof generation benchmark. | in-progress | Spike 05 dev/prod baseline passed locally; final numbers post real-prover run. |
 
 ## Supportability
 
-| Requirement | Status | Planned Artifact |
+| Requirement | Status | Artifact |
 | --- | --- | --- |
-| Program deployed and tested on devnet/testnet. | planned | Deployment docs and verified program id. |
-| E2E tests against standalone LEZ sequencer in CI. | planned | `scripts/demo-e2e.sh` plus CI job. |
-| CI green on default branch. | planned | GitHub Actions workflow. |
-| README covers CLI and Basecamp for both paths. | in-progress | Current README plus future usage docs. |
-| Reproducible demo script with `RISC0_DEV_MODE=0`. | planned | Final `scripts/demo-e2e.sh`. |
+| Program deployed and tested on devnet/testnet. | planned | Deployment glue + verified program id. |
+| E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites: `lez-verifier`, `governance-gate`, `chat-gate`, `methods` are in-memory/synthetic. Live wallet + sequencer + `getProofForCommitment` harness still pending. |
+| CI green on default branch. | done | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`). |
+| README covers CLI and Basecamp for both paths. | done (CLI side) | `README.md` quick-start; Basecamp section pending the GUI. |
+| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | `scripts/demo-end-to-end.sh` can run synthetic fixtures with `RISC0_DEV_MODE=0`; final clean sequencer E2E with wallet state is pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 
 ## Submission Blockers To Clear
