@@ -6,6 +6,7 @@ members = [
     "crates/attestation-sdk",
     "crates/attestation-verifier",
     "examples/chat-gate",
+    "examples/demo-runner",
     "examples/governance-gate",
     "lez-verifier",
     "methods",

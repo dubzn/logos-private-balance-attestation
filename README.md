@@ -15,20 +15,80 @@ nonce, or account data.
 
 ## Status
 
-This repo is past the initial planning phase and now contains risk spikes for
-the highest-uncertainty LP-0005 pieces: on-chain proof path exploration,
-Logos-native private balance gating, real membership proof retrieval, a
-standalone balance attestation circuit, and a binding/nullifier circuit.
+The full LP-0005 primitive is implemented end-to-end:
 
-Milestone 1 has started with a real Rust workspace and `attestation-core`, the
-runtime-independent crate that owns the proof envelope shape, public journal,
-context hashing, presenter/nullifier helpers, and deterministic error codes.
-Milestone 2 now has a local-first `balance-attest inspect-private` command for
-sanitized wallet/sequencer inspection.
+- **attestation-core** — proof envelope, journal, context/nullifier derivation,
+  BIP-340 Schnorr presenter binding, deterministic error codes.
+- **methods/** — production RISC Zero circuit proving `balance >= N` with
+  Merkle membership against the LEZ commitment format, presenter binding via
+  `H(pubkey)`, context binding, context nullifier.
+- **attestation-prover** — `prove_attestation(witness, params) -> envelope`,
+  signs `journal.digest()` with the presenter Schnorr secret.
+- **attestation-verifier** — `verify_envelope(envelope, expected_gate)`
+  performs all 8 checks (receipt, image_id, journal match, context, threshold,
+  presenter pubkey hash, signature).
+- **lez-verifier/** — Spike-0C on-chain path: outer RISC Zero guest that nests
+  the inner balance-attestation receipt via `env::verify`; `LezGateProgram` is
+  an in-memory rehearsal of the LEZ on-chain program semantics.
+- **attestation-cli** — `balance-attest prove`, `verify`, `inspect-private`.
+- **attestation-sdk** — single-dep umbrella crate (off-chain default,
+  `on-chain` feature for the LEZ gate).
+- **examples/governance-gate, examples/chat-gate** — two reference
+  integrations covering on-chain (governance vote) and off-chain (chat
+  admission via Logos Messaging-style wire transfer) flows.
+- **idl/balance-attestation-verifier.json** — SPEL-compatible IDL describing
+  the LEZ verifier program.
+- **CI** — `.github/workflows/ci.yml` runs fmt + clippy + workspace tests
+  (default + `--include-ignored` E2E suites) under RISC0_DEV_MODE=1.
 
-No prize submission should be made from this state. The project still needs the
-production prover, verifier, CLI, LEZ verifier decision, Messaging integration,
-Basecamp GUI, broader tests, benchmarks, and demo video.
+What's still pending for prize submission: a third reference integration (one
+externally built), a Basecamp app GUI, a real-prover demo video, and the
+on-chain deployment to a live LEZ testnet (the program code is ready; the
+deployment glue is what's missing).
+
+## Quick start: end-to-end demo
+
+Reproducible script that exercises the full off-chain path
+(prove → envelope → verify):
+
+```sh
+scripts/demo-end-to-end.sh
+```
+
+In dev mode (default) the run takes a few seconds. For a real-prover demo
+that LP-0005 evaluators can inspect:
+
+```sh
+RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
+```
+
+Manually, the same steps using the CLI directly:
+
+```sh
+# 1. Generate a witness + gate from a deterministic seed
+cargo run -p demo-runner --bin build-demo-fixtures -- ./demo
+
+# 2. Prove (writes envelope.json)
+RISC0_DEV_MODE=1 cargo run -p attestation-cli -- prove \
+    --witness ./demo/witness.json \
+    --out ./demo/envelope.json
+
+# 3. Verify off-chain (returns JSON status with presenter_id, context_id,
+#    context_nullifier, threshold)
+RISC0_DEV_MODE=1 cargo run -p attestation-cli -- verify \
+    --envelope ./demo/envelope.json \
+    --gate ./demo/gate.json
+```
+
+For the on-chain (Spike 0C) recursion path, see the LEZ-gate E2E test:
+
+```sh
+RISC0_DEV_MODE=1 cargo test -p lez-verifier -- --include-ignored
+```
+
+The recursion test wraps the off-chain envelope with `prove_lez_gate`
+(producing an outer RISC Zero receipt) and feeds it to `LezGateProgram::admit`
+— exactly the semantics the deployed LEZ program will execute.
 
 ## Target Verification Paths
 
