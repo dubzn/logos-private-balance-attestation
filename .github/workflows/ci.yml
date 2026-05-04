@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, ref-v2]
+  pull_request:
+    branches: [master, main]
+
+env:
+  # Pin to the same risc0 toolchain that LEZ uses (see scripts/check-risc0-version.sh).
+  RISC0_TOOLCHAIN_VERSION: 3.0.5
+  # All workspace tests run in dev mode so we don't need a real prover in CI.
+  RISC0_DEV_MODE: "1"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  RUST_BACKTRACE: "1"
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install risc0 toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
+          "$HOME/.risc0/bin/rzup" install rust ${{ env.RISC0_TOOLCHAIN_VERSION }}
+      - name: Run clippy
+        # RISC0_SKIP_BUILD=1 prevents the methods/ and lez-verifier/ build
+        # scripts from invoking the guest builds during clippy. clippy uses
+        # different metadata than `cargo build`, which trips a riscv32im
+        # std-not-found error inside the guest build under clippy.
+        run: RISC0_SKIP_BUILD=1 cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: workspace tests (dev-mode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install risc0 toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
+          "$HOME/.risc0/bin/rzup" install rust ${{ env.RISC0_TOOLCHAIN_VERSION }}
+      - name: Build workspace
+        run: cargo build --workspace --all-targets
+      - name: Run default workspace tests
+        run: cargo test --workspace
+      - name: Run ignored E2E integration tests (dev mode)
+        # The --include-ignored runs the prover/methods/lez-verifier/governance-gate/
+        # chat-gate integration suites that need RISC0_DEV_MODE=1 and the
+        # compiled guest ELFs. Dev mode is fast enough to be CI-friendly.
+        run: cargo test --workspace -- --include-ignored

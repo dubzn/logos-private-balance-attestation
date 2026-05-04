@@ -90,7 +90,12 @@ pub fn prove_attestation(
         nonce: witness.private_account.nonce,
         data: witness.private_account.data.as_bytes().to_vec(),
         proof_index: witness.membership_proof.index,
-        proof_siblings: witness.membership_proof.siblings.iter().map(|d| d.0).collect(),
+        proof_siblings: witness
+            .membership_proof
+            .siblings
+            .iter()
+            .map(|d| d.0)
+            .collect(),
         threshold: witness.threshold,
         commitment_root: witness.commitment_root.0,
         chain_id: params.chain_id.0,
@@ -163,8 +168,8 @@ pub fn prove_attestation(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use attestation_core::{HexBytes, LezMembershipProof, PresenterSecret};
     use crate::{build_balance_attestation_witness, PresenterWitness, PrivateAccountWitness};
+    use attestation_core::{HexBytes, LezMembershipProof, PresenterSecret};
 
     fn digest(seed: u8) -> Digest32 {
         Digest32([seed; 32])
@@ -206,18 +211,26 @@ mod tests {
         std::env::set_var("RISC0_DEV_MODE", "1");
 
         let (witness, params) = fixture();
-        let envelope = prove_attestation(&witness, &params)
-            .expect("prove_attestation should succeed");
+        let envelope =
+            prove_attestation(&witness, &params).expect("prove_attestation should succeed");
 
-        envelope.validate_shape().expect("envelope shape should be valid");
+        envelope
+            .validate_shape()
+            .expect("envelope shape should be valid");
         assert_eq!(envelope.journal.version, JOURNAL_VERSION);
         assert_eq!(envelope.journal.threshold, witness.threshold);
         assert_eq!(envelope.journal.commitment_root, witness.commitment_root);
         assert_eq!(envelope.journal.context_id, witness.context_id);
-        assert_eq!(envelope.journal.context_nullifier, witness.context_nullifier);
+        assert_eq!(
+            envelope.journal.context_nullifier,
+            witness.context_nullifier
+        );
         assert_eq!(envelope.journal.presenter_id, witness.presenter_id);
         // circuit_image_id must be the compiled ID, not the fixture's witness value.
-        assert_eq!(envelope.journal.circuit_image_id, Digest32(balance_attestation_image_id()));
+        assert_eq!(
+            envelope.journal.circuit_image_id,
+            Digest32(balance_attestation_image_id())
+        );
         assert_eq!(envelope.journal.proof_index, witness.membership_proof.index);
         assert_eq!(
             envelope.journal.proof_depth,
@@ -225,18 +238,16 @@ mod tests {
         );
 
         // Receipt bytes round-trip.
-        let receipt: risc0_zkvm::Receipt =
-            serde_json::from_slice(&envelope.receipt.as_bytes())
-                .expect("receipt should deserialize");
+        let receipt: risc0_zkvm::Receipt = serde_json::from_slice(envelope.receipt.as_bytes())
+            .expect("receipt should deserialize");
         receipt
             .verify(Digest::from(BALANCE_ATTESTATION_ID))
             .expect("deserialized receipt should verify");
 
         // Presenter binding: pubkey hashes to journal.presenter_id and signature verifies.
-        let pubkey = attestation_core::PresenterPubkey::from_slice(
-            envelope.presenter_pubkey.as_bytes(),
-        )
-        .expect("envelope pubkey should be valid");
+        let pubkey =
+            attestation_core::PresenterPubkey::from_slice(envelope.presenter_pubkey.as_bytes())
+                .expect("envelope pubkey should be valid");
         assert_eq!(pubkey.presenter_id(), envelope.journal.presenter_id);
 
         let sig = attestation_core::PresenterSignature::from_slice(

@@ -68,7 +68,9 @@ fn fixture_params() -> (AttestationPublicParams, [u8; 32], [u8; 32]) {
     (params, chain_id, gate_id)
 }
 
-fn fixture_witness(params: &AttestationPublicParams) -> attestation_prover::BalanceAttestationWitness {
+fn fixture_witness(
+    params: &AttestationPublicParams,
+) -> attestation_prover::BalanceAttestationWitness {
     use attestation_core::{HexBytes, LezMembershipProof};
 
     let private_account = PrivateAccountWitness {
@@ -155,8 +157,8 @@ fn journal_fields_match_host_witness() {
     let input = build_input(&witness, chain_id, gate_id, false, false, false, None);
 
     let prove_info = prove(&input).expect("valid fixture should prove");
-    let image_id = risc0_zkvm::compute_image_id(BALANCE_ATTESTATION_ELF)
-        .expect("image_id should compute");
+    let image_id =
+        risc0_zkvm::compute_image_id(BALANCE_ATTESTATION_ELF).expect("image_id should compute");
     prove_info
         .receipt
         .verify(image_id)

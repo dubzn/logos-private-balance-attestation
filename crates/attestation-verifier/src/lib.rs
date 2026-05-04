@@ -11,8 +11,8 @@
 use std::fmt;
 
 use attestation_core::{
-    AttestationError, AttestationErrorCode, BalanceAttestationEnvelope, Digest32,
-    PresenterPubkey, PresenterSignature, ENVELOPE_VERSION, JOURNAL_VERSION,
+    AttestationError, AttestationErrorCode, BalanceAttestationEnvelope, Digest32, PresenterPubkey,
+    PresenterSignature, ENVELOPE_VERSION, JOURNAL_VERSION,
 };
 use methods::BALANCE_ATTESTATION_ID;
 use risc0_zkvm::{Digest, Receipt};
@@ -50,8 +50,12 @@ impl fmt::Display for VerifyError {
             Self::Shape(e) => write!(f, "envelope shape invalid: {e}"),
             Self::MalformedReceipt(d) => write!(f, "receipt deserialize failed: {d}"),
             Self::InvalidReceipt(d) => write!(f, "receipt verify failed: {d}"),
-            Self::ImageIdMismatch => f.write_str("envelope image_id does not match compiled BALANCE_ATTESTATION_ID"),
-            Self::JournalBytesMismatch(d) => write!(f, "receipt journal does not match envelope.journal: {d}"),
+            Self::ImageIdMismatch => {
+                f.write_str("envelope image_id does not match compiled BALANCE_ATTESTATION_ID")
+            }
+            Self::JournalBytesMismatch(d) => {
+                write!(f, "receipt journal does not match envelope.journal: {d}")
+            }
             Self::ContextMismatch { expected, actual } => write!(
                 f,
                 "context_id mismatch: expected {}, got {}",
@@ -59,11 +63,20 @@ impl fmt::Display for VerifyError {
                 actual.to_hex()
             ),
             Self::ThresholdNotMet { required, journal } => {
-                write!(f, "threshold not met: required >= {required}, journal commits {journal}")
+                write!(
+                    f,
+                    "threshold not met: required >= {required}, journal commits {journal}"
+                )
             }
-            Self::PresenterMismatch => f.write_str("presenter pubkey does not hash to journal.presenter_id"),
-            Self::InvalidPresenterPubkey => f.write_str("presenter_pubkey is not a valid Schnorr x-only pubkey"),
-            Self::InvalidPresenterSignature => f.write_str("presenter signature failed Schnorr verification"),
+            Self::PresenterMismatch => {
+                f.write_str("presenter pubkey does not hash to journal.presenter_id")
+            }
+            Self::InvalidPresenterPubkey => {
+                f.write_str("presenter_pubkey is not a valid Schnorr x-only pubkey")
+            }
+            Self::InvalidPresenterSignature => {
+                f.write_str("presenter signature failed Schnorr verification")
+            }
         }
     }
 }
@@ -295,8 +308,7 @@ mod tests {
         let (mut envelope, expected) = fixture();
         // Replace pubkey with an unrelated valid pubkey (different secret).
         let other_secret = PresenterSecret::new([0x99; 32]).unwrap();
-        envelope.presenter_pubkey =
-            HexBytes::new(other_secret.pubkey().as_bytes().to_vec());
+        envelope.presenter_pubkey = HexBytes::new(other_secret.pubkey().as_bytes().to_vec());
         let err = verify_envelope(&envelope, &expected).unwrap_err();
         assert!(matches!(err, VerifyError::PresenterMismatch));
     }

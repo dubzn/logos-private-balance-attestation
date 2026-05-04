@@ -101,10 +101,7 @@ impl ChatRoomHost {
 
     /// Admit a user from a wire-encoded envelope. The host does the entire
     /// off-chain verification locally; no sequencer or on-chain step is involved.
-    pub fn admit_from_wire(
-        &mut self,
-        wire_bytes: &[u8],
-    ) -> Result<SessionToken, AdmissionError> {
+    pub fn admit_from_wire(&mut self, wire_bytes: &[u8]) -> Result<SessionToken, AdmissionError> {
         let envelope: BalanceAttestationEnvelope = serde_json::from_slice(wire_bytes)
             .map_err(|e| AdmissionError::MalformedWire(e.to_string()))?;
 
