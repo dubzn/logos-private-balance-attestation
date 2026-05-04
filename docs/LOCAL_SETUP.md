@@ -261,6 +261,20 @@ RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
 The final submission demo still needs the same real-prover mode against a
 clean local sequencer, wallet state, and `getProofForCommitment`.
 
+The current local-sequencer harness is:
+
+```sh
+PRIVATE_ACCOUNT=Private/<private-account-id> \
+THRESHOLD=1 \
+RISC0_DEV_MODE=1 \
+  scripts/demo-local-sequencer-e2e.sh
+```
+
+It writes artifacts under `.demo-runs/local-sequencer/<timestamp>/`. Treat
+`witness.json` as private; it contains private account witness material and the
+presenter secret. The public artifacts are `envelope.json`, `verify.json`, and
+`report.md`.
+
 For fast development, early local tests may use:
 
 ```sh

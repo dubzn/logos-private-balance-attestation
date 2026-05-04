@@ -40,11 +40,11 @@ The core LP-0005 primitive is implemented as a local development base:
 - **CI** — `.github/workflows/ci.yml` runs fmt + clippy + workspace tests
   (default + `--include-ignored` E2E suites) under RISC0_DEV_MODE=1.
 
-What's still pending for prize submission: a real local-sequencer E2E using
-wallet state and `getProofForCommitment`, a fresh challenge/session binding for
-forwarded envelopes, the live LEZ signer/account adapter for the on-chain gate,
-a third reference integration (one externally built), a Basecamp app GUI, a
-real-prover demo video, and deployment to a live LEZ testnet.
+What's still pending for prize submission: a clean `RISC0_DEV_MODE=0`
+local-sequencer E2E recording, a fresh challenge/session binding for forwarded
+envelopes, the live LEZ signer/account adapter for the on-chain gate, a third
+reference integration (one externally built), a Basecamp app GUI, a real-prover
+demo video, and deployment to a live LEZ testnet.
 
 ## Quick start: end-to-end demo
 
@@ -62,6 +62,21 @@ the same smoke path with real RISC Zero proving:
 ```sh
 RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
 ```
+
+For the wallet + local sequencer path, start the LEZ sequencer, set
+`PRIVATE_ACCOUNT`, and run:
+
+```sh
+PRIVATE_ACCOUNT=Private/<private-account-id> \
+THRESHOLD=1 \
+RISC0_DEV_MODE=1 \
+  scripts/demo-local-sequencer-e2e.sh
+```
+
+That script builds `witness.json` from real local wallet state and the real
+`getProofForCommitment` path, then proves and verifies the envelope. It writes
+artifacts under `.demo-runs/local-sequencer/<timestamp>/`; `witness.json` is
+private and must not be published.
 
 Manually, the same steps using the CLI directly:
 

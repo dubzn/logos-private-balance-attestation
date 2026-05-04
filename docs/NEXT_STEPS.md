@@ -20,6 +20,10 @@ Done locally:
   `getProofForCommitment` inspection
 - M2 compatibility scripts against local `nssa_core` and `WalletCore`
 - real `getProofForCommitment` proof mode passed against a local sequencer
+- `scripts/demo-local-sequencer-e2e.sh` harness that builds a private witness
+  from real wallet state, proves, verifies, and writes a run report
+- local-sequencer E2E passed with `RISC0_DEV_MODE=1` against a real wallet
+  private account and real membership proof
 
 Current command set:
 
@@ -28,6 +32,7 @@ cargo test
 scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
+PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
 ```
 
 ## Ordered Backlog
@@ -45,11 +50,12 @@ cargo run -p attestation-cli -- inspect-private --account Private/<id> --require
    - Produce `BalanceAttestationJournal`.
    - Keep commitment leaf and witness data out of the journal.
 
-3. Add `attestation-prover` proof generation.
-   - Build witness from local wallet private state.
-   - Fetch membership proof through `getProofForCommitment`.
-   - Run the RISC Zero prover.
-   - Write `BalanceAttestationEnvelope`.
+3. Harden the real local-sequencer E2E.
+   - Re-run `scripts/demo-local-sequencer-e2e.sh` from a clean wallet/sequencer.
+   - Record `RISC0_DEV_MODE=0` output for the final demo.
+   - Decide whether the temporary wallet adapter stays script-local or moves
+     behind a reusable Rust boundary.
+   - Keep `witness.json` private and only publish envelope/report artifacts.
 
 4. Add `attestation-verifier` off-chain verification.
    - Verify RISC Zero receipt.

@@ -389,10 +389,22 @@ Clean local sequencer -> private account -> proof -> on-chain gate ->
 Messaging -> Basecamp/readback.
 ```
 
-Future command:
+Current harness:
 
 ```sh
-RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
+PRIVATE_ACCOUNT=Private/<initialized-private-account-id> \
+THRESHOLD=1 \
+RISC0_DEV_MODE=1 \
+  scripts/demo-local-sequencer-e2e.sh
+```
+
+Final real-prover variant:
+
+```sh
+PRIVATE_ACCOUNT=Private/<initialized-private-account-id> \
+THRESHOLD=1 \
+RISC0_DEV_MODE=0 \
+  scripts/demo-local-sequencer-e2e.sh
 ```
 
 Pass:
