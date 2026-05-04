@@ -45,7 +45,7 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | Document CU cost of on-chain operations. | planned | `docs/BENCHMARKS.md` after live LEZ deploy. |
-| Proof generation benchmark. | in-progress | Spike 05 dev/prod baseline passed locally; final numbers post real-prover run. |
+| Proof generation benchmark. | in-progress | Local sequencer E2E `RISC0_DEV_MODE=0`: build witness 00:01:11, prove 00:00:23, verify 00:00:02, total 00:01:38. Final benchmark doc still pending. |
 
 ## Supportability
 
@@ -55,7 +55,7 @@ Status legend:
 | E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites are in-memory/synthetic. `scripts/demo-local-sequencer-e2e.sh` now exercises wallet + real `getProofForCommitment`; CI/local clean-run automation still pending. |
 | CI green on default branch. | done | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`). |
 | README covers CLI and Basecamp for both paths. | done (CLI side) | `README.md` quick-start; Basecamp section pending the GUI. |
-| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | `scripts/demo-end-to-end.sh` can run synthetic fixtures with `RISC0_DEV_MODE=0`; `scripts/demo-local-sequencer-e2e.sh` is the wallet/sequencer harness and still needs a recorded clean `RISC0_DEV_MODE=0` run. |
+| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | `scripts/demo-local-sequencer-e2e.sh` passed locally with wallet state + real `getProofForCommitment` + verify `status: ok`. Clean-room rerun/video still pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 
 ## Submission Blockers To Clear
@@ -89,4 +89,4 @@ Before submitting, the repo must prove:
 | `attestation-prover` initial crate | passed locally | Reusable sanitized report/redaction logic has unit coverage. |
 | Initial witness builder | passed locally | `attestation-prover` builds witness fields from private account, membership proof, context, and presenter inputs with redacted debug/summary output. |
 | `attestation-cli inspect-private` | passed locally | CLI wraps the M2 adapter and returns sanitized JSON for local-only and require-proof modes. |
-| Local sequencer E2E harness | passed locally (dev mode) | `scripts/demo-local-sequencer-e2e.sh` produced envelope + verify `status: ok` from real wallet state and `getProofForCommitment` with `RISC0_DEV_MODE=1`. |
+| Local sequencer E2E harness | passed locally (dev + real proving) | `scripts/demo-local-sequencer-e2e.sh` produced envelope + verify `status: ok` from real wallet state and `getProofForCommitment` with `RISC0_DEV_MODE=1` and `RISC0_DEV_MODE=0`. Real-prover run: 00:01:38 total, 00:00:23 proving. |

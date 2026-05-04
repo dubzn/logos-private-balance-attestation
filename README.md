@@ -40,11 +40,11 @@ The core LP-0005 primitive is implemented as a local development base:
 - **CI** — `.github/workflows/ci.yml` runs fmt + clippy + workspace tests
   (default + `--include-ignored` E2E suites) under RISC0_DEV_MODE=1.
 
-What's still pending for prize submission: a clean `RISC0_DEV_MODE=0`
-local-sequencer E2E recording, a fresh challenge/session binding for forwarded
-envelopes, the live LEZ signer/account adapter for the on-chain gate, a third
-reference integration (one externally built), a Basecamp app GUI, a real-prover
-demo video, and deployment to a live LEZ testnet.
+What's still pending for prize submission: a clean-room rerun and narrated
+recording of the `RISC0_DEV_MODE=0` local-sequencer E2E, a fresh
+challenge/session binding for forwarded envelopes, the live LEZ signer/account
+adapter for the on-chain gate, a third reference integration (one externally
+built), a Basecamp app GUI, and deployment to a live LEZ testnet.
 
 ## Quick start: end-to-end demo
 

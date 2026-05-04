@@ -24,6 +24,8 @@ Done locally:
   from real wallet state, proves, verifies, and writes a run report
 - local-sequencer E2E passed with `RISC0_DEV_MODE=1` against a real wallet
   private account and real membership proof
+- local-sequencer E2E passed with `RISC0_DEV_MODE=0`: total 00:01:38, proving
+  00:00:23, verify `status: ok`
 
 Current command set:
 
@@ -52,7 +54,8 @@ PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
 
 3. Harden the real local-sequencer E2E.
    - Re-run `scripts/demo-local-sequencer-e2e.sh` from a clean wallet/sequencer.
-   - Record `RISC0_DEV_MODE=0` output for the final demo.
+   - Turn the successful `RISC0_DEV_MODE=0` run into a clean-room recording
+     flow for the final demo.
    - Decide whether the temporary wallet adapter stays script-local or moves
      behind a reusable Rust boundary.
    - Keep `witness.json` private and only publish envelope/report artifacts.
