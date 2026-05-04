@@ -214,7 +214,7 @@ fn run_verify(options: VerifyOptions) -> Result<(), CliError> {
     };
     let expected = ExpectedGate {
         context_id: derive_context_id(&ctx_params),
-        min_threshold: gate.threshold,
+        threshold: gate.threshold,
     };
 
     match verify_envelope(&envelope, &expected) {

@@ -115,10 +115,11 @@ pub fn main() {
         "inner journal context_id does not match verifier-pinned gate params"
     );
 
-    // 5. Threshold floor check — accept >=, never strict equality.
-    assert!(
-        inner.threshold >= input.expected_threshold,
-        "inner journal threshold below verifier minimum"
+    // 5. Threshold check. V1 binds the threshold into context_id, so this gate
+    // accepts the exact threshold it pinned.
+    assert_eq!(
+        inner.threshold, input.expected_threshold,
+        "inner journal threshold does not match verifier-pinned gate"
     );
 
     // 6. Verifier_id sanity: the inner journal's verifier_id must match the

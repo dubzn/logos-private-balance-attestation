@@ -129,18 +129,26 @@ verify_envelope:
   - BIP340_Schnorr_Verify(envelope.presenter_pubkey, journal.digest(), signature)
 ```
 
-A passive third party who captures the envelope cannot construct a new valid
-envelope because they don't have the secret. A challenge-response layer
-(verifier nonce signed alongside the journal digest) is a future hardening
-the on-wire format leaves room for; V1 already prevents passive replay because
-the signature is bound to the journal.
+A third party who only sees the journal cannot construct a new valid envelope
+because they do not have the presenter secret. A third party who captures the
+complete envelope, however, also captures the signature over `journal.digest()`
+and can try to present that same envelope first. V1 therefore binds the proof
+to a presenter key, but it does not fully close first-use replay until the
+recipient supplies a fresh verifier nonce/session challenge and verifies a
+signature over `(journal.digest(), challenge)`, or until the proof is bound to
+an authenticated transport/account controlled by the same presenter key.
 
 For on-chain verification (Spike 0C path):
 
-- the LEZ tx is signed by the presenter account
-- the LEZ program asserts `H(presenter_account) == journal.presenter_id`
-- the on-chain path does NOT need the off-chain Schnorr signature because
-  LEZ tx signing already enforces presenter identity
+- the LEZ tx must be signed by the presenter account, or otherwise carry an
+  authenticated presenter account from the runtime
+- the LEZ program must assert the signer/account-derived presenter id equals
+  `journal.presenter_id`
+- the in-memory `LezGateProgram` now models this as
+  `admit(proof, presenter_id)`; the live LEZ adapter still needs to derive that
+  `presenter_id` from real transaction/account context
+- once that adapter exists, the on-chain path does not need the off-chain
+  Schnorr signature because LEZ tx signing enforces presenter identity
 
 This is the resolution of the open decision flagged in earlier drafts of this
 doc ("map presenter_secret to a wallet-compatible signing key or keep the
@@ -156,8 +164,9 @@ No proof system can stop voluntary collusion by itself. Alice can still:
 - share her presenter private key
 - act online as a signing service for Bob
 
-The design prevents passive replay and accidental forwarding, not intentional
-credential sharing.
+The current V1 design reduces accidental forwarding and binds the proof to a
+presenter key. It does not yet prevent first-use replay of a captured complete
+envelope without a fresh challenge/session binding.
 
 If evaluator feedback requires the presenter secret to be committed inside the
 RISC Zero receipt itself, Spike 04 already validates that circuit shape. The

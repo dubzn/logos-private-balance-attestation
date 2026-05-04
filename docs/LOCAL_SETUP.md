@@ -252,11 +252,14 @@ cargo run -p attestation-cli -- verify-offchain \
   --threshold 25
 ```
 
-The final submission demo must run with real proving:
+The current smoke demo can run with real proving over deterministic fixtures:
 
 ```sh
-RISC0_DEV_MODE=0 scripts/demo-e2e.sh
+RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
 ```
+
+The final submission demo still needs the same real-prover mode against a
+clean local sequencer, wallet state, and `getProofForCommitment`.
 
 For fast development, early local tests may use:
 

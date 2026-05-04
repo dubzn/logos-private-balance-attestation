@@ -11,7 +11,8 @@
 //!
 //! `LezGateProgram` is an in-memory rehearsal of the LEZ program semantics:
 //! validate the outer receipt, check the committed `inner_image_id` is the
-//! pinned `BALANCE_ATTESTATION_ID`, dedup the nullifier, then admit.
+//! pinned `BALANCE_ATTESTATION_ID`, require the LEZ presenter signer/account to
+//! match the proof's presenter id, dedup the nullifier, then admit.
 
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
@@ -215,9 +216,13 @@ pub enum LezGateProgramError {
         expected: Digest32,
         actual: Digest32,
     },
-    ThresholdNotMet {
-        required: u128,
+    ThresholdMismatch {
+        expected: u128,
         journal: u128,
+    },
+    PresenterSignerMismatch {
+        expected: Digest32,
+        actual: Digest32,
     },
     NullifierReplay {
         nullifier: Digest32,
@@ -244,9 +249,15 @@ impl fmt::Display for LezGateProgramError {
                 expected.to_hex(),
                 actual.to_hex()
             ),
-            Self::ThresholdNotMet { required, journal } => write!(
+            Self::ThresholdMismatch { expected, journal } => write!(
                 f,
-                "outer journal threshold {journal} below required {required}"
+                "outer journal threshold {journal} does not match expected {expected}"
+            ),
+            Self::PresenterSignerMismatch { expected, actual } => write!(
+                f,
+                "presenter signer mismatch: proof expects {}, transaction presenter is {}",
+                expected.to_hex(),
+                actual.to_hex()
             ),
             Self::NullifierReplay { nullifier } => {
                 write!(f, "nullifier already admitted: {}", nullifier.to_hex())
@@ -278,8 +289,17 @@ impl LezGateProgram {
     }
 
     /// Validate an outer LEZ-gate receipt and admit the presenter on success.
+    ///
+    /// `presenter_id` must come from the authenticated LEZ transaction signer
+    /// or account in a real deployment. The in-memory model takes it as an
+    /// argument so tests cannot accidentally bypass the presenter ownership
+    /// check by presenting only a forwarded proof.
     /// Returns the recorded nullifier so the LEZ program can index its state.
-    pub fn admit(&mut self, proof: &LezGateProof) -> Result<Digest32, LezGateProgramError> {
+    pub fn admit(
+        &mut self,
+        proof: &LezGateProof,
+        presenter_id: Digest32,
+    ) -> Result<Digest32, LezGateProgramError> {
         // 1. Outer receipt verifies against the pinned LEZ_BALANCE_GATE_ID.
         let outer_receipt: Receipt = serde_json::from_slice(&proof.receipt_bytes)
             .map_err(|e| LezGateProgramError::MalformedReceipt(e.to_string()))?;
@@ -316,15 +336,27 @@ impl LezGateProgram {
             });
         }
 
-        // 5. Threshold floor check.
-        if decoded.accepted_threshold < self.gate.threshold {
-            return Err(LezGateProgramError::ThresholdNotMet {
-                required: self.gate.threshold,
+        // 5. Threshold check. The context id already binds the gate threshold;
+        // this exact check keeps the public journal explicit.
+        if decoded.accepted_threshold != self.gate.threshold {
+            return Err(LezGateProgramError::ThresholdMismatch {
+                expected: self.gate.threshold,
                 journal: decoded.accepted_threshold,
             });
         }
 
-        // 6. Nullifier replay: dedup against admitted_nullifiers.
+        // 6. Presenter signer/account binding. A deployed LEZ program should
+        // derive this from the transaction signer or authorized account, not
+        // from user-supplied calldata.
+        let accepted_presenter = Digest32(decoded.accepted_presenter_id);
+        if accepted_presenter != presenter_id {
+            return Err(LezGateProgramError::PresenterSignerMismatch {
+                expected: accepted_presenter,
+                actual: presenter_id,
+            });
+        }
+
+        // 7. Nullifier replay: dedup against admitted_nullifiers.
         let nullifier = Digest32(decoded.accepted_context_nullifier);
         if !self.admitted_nullifiers.insert(nullifier) {
             return Err(LezGateProgramError::NullifierReplay { nullifier });

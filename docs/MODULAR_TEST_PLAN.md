@@ -392,11 +392,12 @@ Messaging -> Basecamp/readback.
 Future command:
 
 ```sh
-RISC0_DEV_MODE=0 scripts/demo-e2e.sh
+RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
 ```
 
 Pass:
 
 - works from a clean checkout
+- uses a real local sequencer, wallet state, and `getProofForCommitment`
 - prints progress markers during proving
 - records program ids and proof generation time

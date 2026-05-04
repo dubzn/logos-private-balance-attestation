@@ -40,7 +40,7 @@ impl ChatRoomGate {
         };
         ExpectedGate {
             context_id: derive_context_id(&ctx_params),
-            min_threshold: self.min_balance,
+            threshold: self.min_balance,
         }
     }
 }
