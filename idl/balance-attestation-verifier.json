@@ -94,7 +94,8 @@
         { "name": "journal", "type": { "defined": "BalanceAttestationJournal" } },
         { "name": "receipt", "type": "bytes" },
         { "name": "presenter_pubkey", "type": { "array": ["u8", 32] }, "notes": "BIP-340 x-only Schnorr pubkey. Off-chain only." },
-        { "name": "presenter_signature", "type": { "array": ["u8", 64] }, "notes": "BIP-340 Schnorr sig over journal.digest(). Off-chain only." }
+        { "name": "presentation_challenge", "type": { "array": ["u8", 32] }, "notes": "Verifier/session challenge signed by the presenter. Off-chain only." },
+        { "name": "presenter_signature", "type": { "array": ["u8", 64] }, "notes": "BIP-340 Schnorr sig over presentation_digest(journal.digest(), presentation_challenge). Off-chain only." }
       ]
     },
     {

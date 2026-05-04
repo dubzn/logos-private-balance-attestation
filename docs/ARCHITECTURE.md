@@ -119,7 +119,8 @@ paths:
   },
   "receipt": "<hex-encoded serde_json risc0_zkvm::Receipt>",
   "presenter_pubkey": "<hex-32 BIP-340 x-only Schnorr pubkey>",
-  "presenter_signature": "<hex-64 BIP-340 Schnorr signature over journal.digest()>"
+  "presentation_challenge": "<hex-32 verifier/session challenge>",
+  "presenter_signature": "<hex-64 BIP-340 Schnorr signature over presentation_digest(journal.digest(), presentation_challenge)>"
 }
 ```
 
@@ -193,12 +194,14 @@ binds the proof to a presenter via BIP-340 Schnorr over secp256k1:
   commits the hash; the envelope carries the pubkey.
 - The context nullifier includes the presenter id, so the same private account
   produces different nullifiers per presenter.
-- Off-chain: the prover signs `journal.digest()` with the secret. The
-  envelope carries `(pubkey, signature)`. The off-chain verifier
-  (`attestation_verifier::verify_envelope`) checks both
-  `H(pubkey) == journal.presenter_id` and the Schnorr signature. A fresh
-  verifier nonce/session signature is still required before this closes
-  first-use replay of a captured complete envelope.
+- Off-chain: the verifier supplies a fresh 32-byte presentation challenge, and
+  the prover signs `presentation_digest(journal.digest(), challenge)` with the
+  secret. The envelope carries `(pubkey, challenge, signature)`. The off-chain
+  verifier (`attestation_verifier::verify_envelope`) checks the expected
+  challenge, `H(pubkey) == journal.presenter_id`, and the Schnorr signature.
+  If an application reuses a static challenge, a captured complete envelope can
+  still be replayed into that same static session; fresh challenge generation is
+  the application-layer responsibility.
 - On-chain: the LEZ tx must be signed by, or otherwise authenticated to, the
   presenter account. The LEZ program must assert the runtime-derived presenter
   id equals `journal.presenter_id`. The in-memory `LezGateProgram` models this
@@ -210,9 +213,9 @@ is proved off-circuit by the BIP-340 signature: only the secret-holder can
 produce a signature that verifies under the pubkey committed in the journal.
 
 This does not prevent voluntary collusion where Alice generates a proof for
-Bob's presenter id or shares her secret. It also does not yet prevent first-use
-replay of a captured complete envelope until a fresh challenge/session binding
-is added.
+Bob's presenter id or shares her secret. It also only prevents first-use replay
+of a captured complete envelope when the verifier generates a fresh challenge
+per admission/session and rejects stale challenges.
 
 ## Off-Chain Path
 
@@ -223,13 +226,13 @@ sequenceDiagram
   participant M as Logos Messaging
   participant V as Recipient Verifier
 
-  V->>A: Gate context (fresh challenge pending)
+  V->>A: Gate context + fresh presentation challenge
   A->>W: Prove balance >= threshold
   W->>W: Build witness from local wallet state
   W->>V: Optional local verify before send
-  A->>M: Send proof envelope + signature
+  A->>M: Send proof envelope + challenge-bound signature
   M->>V: Deliver proof envelope
-  V->>V: Verify receipt, journal, context, and signature
+  V->>V: Verify receipt, journal, context, challenge, and signature
   V->>A: Admit or reject
 ```
 
@@ -250,7 +253,7 @@ sequenceDiagram
   participant P as LEZ Verifier Program
   participant S as Sequencer
 
-  A->>CLI: prove_attestation(witness, params) -> envelope
+  A->>CLI: prove_attestation(witness, params, challenge) -> envelope
   CLI->>L: prove_lez_gate(envelope, gate_config)
   L->>L: Outer guest: env::verify(BALANCE_ATTESTATION_ID, inner_journal)
   L->>L: Recompute context_id, assert match, exact threshold, verifier_id

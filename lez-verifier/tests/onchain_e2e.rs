@@ -66,7 +66,7 @@ fn build_envelope(
         },
         params,
     );
-    prove_attestation(&witness, &params).expect("inner prove succeeds")
+    prove_attestation(&witness, &params, digest(0x44)).expect("inner prove succeeds")
 }
 
 #[test]

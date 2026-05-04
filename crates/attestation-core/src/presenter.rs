@@ -3,11 +3,13 @@
 //! The presenter holds a 32-byte secret. Its public counterpart is a 32-byte x-only
 //! Schnorr public key. The journal commits to `presenter_id = SHA256(PRESENTER_DOMAIN
 //! || pubkey_bytes)` — never to the secret itself, so the circuit only needs to hash
-//! the pubkey (no in-circuit ECC). The signature over `journal.digest()` is what
-//! enforces "I (the presenter) am attaching this proof": only the secret-holder can
-//! produce a signature that verifies under the pubkey committed in the journal.
+//! the pubkey (no in-circuit ECC). The signature over
+//! `presentation_digest(journal.digest(), verifier_challenge)` is what enforces
+//! "I (the presenter) am attaching this proof to this session": only the
+//! secret-holder can produce a signature that verifies under the pubkey
+//! committed in the journal.
 
-use crate::{derive_presenter_id, Digest32};
+use crate::{derive_presentation_digest, derive_presenter_id, Digest32};
 use k256::schnorr::{
     signature::{Signer, Verifier},
     Signature, SigningKey, VerifyingKey,
@@ -56,13 +58,24 @@ impl PresenterSecret {
         PresenterPubkey(out)
     }
 
-    pub fn sign_journal_digest(&self, digest: &Digest32) -> PresenterSignature {
+    fn sign_digest(&self, digest: &Digest32) -> PresenterSignature {
         let signing_key = SigningKey::from_bytes(&self.0)
             .expect("PresenterSecret bytes were validated at construction");
         let signature: Signature = signing_key.sign(digest.as_bytes());
         let mut out = [0u8; PRESENTER_SIGNATURE_LEN];
         out.copy_from_slice(&signature.to_bytes());
         PresenterSignature(out)
+    }
+
+    pub fn sign_presentation(
+        &self,
+        journal_digest: &Digest32,
+        presentation_challenge: &Digest32,
+    ) -> PresenterSignature {
+        self.sign_digest(&derive_presentation_digest(
+            journal_digest,
+            presentation_challenge,
+        ))
     }
 }
 
@@ -89,7 +102,7 @@ impl PresenterPubkey {
         derive_presenter_id(self)
     }
 
-    pub fn verify_journal_digest(
+    fn verify_digest(
         &self,
         digest: &Digest32,
         signature: &PresenterSignature,
@@ -101,6 +114,18 @@ impl PresenterPubkey {
         verifying_key
             .verify(digest.as_bytes(), &parsed)
             .map_err(|_| PresenterError::VerifyFailed)
+    }
+
+    pub fn verify_presentation(
+        &self,
+        journal_digest: &Digest32,
+        presentation_challenge: &Digest32,
+        signature: &PresenterSignature,
+    ) -> Result<(), PresenterError> {
+        self.verify_digest(
+            &derive_presentation_digest(journal_digest, presentation_challenge),
+            signature,
+        )
     }
 }
 
@@ -195,12 +220,24 @@ mod tests {
     }
 
     #[test]
-    fn sign_then_verify_succeeds_for_same_digest() {
+    fn sign_then_verify_succeeds_for_same_digest_internal() {
         let secret = PresenterSecret::new(valid_secret_bytes()).unwrap();
         let pubkey = secret.pubkey();
         let digest = Digest32([0xab; 32]);
-        let sig = secret.sign_journal_digest(&digest);
-        pubkey.verify_journal_digest(&digest, &sig).unwrap();
+        let sig = secret.sign_digest(&digest);
+        pubkey.verify_digest(&digest, &sig).unwrap();
+    }
+
+    #[test]
+    fn sign_then_verify_presentation_succeeds_for_same_challenge() {
+        let secret = PresenterSecret::new(valid_secret_bytes()).unwrap();
+        let pubkey = secret.pubkey();
+        let journal_digest = Digest32([0xab; 32]);
+        let challenge = Digest32([0xcd; 32]);
+        let sig = secret.sign_presentation(&journal_digest, &challenge);
+        pubkey
+            .verify_presentation(&journal_digest, &challenge, &sig)
+            .unwrap();
     }
 
     #[test]
@@ -208,10 +245,24 @@ mod tests {
         let secret = PresenterSecret::new(valid_secret_bytes()).unwrap();
         let pubkey = secret.pubkey();
         let digest = Digest32([0xab; 32]);
-        let sig = secret.sign_journal_digest(&digest);
+        let sig = secret.sign_digest(&digest);
 
         let tampered = Digest32([0xac; 32]);
-        assert!(pubkey.verify_journal_digest(&tampered, &sig).is_err());
+        assert!(pubkey.verify_digest(&tampered, &sig).is_err());
+    }
+
+    #[test]
+    fn presentation_verify_fails_on_tampered_challenge() {
+        let secret = PresenterSecret::new(valid_secret_bytes()).unwrap();
+        let pubkey = secret.pubkey();
+        let journal_digest = Digest32([0xab; 32]);
+        let challenge = Digest32([0xcd; 32]);
+        let sig = secret.sign_presentation(&journal_digest, &challenge);
+
+        let tampered_challenge = Digest32([0xce; 32]);
+        assert!(pubkey
+            .verify_presentation(&journal_digest, &tampered_challenge, &sig)
+            .is_err());
     }
 
     #[test]
@@ -222,9 +273,9 @@ mod tests {
         let secret_b = PresenterSecret::new(other_bytes).unwrap();
 
         let digest = Digest32([0xab; 32]);
-        let sig = secret_a.sign_journal_digest(&digest);
+        let sig = secret_a.sign_digest(&digest);
 
         let pubkey_b = secret_b.pubkey();
-        assert!(pubkey_b.verify_journal_digest(&digest, &sig).is_err());
+        assert!(pubkey_b.verify_digest(&digest, &sig).is_err());
     }
 }

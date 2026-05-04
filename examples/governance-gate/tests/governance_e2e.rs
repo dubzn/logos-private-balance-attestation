@@ -25,6 +25,7 @@ fn gate() -> GateConfig {
         circuit_image_id: Digest32(balance_attestation_image_id()),
         verifier_id: digest(0xC2),
         gate_id: digest(0xC3),
+        presentation_challenge: digest(0xC4),
         threshold: 100,
     }
 }
@@ -75,14 +76,16 @@ fn two_distinct_voters_each_get_one_vote() {
 
     // Voter A votes Yes.
     let witness_a = witness_with(0xAA, 0x77, 200, &gate);
-    let envelope_a = prove_attestation(&witness_a, &params).expect("voter A proves");
+    let envelope_a = prove_attestation(&witness_a, &params, gate.presentation_challenge)
+        .expect("voter A proves");
     let nullifier_a = program
         .submit_vote(&envelope_a, Choice::Yes)
         .expect("voter A vote accepted");
 
     // Voter B votes No.
     let witness_b = witness_with(0xBB, 0x88, 150, &gate);
-    let envelope_b = prove_attestation(&witness_b, &params).expect("voter B proves");
+    let envelope_b = prove_attestation(&witness_b, &params, gate.presentation_challenge)
+        .expect("voter B proves");
     let nullifier_b = program
         .submit_vote(&envelope_b, Choice::No)
         .expect("voter B vote accepted");
@@ -103,7 +106,8 @@ fn replaying_the_same_envelope_is_rejected_as_nullifier_collision() {
     let params = params_for(&gate);
 
     let witness = witness_with(0xAA, 0x77, 200, &gate);
-    let envelope = prove_attestation(&witness, &params).expect("voter proves");
+    let envelope =
+        prove_attestation(&witness, &params, gate.presentation_challenge).expect("voter proves");
 
     program
         .submit_vote(&envelope, Choice::Yes)
@@ -130,7 +134,8 @@ fn envelope_for_different_gate_is_rejected_with_context_mismatch() {
     };
     let voter_params = params_for(&other_gate);
     let witness = witness_with(0xAA, 0x77, 200, &other_gate);
-    let envelope = prove_attestation(&witness, &voter_params).expect("voter proves");
+    let envelope = prove_attestation(&witness, &voter_params, other_gate.presentation_challenge)
+        .expect("voter proves");
 
     let mut program = GovernanceProgram::new(real_gate);
     let err = program
@@ -151,7 +156,7 @@ fn underfunded_voter_cannot_even_produce_an_envelope() {
     let params = params_for(&gate);
     // Balance below threshold (100). The circuit asserts and proving fails.
     let witness = witness_with(0xAA, 0x77, 50, &gate);
-    let err = prove_attestation(&witness, &params)
+    let err = prove_attestation(&witness, &params, gate.presentation_challenge)
         .expect_err("proving must fail when balance < threshold");
     assert!(
         format!("{err}").contains("private balance is below threshold"),

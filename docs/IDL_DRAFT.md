@@ -81,7 +81,9 @@ pub struct BalanceAttestationEnvelope {
     pub image_id: [u8; 32],
     pub journal: BalanceAttestationJournal,
     pub receipt: Vec<u8>,
-    pub presenter_signature: Option<Vec<u8>>,
+    pub presenter_pubkey: Vec<u8>,
+    pub presentation_challenge: [u8; 32],
+    pub presenter_signature: Vec<u8>,
 }
 ```
 

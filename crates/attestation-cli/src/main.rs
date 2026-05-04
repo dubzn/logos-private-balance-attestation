@@ -58,6 +58,7 @@ struct ProveInput {
     witness: BalanceAttestationWitness,
     chain_id: Digest32,
     gate_id: Digest32,
+    presentation_challenge: Digest32,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -114,8 +115,8 @@ fn run_prove(options: ProveOptions) -> Result<(), CliError> {
         circuit_image_id: input.witness.circuit_image_id,
     };
 
-    let envelope =
-        prove_attestation(&input.witness, &params).map_err(|e| CliError::Prove(e.to_string()))?;
+    let envelope = prove_attestation(&input.witness, &params, input.presentation_challenge)
+        .map_err(|e| CliError::Prove(e.to_string()))?;
 
     let output = serde_json::to_string_pretty(&envelope).expect("envelope should serialize");
 
@@ -144,6 +145,7 @@ struct GateFile {
     chain_id: Digest32,
     verifier_id: Digest32,
     gate_id: Digest32,
+    presentation_challenge: Digest32,
     #[serde(with = "u128_decimal")]
     threshold: u128,
 }
@@ -215,15 +217,17 @@ fn run_verify(options: VerifyOptions) -> Result<(), CliError> {
     let expected = ExpectedGate {
         context_id: derive_context_id(&ctx_params),
         threshold: gate.threshold,
+        presentation_challenge: gate.presentation_challenge,
     };
 
     match verify_envelope(&envelope, &expected) {
         Ok(()) => {
             println!(
-                "{{\"status\":\"ok\",\"presenter_id\":\"{}\",\"context_id\":\"{}\",\"context_nullifier\":\"{}\",\"threshold\":\"{}\"}}",
+                "{{\"status\":\"ok\",\"presenter_id\":\"{}\",\"context_id\":\"{}\",\"context_nullifier\":\"{}\",\"presentation_challenge\":\"{}\",\"threshold\":\"{}\"}}",
                 envelope.journal.presenter_id.to_hex(),
                 envelope.journal.context_id.to_hex(),
                 envelope.journal.context_nullifier.to_hex(),
+                envelope.presentation_challenge.to_hex(),
                 envelope.journal.threshold,
             );
             Ok(())
@@ -453,7 +457,7 @@ fn verify_help() -> String {
     "usage: balance-attest verify --envelope <path.json> --gate <path.json>\n\n\
      Verifies a balance attestation envelope (produced by `prove`) against the\n\
      verifier's expected gate parameters. The gate file format is:\n\
-     { \"chain_id\": \"hex\", \"verifier_id\": \"hex\", \"gate_id\": \"hex\", \"threshold\": \"<u128 decimal>\" }\n\n\
+     { \"chain_id\": \"hex\", \"verifier_id\": \"hex\", \"gate_id\": \"hex\", \"presentation_challenge\": \"hex\", \"threshold\": \"<u128 decimal>\" }\n\n\
      The circuit_image_id used for verification is always the compiled\n\
      BALANCE_ATTESTATION_ID — callers cannot override it.\n\
      On success, prints a one-line JSON status with the journal's public fields.\n\
@@ -466,7 +470,7 @@ fn prove_help() -> String {
      Reads a witness JSON file (produced by build-witness or manually assembled),\n\
      generates a RISC Zero balance attestation proof, and writes the envelope JSON\n\
      to <out> or stdout. Set RISC0_DEV_MODE=1 for fast (non-production) proving.\n\n\
-     The witness file must contain: { witness: {...}, chain_id: \"hex\", gate_id: \"hex\" }\n\
+     The witness file must contain: { witness: {...}, chain_id: \"hex\", gate_id: \"hex\", presentation_challenge: \"hex\" }\n\
      WARNING: the witness file contains private key material — handle it securely."
         .to_owned()
 }

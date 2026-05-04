@@ -103,10 +103,11 @@ presenter_id = SHA256(
 ```
 
 The journal commits `presenter_id`. The envelope additionally carries the raw
-`presenter_pubkey` (32 bytes) and a `presenter_signature` (64-byte BIP-340
-signature over `journal.digest()`). The context nullifier includes
-`presenter_id`, so the same private account produces different nullifiers per
-presenter.
+`presenter_pubkey` (32 bytes), a verifier-provided `presentation_challenge`
+(32 bytes), and a `presenter_signature` (64-byte BIP-340 signature over
+`presentation_digest(journal.digest(), presentation_challenge)`). The context
+nullifier includes `presenter_id`, so the same private account produces
+different nullifiers per presenter.
 
 The circuit only hashes the pubkey (no in-circuit ECC). Knowledge-of-secret is
 proved off-circuit by the BIP-340 signature: only the secret-holder can produce
@@ -115,28 +116,33 @@ a signature that verifies under the pubkey committed in the journal.
 The full design uses these mechanisms:
 
 1. The proof journal includes `presenter_id = H(presenter_pubkey)`.
-2. The envelope carries the raw pubkey + a Schnorr signature over the journal.
+2. The envelope carries the raw pubkey, the verifier/session challenge, and a
+   Schnorr signature over the presentation digest.
 3. Off-chain verifiers (`attestation_verifier::verify_envelope`) check both
-   `H(pubkey) == journal.presenter_id` and the Schnorr signature over
-   `journal.digest()`.
+   `H(pubkey) == journal.presenter_id`, the expected challenge, and the
+   Schnorr signature.
 
 For off-chain verification:
 
 ```text
-signature = BIP340_Schnorr_Sign(presenter_secret, journal.digest())
+presentation_digest = SHA256(
+  "logos-balance-attestation/v1/presentation"
+  || journal.digest()
+  || presentation_challenge
+)
+signature = BIP340_Schnorr_Sign(presenter_secret, presentation_digest)
 verify_envelope:
   - H(envelope.presenter_pubkey) == envelope.journal.presenter_id
-  - BIP340_Schnorr_Verify(envelope.presenter_pubkey, journal.digest(), signature)
+  - envelope.presentation_challenge == expected.presentation_challenge
+  - BIP340_Schnorr_Verify(envelope.presenter_pubkey, presentation_digest, signature)
 ```
 
 A third party who only sees the journal cannot construct a new valid envelope
-because they do not have the presenter secret. A third party who captures the
-complete envelope, however, also captures the signature over `journal.digest()`
-and can try to present that same envelope first. V1 therefore binds the proof
-to a presenter key, but it does not fully close first-use replay until the
-recipient supplies a fresh verifier nonce/session challenge and verifies a
-signature over `(journal.digest(), challenge)`, or until the proof is bound to
-an authenticated transport/account controlled by the same presenter key.
+because they do not have the presenter secret. A third party who captures a
+complete envelope also captures the signature for that exact challenge, so the
+recipient must generate a fresh challenge for each admission/session and reject
+envelopes whose challenge differs from the expected value. A static challenge
+collapses back into replayable-token behavior.
 
 For on-chain verification (Spike 0C path):
 
@@ -165,8 +171,10 @@ No proof system can stop voluntary collusion by itself. Alice can still:
 - act online as a signing service for Bob
 
 The current V1 design reduces accidental forwarding and binds the proof to a
-presenter key. It does not yet prevent first-use replay of a captured complete
-envelope without a fresh challenge/session binding.
+presenter key plus verifier/session challenge. It prevents first-use replay
+only when the verifier actually generates fresh challenges and ties them to the
+current admission/session. Static fixture challenges are acceptable for tests,
+but not for production access control.
 
 If evaluator feedback requires the presenter secret to be committed inside the
 RISC Zero receipt itself, Spike 04 already validates that circuit shape. The

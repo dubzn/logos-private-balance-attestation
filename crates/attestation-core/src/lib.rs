@@ -15,8 +15,9 @@ mod types;
 pub use bytes::{Digest32, HexBytes, HexParseError};
 pub use error::{AttestationError, AttestationErrorCode};
 pub use hash::{
-    derive_context_id, derive_context_nullifier, derive_presenter_id, hash_segments, sha256_bytes,
-    CONTEXT_DOMAIN, JOURNAL_DOMAIN, NULLIFIER_DOMAIN, PRESENTER_DOMAIN,
+    derive_context_id, derive_context_nullifier, derive_presentation_digest, derive_presenter_id,
+    hash_segments, sha256_bytes, CONTEXT_DOMAIN, JOURNAL_DOMAIN, NULLIFIER_DOMAIN,
+    PRESENTATION_DOMAIN, PRESENTER_DOMAIN,
 };
 pub use lez_commitment::{
     compute_lez_membership_root, derive_lez_private_account_commitment, hash_lez_commitment_leaf,

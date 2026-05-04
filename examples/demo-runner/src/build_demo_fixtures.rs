@@ -5,8 +5,8 @@
 //! The witness contains derived fields (commitment_root, context_id,
 //! presenter_pubkey, presenter_id, context_nullifier) computed via the SDK.
 //! The gate is the matching verifier-side view: chain_id + verifier_id +
-//! gate_id + threshold (the circuit_image_id is always pinned to the compiled
-//! BALANCE_ATTESTATION_ID by the verifier).
+//! gate_id + presentation_challenge + threshold (the circuit_image_id is
+//! always pinned to the compiled BALANCE_ATTESTATION_ID by the verifier).
 
 use std::env;
 use std::fs;
@@ -24,6 +24,7 @@ struct ProveInput<'a> {
     witness: &'a attestation_sdk::BalanceAttestationWitness,
     chain_id: Digest32,
     gate_id: Digest32,
+    presentation_challenge: Digest32,
 }
 
 #[derive(Serialize)]
@@ -31,6 +32,7 @@ struct GateFile {
     chain_id: Digest32,
     verifier_id: Digest32,
     gate_id: Digest32,
+    presentation_challenge: Digest32,
     /// Decimal string — the CLI's `verify` parser expects a string-encoded u128.
     threshold: String,
 }
@@ -49,6 +51,7 @@ fn main() {
     let chain_id = digest(0x10);
     let verifier_id = digest(0x20);
     let gate_id = digest(0x30);
+    let presentation_challenge = digest(0x44);
     let threshold: u128 = 100;
 
     let params = AttestationPublicParams {
@@ -81,11 +84,13 @@ fn main() {
         witness: &witness,
         chain_id,
         gate_id,
+        presentation_challenge,
     };
     let gate_file = GateFile {
         chain_id,
         verifier_id,
         gate_id,
+        presentation_challenge,
         threshold: threshold.to_string(),
     };
 

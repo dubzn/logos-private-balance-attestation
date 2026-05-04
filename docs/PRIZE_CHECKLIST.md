@@ -17,7 +17,7 @@ Status legend:
 | Generate client-side proof for `balance >= N` from a shielded token account. | done | `attestation-prover::prove_attestation` over `methods/` production circuit. |
 | Verify without revealing `npk`, exact balance, or private account identity. | done | Journal commits only public fields; `attestation-verifier::verify_envelope`. |
 | Bind proof to a context to prevent cross-gate replay. | done | `attestation_core::derive_context_id` over `(chain_id, circuit_image_id, verifier_id, gate_id, threshold)`; circuit asserts. |
-| Bind proof to presenter identity to reduce forwarding. | partial | BIP-340 Schnorr: `presenter_id = H(pubkey)` in circuit, signature over `journal.digest()` in envelope; fresh verifier challenge/session binding is still needed to prevent first-use replay of a captured envelope. |
+| Bind proof to presenter identity to reduce forwarding. | done (V1) | BIP-340 Schnorr: `presenter_id = H(pubkey)` in circuit; envelope signature covers `presentation_digest(journal.digest(), presentation_challenge)`. Verifiers must generate fresh challenges per session. |
 | Target existing LEZ private account commitment format. | done | `attestation_core::derive_lez_private_account_commitment` mirrors `nssa_core` byte-for-byte (compat script + tests). |
 | On-chain LEZ verifier gates an action. | partial (recursion-ready) | `lez-verifier/` outer guest + `LezGateProgram` model presenter-id checks and nullifier dedup; live LEZ signer/account adapter and testnet deployment pending. |
 | Off-chain path over Logos Messaging. | done (transport-agnostic) | `attestation-verifier` + `examples/chat-gate` (envelope JSON shipped as wire bytes). |
@@ -45,7 +45,7 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | Document CU cost of on-chain operations. | planned | `docs/BENCHMARKS.md` after live LEZ deploy. |
-| Proof generation benchmark. | in-progress | Local sequencer E2E `RISC0_DEV_MODE=0`: build witness 00:01:11, prove 00:00:23, verify 00:00:02, total 00:01:38. Final benchmark doc still pending. |
+| Proof generation benchmark. | in-progress | Local sequencer E2E `RISC0_DEV_MODE=0` after challenge binding: build witness 00:01:01, prove 00:00:23, verify 00:00:03, total 00:01:30. Final benchmark doc still pending. |
 
 ## Supportability
 
@@ -55,7 +55,7 @@ Status legend:
 | E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites are in-memory/synthetic. `scripts/demo-local-sequencer-e2e.sh` now exercises wallet + real `getProofForCommitment`; CI/local clean-run automation still pending. |
 | CI green on default branch. | done | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`). |
 | README covers CLI and Basecamp for both paths. | done (CLI side) | `README.md` quick-start; Basecamp section pending the GUI. |
-| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | `scripts/demo-local-sequencer-e2e.sh` passed locally with wallet state + real `getProofForCommitment` + verify `status: ok`. Clean-room rerun/video still pending. |
+| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | `scripts/demo-local-sequencer-e2e.sh` passed locally with wallet state + real `getProofForCommitment` + challenge-bound verify `status: ok`. Clean-room rerun/video still pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 
 ## Submission Blockers To Clear
@@ -89,4 +89,4 @@ Before submitting, the repo must prove:
 | `attestation-prover` initial crate | passed locally | Reusable sanitized report/redaction logic has unit coverage. |
 | Initial witness builder | passed locally | `attestation-prover` builds witness fields from private account, membership proof, context, and presenter inputs with redacted debug/summary output. |
 | `attestation-cli inspect-private` | passed locally | CLI wraps the M2 adapter and returns sanitized JSON for local-only and require-proof modes. |
-| Local sequencer E2E harness | passed locally (dev + real proving) | `scripts/demo-local-sequencer-e2e.sh` produced envelope + verify `status: ok` from real wallet state and `getProofForCommitment` with `RISC0_DEV_MODE=1` and `RISC0_DEV_MODE=0`. Real-prover run: 00:01:38 total, 00:00:23 proving. |
+| Local sequencer E2E harness | passed locally (dev + real proving) | `scripts/demo-local-sequencer-e2e.sh` produced envelope + verify `status: ok` from real wallet state and `getProofForCommitment` with `RISC0_DEV_MODE=1` and `RISC0_DEV_MODE=0`. Latest real-prover run: 00:01:30 total, 00:00:23 proving, 1.3 MB public envelope. |

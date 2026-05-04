@@ -21,11 +21,12 @@ The core LP-0005 primitive is implemented as a local development base:
 - **methods/** — production RISC Zero circuit proving `balance >= N` with
   Merkle membership against the LEZ commitment format, presenter binding via
   `H(pubkey)`, context binding, context nullifier.
-- **attestation-prover** — `prove_attestation(witness, params) -> envelope`,
-  signs `journal.digest()` with the presenter Schnorr secret.
+- **attestation-prover** — `prove_attestation(witness, params, challenge) ->
+  envelope`, signs `presentation_digest(journal.digest(), challenge)` with the
+  presenter Schnorr secret.
 - **attestation-verifier** — `verify_envelope(envelope, expected_gate)`
   performs all 8 checks (receipt, image_id, journal match, context, exact
-  threshold, presenter pubkey hash, signature).
+  threshold, presentation challenge, presenter pubkey hash, signature).
 - **lez-verifier/** — Spike-0C on-chain path: outer RISC Zero guest that nests
   the inner balance-attestation receipt via `env::verify`; `LezGateProgram` is
   an in-memory rehearsal of the LEZ on-chain program semantics.
@@ -40,11 +41,10 @@ The core LP-0005 primitive is implemented as a local development base:
 - **CI** — `.github/workflows/ci.yml` runs fmt + clippy + workspace tests
   (default + `--include-ignored` E2E suites) under RISC0_DEV_MODE=1.
 
-What's still pending for prize submission: a clean-room rerun and narrated
-recording of the `RISC0_DEV_MODE=0` local-sequencer E2E, a fresh
-challenge/session binding for forwarded envelopes, the live LEZ signer/account
-adapter for the on-chain gate, a third reference integration (one externally
-built), a Basecamp app GUI, and deployment to a live LEZ testnet.
+What's still pending for prize submission: a narrated recording of the
+`RISC0_DEV_MODE=0` local-sequencer E2E, the live LEZ signer/account adapter for
+the on-chain gate, a third reference integration (one externally built), a
+Basecamp app GUI, CU benchmarks, and deployment to a live LEZ testnet.
 
 ## Quick start: end-to-end demo
 
@@ -90,7 +90,7 @@ RISC0_DEV_MODE=1 cargo run -p attestation-cli -- prove \
     --out ./demo/envelope.json
 
 # 3. Verify off-chain (returns JSON status with presenter_id, context_id,
-#    context_nullifier, threshold)
+#    context_nullifier, presentation_challenge, threshold)
 RISC0_DEV_MODE=1 cargo run -p attestation-cli -- verify \
     --envelope ./demo/envelope.json \
     --gate ./demo/gate.json

@@ -22,6 +22,7 @@
 #   CHAIN_ID_HEX                    Defaults to 0x10 repeated 32 bytes
 #   VERIFIER_ID_HEX                 Defaults to 0x20 repeated 32 bytes
 #   GATE_ID_HEX                     Defaults to 0x30 repeated 32 bytes
+#   PRESENTATION_CHALLENGE_HEX      Defaults to 0x44 repeated 32 bytes
 #   PRESENTER_SECRET_HEX            Defaults to 0x55 repeated 32 bytes
 
 set -euo pipefail
@@ -43,6 +44,7 @@ repeat_byte_hex() {
 CHAIN_ID_HEX="${CHAIN_ID_HEX:-$(repeat_byte_hex 10)}"
 VERIFIER_ID_HEX="${VERIFIER_ID_HEX:-$(repeat_byte_hex 20)}"
 GATE_ID_HEX="${GATE_ID_HEX:-$(repeat_byte_hex 30)}"
+PRESENTATION_CHALLENGE_HEX="${PRESENTATION_CHALLENGE_HEX:-$(repeat_byte_hex 44)}"
 PRESENTER_SECRET_HEX="${PRESENTER_SECRET_HEX:-$(repeat_byte_hex 55)}"
 
 usage() {
@@ -59,6 +61,7 @@ env:
   CHAIN_ID_HEX                    32-byte hex context field.
   VERIFIER_ID_HEX                 32-byte hex context field.
   GATE_ID_HEX                     32-byte hex context field.
+  PRESENTATION_CHALLENGE_HEX      32-byte verifier session challenge.
   PRESENTER_SECRET_HEX            32-byte hex Schnorr presenter secret.
 EOF
 }
@@ -174,6 +177,7 @@ struct ProveInput<'a> {
     witness: &'a BalanceAttestationWitness,
     chain_id: Digest32,
     gate_id: Digest32,
+    presentation_challenge: Digest32,
 }
 
 #[derive(Serialize)]
@@ -181,6 +185,7 @@ struct GateFile {
     chain_id: Digest32,
     verifier_id: Digest32,
     gate_id: Digest32,
+    presentation_challenge: Digest32,
     threshold: String,
 }
 
@@ -198,7 +203,7 @@ async fn main() -> Result<()> {
     let mut args = std::env::args().skip(1);
     let account_id_raw = args
         .next()
-        .context("usage: build <private-account-id> <threshold> <chain-id-hex> <verifier-id-hex> <gate-id-hex> <presenter-secret-hex> <out-dir>")?;
+        .context("usage: build <private-account-id> <threshold> <chain-id-hex> <verifier-id-hex> <gate-id-hex> <presentation-challenge-hex> <presenter-secret-hex> <out-dir>")?;
     let threshold: u128 = args
         .next()
         .context("missing threshold")?
@@ -215,6 +220,10 @@ async fn main() -> Result<()> {
     let gate_id = Digest32(parse_32_hex(
         "GATE_ID_HEX",
         &args.next().context("missing gate id")?,
+    )?);
+    let presentation_challenge = Digest32(parse_32_hex(
+        "PRESENTATION_CHALLENGE_HEX",
+        &args.next().context("missing presentation challenge")?,
     )?);
     let presenter_secret = PresenterSecret::new(parse_32_hex(
         "PRESENTER_SECRET_HEX",
@@ -298,11 +307,13 @@ async fn main() -> Result<()> {
         witness: &witness,
         chain_id,
         gate_id,
+        presentation_challenge,
     };
     let gate = GateFile {
         chain_id,
         verifier_id,
         gate_id,
+        presentation_challenge,
         threshold: threshold.to_string(),
     };
 
@@ -346,6 +357,7 @@ cargo run --manifest-path "$TMP_DIR/Cargo.toml" --quiet -- \
   "$CHAIN_ID_HEX" \
   "$VERIFIER_ID_HEX" \
   "$GATE_ID_HEX" \
+  "$PRESENTATION_CHALLENGE_HEX" \
   "$PRESENTER_SECRET_HEX" \
   "$DEMO_DIR" \
   > "$BUILD_SUMMARY_JSON"

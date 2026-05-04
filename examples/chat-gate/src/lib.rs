@@ -26,6 +26,9 @@ pub struct ChatRoomGate {
     pub circuit_image_id: Digest32,
     pub verifier_id: Digest32,
     pub gate_id: Digest32,
+    /// Verifier-provided session challenge. A real room host should generate
+    /// a fresh value for each admission attempt before the prover signs.
+    pub presentation_challenge: Digest32,
     pub min_balance: u128,
 }
 
@@ -41,6 +44,7 @@ impl ChatRoomGate {
         ExpectedGate {
             context_id: derive_context_id(&ctx_params),
             threshold: self.min_balance,
+            presentation_challenge: self.presentation_challenge,
         }
     }
 }

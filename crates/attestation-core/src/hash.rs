@@ -5,6 +5,7 @@ pub const CONTEXT_DOMAIN: &[u8] = b"logos-balance-attestation/v1/context";
 pub const NULLIFIER_DOMAIN: &[u8] = b"logos-balance-attestation/v1/nullifier";
 pub const PRESENTER_DOMAIN: &[u8] = b"logos-balance-attestation/v1/presenter";
 pub const JOURNAL_DOMAIN: &[u8] = b"logos-balance-attestation/v1/journal";
+pub const PRESENTATION_DOMAIN: &[u8] = b"logos-balance-attestation/v1/presentation";
 
 pub fn derive_context_id(params: &ContextBindingParams) -> Digest32 {
     hash_segments(&[
@@ -37,6 +38,21 @@ pub fn derive_context_nullifier(
 /// and check the Schnorr signature.
 pub fn derive_presenter_id(presenter_pubkey: &PresenterPubkey) -> Digest32 {
     hash_segments(&[PRESENTER_DOMAIN, presenter_pubkey.as_bytes()])
+}
+
+/// Derive the message digest signed by the presenter for a verifier-provided
+/// challenge/session. A captured envelope cannot be replayed into another
+/// session unless the attacker can also obtain a signature over that session's
+/// fresh challenge.
+pub fn derive_presentation_digest(
+    journal_digest: &Digest32,
+    presentation_challenge: &Digest32,
+) -> Digest32 {
+    hash_segments(&[
+        PRESENTATION_DOMAIN,
+        journal_digest.as_bytes(),
+        presentation_challenge.as_bytes(),
+    ])
 }
 
 pub fn hash_segments(segments: &[&[u8]]) -> Digest32 {

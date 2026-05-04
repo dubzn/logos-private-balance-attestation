@@ -24,6 +24,7 @@ fn gate() -> ChatRoomGate {
         circuit_image_id: Digest32(balance_attestation_image_id()),
         verifier_id: digest(0xC5),
         gate_id: digest(0xC6),
+        presentation_challenge: digest(0xC7),
         min_balance: 50,
     }
 }
@@ -72,8 +73,12 @@ fn admits_member_from_wire_envelope() {
     let mut host = ChatRoomHost::new(gate.clone());
 
     // Prover side: build envelope and serialize to wire bytes.
-    let envelope = prove_attestation(&witness(0xAA, 0x77, 100, &gate), &params(&gate))
-        .expect("prove should succeed");
+    let envelope = prove_attestation(
+        &witness(0xAA, 0x77, 100, &gate),
+        &params(&gate),
+        gate.presentation_challenge,
+    )
+    .expect("prove should succeed");
     let wire = pack_envelope_for_wire(&envelope);
 
     // Host side: receives bytes (e.g., over Logos Messaging) and admits.
@@ -96,8 +101,12 @@ fn rejects_replay_with_same_envelope_bytes() {
     let gate = gate();
     let mut host = ChatRoomHost::new(gate.clone());
 
-    let envelope = prove_attestation(&witness(0xAA, 0x77, 100, &gate), &params(&gate))
-        .expect("prove should succeed");
+    let envelope = prove_attestation(
+        &witness(0xAA, 0x77, 100, &gate),
+        &params(&gate),
+        gate.presentation_challenge,
+    )
+    .expect("prove should succeed");
     let wire = pack_envelope_for_wire(&envelope);
 
     host.admit_from_wire(&wire).expect("first admission OK");
@@ -121,8 +130,12 @@ fn rejects_envelope_for_a_different_room() {
     };
 
     // Prover bound the envelope to other_gate, not host_gate.
-    let envelope = prove_attestation(&witness(0xAA, 0x77, 100, &other_gate), &params(&other_gate))
-        .expect("prove should succeed");
+    let envelope = prove_attestation(
+        &witness(0xAA, 0x77, 100, &other_gate),
+        &params(&other_gate),
+        other_gate.presentation_challenge,
+    )
+    .expect("prove should succeed");
     let wire = pack_envelope_for_wire(&envelope);
 
     let mut host = ChatRoomHost::new(host_gate);

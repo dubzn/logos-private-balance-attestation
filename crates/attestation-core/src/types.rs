@@ -48,7 +48,12 @@ pub struct BalanceAttestationEnvelope {
     pub receipt: HexBytes,
     /// 32-byte BIP-340 x-only Schnorr pubkey. Hashed to derive `journal.presenter_id`.
     pub presenter_pubkey: HexBytes,
-    /// 64-byte BIP-340 Schnorr signature over `journal.digest()`.
+    /// Verifier-provided 32-byte session challenge. The presenter signature is
+    /// bound to this challenge to prevent replay of a captured envelope across
+    /// sessions.
+    pub presentation_challenge: Digest32,
+    /// 64-byte BIP-340 Schnorr signature over
+    /// `derive_presentation_digest(journal.digest(), presentation_challenge)`.
     pub presenter_signature: HexBytes,
 }
 
@@ -107,6 +112,7 @@ impl BalanceAttestationEnvelope {
         journal: BalanceAttestationJournal,
         receipt: Vec<u8>,
         presenter_pubkey: Vec<u8>,
+        presentation_challenge: Digest32,
         presenter_signature: Vec<u8>,
     ) -> Self {
         Self {
@@ -116,6 +122,7 @@ impl BalanceAttestationEnvelope {
             journal,
             receipt: receipt.into(),
             presenter_pubkey: presenter_pubkey.into(),
+            presentation_challenge,
             presenter_signature: presenter_signature.into(),
         }
     }
@@ -221,9 +228,13 @@ mod tests {
         presenter_secret().pubkey().as_bytes().to_vec()
     }
 
+    fn presentation_challenge() -> Digest32 {
+        digest(0x44)
+    }
+
     fn presenter_signature_bytes_for(j: &BalanceAttestationJournal) -> Vec<u8> {
         presenter_secret()
-            .sign_journal_digest(&j.digest())
+            .sign_presentation(&j.digest(), &presentation_challenge())
             .as_bytes()
             .to_vec()
     }
@@ -313,6 +324,7 @@ mod tests {
             j.clone(),
             vec![0xde, 0xad, 0xbe, 0xef],
             presenter_pubkey_bytes(),
+            presentation_challenge(),
             presenter_signature_bytes_for(&j),
         );
         envelope.validate_shape().unwrap();
@@ -329,6 +341,7 @@ mod tests {
             j.clone(),
             vec![],
             presenter_pubkey_bytes(),
+            presentation_challenge(),
             presenter_signature_bytes_for(&j),
         );
         envelope.image_id = digest(0xff);
@@ -343,6 +356,7 @@ mod tests {
             j.clone(),
             vec![],
             vec![0u8; 30],
+            presentation_challenge(),
             presenter_signature_bytes_for(&j),
         );
         let error = envelope.validate_shape().unwrap_err();
@@ -355,6 +369,7 @@ mod tests {
             journal(),
             vec![],
             presenter_pubkey_bytes(),
+            presentation_challenge(),
             vec![0u8; 60],
         );
         let error = envelope.validate_shape().unwrap_err();

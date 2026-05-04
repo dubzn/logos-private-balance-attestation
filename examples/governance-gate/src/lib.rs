@@ -21,6 +21,9 @@ pub struct GateConfig {
     pub circuit_image_id: Digest32,
     pub verifier_id: Digest32,
     pub gate_id: Digest32,
+    /// Verifier-provided session challenge. Production callers should rotate
+    /// this per claim/vote session; fixtures may pin a deterministic value.
+    pub presentation_challenge: Digest32,
     pub threshold: u128,
 }
 
@@ -36,6 +39,7 @@ impl GateConfig {
         ExpectedGate {
             context_id: derive_context_id(&ctx_params),
             threshold: self.threshold,
+            presentation_challenge: self.presentation_challenge,
         }
     }
 }

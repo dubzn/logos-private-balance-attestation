@@ -2,8 +2,8 @@
 //!
 //! `verify_envelope` performs all checks required to admit a presenter to a gate:
 //! receipt verification against the pinned RISC Zero image id, journal shape,
-//! context binding, exact threshold check, presenter pubkey ↔ id, and BIP-340
-//! signature over the journal digest.
+//! context binding, exact threshold check, challenge binding, presenter pubkey
+//! ↔ id, and BIP-340 signature over the presentation digest.
 //!
 //! On-chain verifiers and reference integrations should call this same function
 //! (or duplicate its checks deterministically) so failure modes match.
@@ -36,6 +36,11 @@ pub enum VerifyError {
     },
     /// `journal.threshold` does not match the context-bound gate threshold.
     ThresholdMismatch { expected: u128, journal: u128 },
+    /// `envelope.presentation_challenge` does not match the verifier's session challenge.
+    ChallengeMismatch {
+        expected: Digest32,
+        actual: Digest32,
+    },
     /// `H(envelope.presenter_pubkey) != journal.presenter_id`.
     PresenterMismatch,
     /// Pubkey bytes were not a valid BIP-340 x-only Schnorr key.
@@ -68,6 +73,12 @@ impl fmt::Display for VerifyError {
                     "threshold mismatch: expected context-bound {expected}, journal commits {journal}"
                 )
             }
+            Self::ChallengeMismatch { expected, actual } => write!(
+                f,
+                "presentation challenge mismatch: expected {}, got {}",
+                expected.to_hex(),
+                actual.to_hex()
+            ),
             Self::PresenterMismatch => {
                 f.write_str("presenter pubkey does not hash to journal.presenter_id")
             }
@@ -95,6 +106,7 @@ impl VerifyError {
             Self::JournalBytesMismatch(_) => AttestationErrorCode::MalformedJournal,
             Self::ContextMismatch { .. } => AttestationErrorCode::ContextMismatch,
             Self::ThresholdMismatch { .. } => AttestationErrorCode::ThresholdMismatch,
+            Self::ChallengeMismatch { .. } => AttestationErrorCode::InvalidPresenterSignature,
             Self::PresenterMismatch => AttestationErrorCode::PresenterMismatch,
             Self::InvalidPresenterPubkey => AttestationErrorCode::PresenterMismatch,
             Self::InvalidPresenterSignature => AttestationErrorCode::InvalidPresenterSignature,
@@ -110,6 +122,7 @@ impl VerifyError {
 pub struct ExpectedGate {
     pub context_id: Digest32,
     pub threshold: u128,
+    pub presentation_challenge: Digest32,
 }
 
 /// Verify a balance attestation envelope end-to-end.
@@ -188,18 +201,30 @@ pub fn verify_envelope(
         });
     }
 
-    // 7. Presenter pubkey hashes to journal.presenter_id.
+    // 7. Challenge/session binding.
+    if envelope.presentation_challenge != expected.presentation_challenge {
+        return Err(VerifyError::ChallengeMismatch {
+            expected: expected.presentation_challenge,
+            actual: envelope.presentation_challenge,
+        });
+    }
+
+    // 8. Presenter pubkey hashes to journal.presenter_id.
     let pubkey = PresenterPubkey::from_slice(envelope.presenter_pubkey.as_bytes())
         .map_err(|_| VerifyError::InvalidPresenterPubkey)?;
     if pubkey.presenter_id() != envelope.journal.presenter_id {
         return Err(VerifyError::PresenterMismatch);
     }
 
-    // 8. Schnorr signature over journal.digest().
+    // 9. Schnorr signature over presentation_digest(journal.digest(), challenge).
     let signature = PresenterSignature::from_slice(envelope.presenter_signature.as_bytes())
         .map_err(|_| VerifyError::InvalidPresenterSignature)?;
     pubkey
-        .verify_journal_digest(&envelope.journal.digest(), &signature)
+        .verify_presentation(
+            &envelope.journal.digest(),
+            &envelope.presentation_challenge,
+            &signature,
+        )
         .map_err(|_| VerifyError::InvalidPresenterSignature)?;
 
     Ok(())
@@ -263,7 +288,8 @@ mod tests {
             },
             params,
         );
-        let envelope = prove_attestation(&witness, &params).expect("prove should succeed");
+        let envelope =
+            prove_attestation(&witness, &params, digest(0x44)).expect("prove should succeed");
 
         let ctx_params = ContextBindingParams {
             chain_id: params.chain_id,
@@ -275,6 +301,7 @@ mod tests {
         let expected = ExpectedGate {
             context_id: derive_context_id(&ctx_params),
             threshold: 25,
+            presentation_challenge: digest(0x44),
         };
         (envelope, expected)
     }
@@ -302,6 +329,15 @@ mod tests {
         expected.threshold = 1_000_000;
         let err = verify_envelope(&envelope, &expected).unwrap_err();
         assert!(matches!(err, VerifyError::ThresholdMismatch { .. }));
+    }
+
+    #[test]
+    #[ignore = "requires RISC0_DEV_MODE=1"]
+    fn verify_envelope_rejects_challenge_mismatch() {
+        let (envelope, mut expected) = fixture();
+        expected.presentation_challenge = digest(0x45);
+        let err = verify_envelope(&envelope, &expected).unwrap_err();
+        assert!(matches!(err, VerifyError::ChallengeMismatch { .. }));
     }
 
     #[test]

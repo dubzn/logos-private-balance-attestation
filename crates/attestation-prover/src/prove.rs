@@ -73,11 +73,14 @@ pub fn balance_attestation_image_id() -> [u8; 32] {
 /// from the compiled `methods` crate — the caller's `witness.circuit_image_id` is ignored.
 ///
 /// The envelope carries the presenter's BIP-340 x-only pubkey and a Schnorr signature
-/// over `journal.digest()`. Verifiers must check both: `H(pubkey) == journal.presenter_id`
-/// and `Schnorr_verify(pubkey, journal.digest(), sig)`.
+/// over a verifier/session challenge. Verifiers must check all three:
+/// `H(pubkey) == journal.presenter_id`, `envelope.presentation_challenge`
+/// matches the verifier challenge, and `Schnorr_verify(pubkey,
+/// presentation_digest(journal.digest(), challenge), sig)`.
 pub fn prove_attestation(
     witness: &BalanceAttestationWitness,
     params: &AttestationPublicParams,
+    presentation_challenge: Digest32,
 ) -> Result<BalanceAttestationEnvelope, ProveError> {
     // Always use the compiled image ID, not whatever the witness says.
     let circuit_image_id = balance_attestation_image_id();
@@ -155,12 +158,13 @@ pub fn prove_attestation(
     let signature = witness
         .presenter
         .presenter_secret
-        .sign_journal_digest(&journal.digest());
+        .sign_presentation(&journal.digest(), &presentation_challenge);
 
     Ok(BalanceAttestationEnvelope::new_risc0(
         journal,
         receipt_bytes,
         presenter_pubkey.as_bytes().to_vec(),
+        presentation_challenge,
         signature.as_bytes().to_vec(),
     ))
 }
@@ -173,6 +177,10 @@ mod tests {
 
     fn digest(seed: u8) -> Digest32 {
         Digest32([seed; 32])
+    }
+
+    fn challenge() -> Digest32 {
+        Digest32([0x44; 32])
     }
 
     fn fixture() -> (BalanceAttestationWitness, AttestationPublicParams) {
@@ -211,8 +219,8 @@ mod tests {
         std::env::set_var("RISC0_DEV_MODE", "1");
 
         let (witness, params) = fixture();
-        let envelope =
-            prove_attestation(&witness, &params).expect("prove_attestation should succeed");
+        let envelope = prove_attestation(&witness, &params, challenge())
+            .expect("prove_attestation should succeed");
 
         envelope
             .validate_shape()
@@ -226,6 +234,7 @@ mod tests {
             witness.context_nullifier
         );
         assert_eq!(envelope.journal.presenter_id, witness.presenter_id);
+        assert_eq!(envelope.presentation_challenge, challenge());
         // circuit_image_id must be the compiled ID, not the fixture's witness value.
         assert_eq!(
             envelope.journal.circuit_image_id,
@@ -255,7 +264,11 @@ mod tests {
         )
         .expect("envelope signature should be 64 bytes");
         pubkey
-            .verify_journal_digest(&envelope.journal.digest(), &sig)
+            .verify_presentation(
+                &envelope.journal.digest(),
+                &envelope.presentation_challenge,
+                &sig,
+            )
             .expect("presenter signature should verify against journal digest");
     }
 }

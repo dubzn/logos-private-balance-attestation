@@ -768,3 +768,46 @@ Contract test: `methods/tests/journal_roundtrip.rs` — 6 tests assert the guest
 decodes field-for-field to `attestation_core::BalanceAttestationJournal` and that all
 host derivations (`derive_context_id`, `derive_context_nullifier`, `derive_presenter_id`)
 match guest output exactly.
+
+## Challenge-Bound Local Sequencer E2E
+
+Date: 2026-05-04.
+
+After adding `presentation_challenge` to the proof envelope, the local
+sequencer harness was rerun with real proving:
+
+```text
+RISC0_DEV_MODE=0
+script: scripts/demo-local-sequencer-e2e.sh
+wallet state: real local private account
+membership proof: real wallet/sequencer getProofForCommitment path
+verify status: ok
+```
+
+Observed output directory:
+
+```text
+.demo-runs/local-sequencer/20260504T023105Z
+```
+
+Timings:
+
+```text
+build CLI:       00:00:03
+wallet health:   00:00:00
+build witness:   00:01:01
+prove:           00:00:23
+verify:          00:00:03
+total:           00:01:30
+```
+
+Public verification output:
+
+```text
+status: ok
+threshold: 1
+presentation_challenge: 4444444444444444444444444444444444444444444444444444444444444444
+```
+
+Public envelope size: 1,323,467 bytes. `witness.json` was produced as part of
+the run and remains private; do not publish or commit `.demo-runs/`.

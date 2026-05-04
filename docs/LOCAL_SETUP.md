@@ -258,8 +258,9 @@ The current smoke demo can run with real proving over deterministic fixtures:
 RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
 ```
 
-The final submission demo still needs the same real-prover mode against a
-clean local sequencer, wallet state, and `getProofForCommitment`.
+The same real-prover mode has passed locally against a local sequencer, wallet
+state, and real `getProofForCommitment`. For submission, repeat it from a clean
+environment while recording the narrated demo.
 
 The current local-sequencer harness is:
 
@@ -269,6 +270,20 @@ THRESHOLD=1 \
 RISC0_DEV_MODE=1 \
   scripts/demo-local-sequencer-e2e.sh
 ```
+
+Real-prover local run:
+
+```sh
+PRIVATE_ACCOUNT=Private/<private-account-id> \
+THRESHOLD=1 \
+RISC0_DEV_MODE=0 \
+  scripts/demo-local-sequencer-e2e.sh
+```
+
+Latest observed result after challenge binding: total 00:01:30, build witness
+00:01:01, prove 00:00:23, verify 00:00:03, verify `status: ok`. The public
+envelope was about 1.3 MB; `witness.json` remains private and must not be
+published.
 
 It writes artifacts under `.demo-runs/local-sequencer/<timestamp>/`. Treat
 `witness.json` as private; it contains private account witness material and the
