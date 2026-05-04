@@ -7,8 +7,6 @@ on:
     branches: [master, main]
 
 env:
-  # Pin to the same risc0 toolchain that LEZ uses (see scripts/check-risc0-version.sh).
-  RISC0_TOOLCHAIN_VERSION: 3.0.5
   # All workspace tests run in dev mode so we don't need a real prover in CI.
   RISC0_DEV_MODE: "1"
   CARGO_TERM_COLOR: always
@@ -36,10 +34,15 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - name: Install risc0 toolchain
+        # `rzup install` (no args) installs the latest matched (cargo-risczero,
+        # rust, r0vm, cpp) bundle; we don't pin a specific Rust toolchain here
+        # because (a) RISC0_SKIP_BUILD=1 below skips guest builds anyway, and
+        # (b) the host-side risc0-zkvm 3.0.5 dep in our Cargo.toml is what
+        # actually pins the API surface clippy lints against.
         run: |
           curl -L https://risczero.com/install | bash
           echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
-          "$HOME/.risc0/bin/rzup" install rust ${{ env.RISC0_TOOLCHAIN_VERSION }}
+          "$HOME/.risc0/bin/rzup" install
       - name: Run clippy
         # RISC0_SKIP_BUILD=1 prevents the methods/ and lez-verifier/ build
         # scripts from invoking the guest builds during clippy. clippy uses
@@ -55,10 +58,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Install risc0 toolchain
+        # See clippy job for why no version is pinned. `rzup install` installs
+        # the matched Rust + cargo-risczero + r0vm bundle the workspace needs
+        # for guest compilation.
         run: |
           curl -L https://risczero.com/install | bash
           echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
-          "$HOME/.risc0/bin/rzup" install rust ${{ env.RISC0_TOOLCHAIN_VERSION }}
+          "$HOME/.risc0/bin/rzup" install
       - name: Build workspace
         run: cargo build --workspace --all-targets
       - name: Run default workspace tests
