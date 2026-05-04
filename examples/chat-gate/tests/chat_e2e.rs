@@ -12,9 +12,7 @@ use attestation_prover::{
     AttestationPublicParams, BalanceAttestationWitness, PresenterWitness, PrivateAccountWitness,
 };
 use attestation_verifier::VerifyError;
-use chat_gate_example::{
-    pack_envelope_for_wire, AdmissionError, ChatRoomGate, ChatRoomHost,
-};
+use chat_gate_example::{pack_envelope_for_wire, AdmissionError, ChatRoomGate, ChatRoomHost};
 
 fn digest(seed: u8) -> Digest32 {
     Digest32([seed; 32])
@@ -40,7 +38,12 @@ fn params(gate: &ChatRoomGate) -> AttestationPublicParams {
     }
 }
 
-fn witness(npk_seed: u8, presenter_seed: u8, balance: u128, gate: &ChatRoomGate) -> BalanceAttestationWitness {
+fn witness(
+    npk_seed: u8,
+    presenter_seed: u8,
+    balance: u128,
+    gate: &ChatRoomGate,
+) -> BalanceAttestationWitness {
     build_balance_attestation_witness(
         PrivateAccountWitness {
             npk: digest(npk_seed),
@@ -79,7 +82,10 @@ fn admits_member_from_wire_envelope() {
         .expect("host should admit valid envelope");
     assert!(host.is_admitted(&token));
     assert_eq!(host.member_count(), 1);
-    assert_eq!(host.nullifier_for(&token), Some(envelope.journal.context_nullifier));
+    assert_eq!(
+        host.nullifier_for(&token),
+        Some(envelope.journal.context_nullifier)
+    );
 }
 
 #[test]

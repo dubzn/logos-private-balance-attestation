@@ -84,11 +84,7 @@ fn parse_prove(args: Vec<String>) -> Result<ProveOptions, CliError> {
                     CliError::Usage("--out needs a value".to_owned())
                 })?));
             }
-            _ => {
-                return Err(CliError::Usage(format!(
-                    "unknown prove argument: {arg}"
-                )))
-            }
+            _ => return Err(CliError::Usage(format!("unknown prove argument: {arg}"))),
         }
     }
 
@@ -176,28 +172,23 @@ fn parse_verify(args: Vec<String>) -> Result<VerifyOptions, CliError> {
                     CliError::Usage("--gate needs a value".to_owned())
                 })?));
             }
-            _ => {
-                return Err(CliError::Usage(format!(
-                    "unknown verify argument: {arg}"
-                )))
-            }
+            _ => return Err(CliError::Usage(format!("unknown verify argument: {arg}"))),
         }
     }
 
-    let envelope = envelope
-        .ok_or_else(|| CliError::Usage("verify needs --envelope <path>".to_owned()))?;
+    let envelope =
+        envelope.ok_or_else(|| CliError::Usage("verify needs --envelope <path>".to_owned()))?;
     let gate = gate.ok_or_else(|| CliError::Usage("verify needs --gate <path>".to_owned()))?;
 
     Ok(VerifyOptions { envelope, gate })
 }
 
 fn run_verify(options: VerifyOptions) -> Result<(), CliError> {
-    let envelope_json = fs::read_to_string(&options.envelope).map_err(|source| {
-        CliError::FileRead {
+    let envelope_json =
+        fs::read_to_string(&options.envelope).map_err(|source| CliError::FileRead {
             path: options.envelope.clone(),
             source,
-        }
-    })?;
+        })?;
     let envelope: BalanceAttestationEnvelope =
         serde_json::from_str(&envelope_json).map_err(|source| CliError::WitnessParse {
             path: options.envelope.clone(),
@@ -399,9 +390,7 @@ fn parse_args(args: Vec<String>) -> Result<CommandArgs, CliError> {
 
     match command.as_str() {
         "-h" | "--help" | "help" => Ok(CommandArgs::Help),
-        "inspect-private" => {
-            parse_inspect_private(args.collect()).map(CommandArgs::InspectPrivate)
-        }
+        "inspect-private" => parse_inspect_private(args.collect()).map(CommandArgs::InspectPrivate),
         "prove" => parse_prove(args.collect()).map(CommandArgs::Prove),
         "verify" => parse_verify(args.collect()).map(CommandArgs::Verify),
         _ => Err(CliError::Usage(format!("unknown command: {command}"))),
@@ -492,10 +481,20 @@ fn inspect_private_help() -> String {
 enum CliError {
     Usage(String),
     Io(io::Error),
-    FileRead { path: PathBuf, source: io::Error },
-    ScriptFailed { status: String, stdout: String, stderr: String },
+    FileRead {
+        path: PathBuf,
+        source: io::Error,
+    },
+    ScriptFailed {
+        status: String,
+        stdout: String,
+        stderr: String,
+    },
     JsonMissing(PathBuf),
-    WitnessParse { path: PathBuf, source: serde_json::Error },
+    WitnessParse {
+        path: PathBuf,
+        source: serde_json::Error,
+    },
     Prove(String),
     Verify(VerifyError),
 }
@@ -508,7 +507,11 @@ impl std::fmt::Display for CliError {
             Self::FileRead { path, source } => {
                 write!(f, "failed to read {}: {source}", path.display())
             }
-            Self::ScriptFailed { status, stdout, stderr } => {
+            Self::ScriptFailed {
+                status,
+                stdout,
+                stderr,
+            } => {
                 writeln!(f, "inspect-private failed with status {status}")?;
                 if !stderr.trim().is_empty() {
                     writeln!(f, "\nstderr:\n{stderr}")?;
@@ -524,7 +527,11 @@ impl std::fmt::Display for CliError {
                 path.display()
             ),
             Self::WitnessParse { path, source } => {
-                write!(f, "failed to parse witness file {}: {source}", path.display())
+                write!(
+                    f,
+                    "failed to parse witness file {}: {source}",
+                    path.display()
+                )
             }
             Self::Prove(message) => write!(f, "proving failed: {message}"),
             Self::Verify(error) => write!(f, "verify failed [{}]: {error}", error.code()),

@@ -38,12 +38,11 @@
 pub use attestation_core::{
     compute_lez_membership_root, derive_context_id, derive_context_nullifier,
     derive_lez_private_account_commitment, derive_presenter_id, hash_lez_commitment_leaf,
-    hash_segments, sha256_bytes,
-    AttestationError, AttestationErrorCode, BalanceAttestationEnvelope,
-    BalanceAttestationJournal, ContextBindingParams, Digest32, HexBytes, HexParseError,
-    LezMembershipProof, LezPrivateAccountCommitmentInput, PresenterError, PresenterPubkey,
-    PresenterSecret, PresenterSignature, ProofSystem, CONTEXT_DOMAIN, ENVELOPE_VERSION,
-    JOURNAL_DOMAIN, JOURNAL_VERSION, LEZ_COMMITMENT_PREFIX, NULLIFIER_DOMAIN,
+    hash_segments, sha256_bytes, AttestationError, AttestationErrorCode,
+    BalanceAttestationEnvelope, BalanceAttestationJournal, ContextBindingParams, Digest32,
+    HexBytes, HexParseError, LezMembershipProof, LezPrivateAccountCommitmentInput, PresenterError,
+    PresenterPubkey, PresenterSecret, PresenterSignature, ProofSystem, CONTEXT_DOMAIN,
+    ENVELOPE_VERSION, JOURNAL_DOMAIN, JOURNAL_VERSION, LEZ_COMMITMENT_PREFIX, NULLIFIER_DOMAIN,
     PRESENTER_DOMAIN, PRESENTER_PUBKEY_LEN, PRESENTER_SECRET_LEN, PRESENTER_SIGNATURE_LEN,
 };
 

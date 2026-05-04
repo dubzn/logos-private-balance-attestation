@@ -205,11 +205,23 @@ pub enum LezGateProgramError {
     MalformedReceipt(String),
     InvalidReceipt(String),
     JournalDecodeFailed(String),
-    UnexpectedJournalVersion { actual: u16 },
-    InnerImageIdMismatch { actual: Digest32 },
-    GateContextMismatch { expected: Digest32, actual: Digest32 },
-    ThresholdNotMet { required: u128, journal: u128 },
-    NullifierReplay { nullifier: Digest32 },
+    UnexpectedJournalVersion {
+        actual: u16,
+    },
+    InnerImageIdMismatch {
+        actual: Digest32,
+    },
+    GateContextMismatch {
+        expected: Digest32,
+        actual: Digest32,
+    },
+    ThresholdNotMet {
+        required: u128,
+        journal: u128,
+    },
+    NullifierReplay {
+        nullifier: Digest32,
+    },
 }
 
 impl fmt::Display for LezGateProgramError {
@@ -236,11 +248,9 @@ impl fmt::Display for LezGateProgramError {
                 f,
                 "outer journal threshold {journal} below required {required}"
             ),
-            Self::NullifierReplay { nullifier } => write!(
-                f,
-                "nullifier already admitted: {}",
-                nullifier.to_hex()
-            ),
+            Self::NullifierReplay { nullifier } => {
+                write!(f, "nullifier already admitted: {}", nullifier.to_hex())
+            }
         }
     }
 }
