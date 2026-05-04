@@ -108,20 +108,28 @@ paths:
   "journal": {
     "version": 1,
     "threshold": "100",
-    "context_id": "<hex-32>",
     "commitment_root": "<hex-32>",
+    "context_id": "<hex-32>",
     "context_nullifier": "<hex-32>",
-    "presenter_id": "<hex-32-or-public-account-id>",
-    "verifier_id": "<hex-32-or-program-id>",
-    "circuit_image_id": "<risc0-image-id-hex>"
+    "presenter_id": "<hex-32>",
+    "verifier_id": "<hex-32>",
+    "circuit_image_id": "<risc0-image-id-hex>",
+    "proof_index": 5,
+    "proof_depth": 16
   },
-  "receipt": "<encoded-receipt>",
-  "presenter_signature": "<signature-over-journal-and-challenge>"
+  "receipt": "<hex-encoded serde_json risc0_zkvm::Receipt>",
+  "presenter_pubkey": "<hex-32 BIP-340 x-only Schnorr pubkey>",
+  "presenter_signature": "<hex-64 BIP-340 Schnorr signature over journal.digest()>"
 }
 ```
 
-The exact binary encoding can be Borsh for Rust internals and JSON for CLI/demo
-interchange. The JSON shape is intentionally human-readable for debugging.
+The CLI uses JSON for developer interchange. The on-chain LEZ wire format is
+Borsh V1 (per `idl/balance-attestation-verifier.json`); the CLI's
+`balance-attest verify` consumes JSON envelopes directly.
+
+`presenter_id = SHA256(PRESENTER_DOMAIN || presenter_pubkey)` — the journal
+commits the hash, the envelope carries the pubkey itself, the verifier checks
+both.
 
 ## Circuit Witness
 
@@ -176,25 +184,31 @@ Changing any of these values should make an old proof invalid for the new gate.
 
 ## Presenter Binding
 
-LP-0005 calls out proof forwarding as a known open problem. This design binds
-the proof to a presenter id:
+LP-0005 calls out proof forwarding as a known open problem. The implementation
+binds the proof to a presenter via BIP-340 Schnorr over secp256k1:
 
-- The presenter id is part of the public journal.
-- The context nullifier includes the presenter id.
-- Off-chain verifiers require a fresh signature over the journal digest and a
-  verifier challenge.
-- On-chain verification includes an authorized presenter account and checks it
-  matches the presenter id in the proof journal.
+- The presenter holds a 32-byte secret. Its public counterpart is a 32-byte
+  x-only Schnorr public key.
+- `presenter_id = SHA256(PRESENTER_DOMAIN || presenter_pubkey)` — the journal
+  commits the hash; the envelope carries the pubkey.
+- The context nullifier includes the presenter id, so the same private account
+  produces different nullifiers per presenter.
+- Off-chain: the prover signs `journal.digest()` with the secret. The
+  envelope carries `(pubkey, signature)`. The off-chain verifier
+  (`attestation_verifier::verify_envelope`) checks both
+  `H(pubkey) == journal.presenter_id` and the Schnorr signature.
+- On-chain: the LEZ tx is signed by the presenter account; the LEZ program
+  asserts that account's hash equals `journal.presenter_id`. The on-chain
+  path does not need the off-chain Schnorr signature because LEZ tx signing
+  already enforces presenter identity.
+
+The circuit only hashes the pubkey (no in-circuit ECC). Knowledge-of-secret
+is proved off-circuit by the BIP-340 signature: only the secret-holder can
+produce a signature that verifies under the pubkey committed in the journal.
 
 This does not prevent voluntary collusion where Alice generates a proof for
-Bob's presenter id or shares her private key. It does prevent a passive third
-party from reusing a captured proof as themselves.
-
-V1 uses a separate presenter signature over the proof journal and verifier
-challenge. Spike 04 additionally validates the stronger shape where the circuit
-proves knowledge of presenter material that derives `presenter_id`; the
-production adapter still needs to map that to a real wallet-compatible
-presenter key.
+Bob's presenter id or shares her secret. It does prevent a passive third party
+from reusing a captured proof as themselves.
 
 ## Off-Chain Path
 
@@ -220,62 +234,62 @@ whether the proof verifies.
 
 ## On-Chain Path
 
+The on-chain path is implemented as a two-stage recursion (Spike 0C, per
+`docs/ONCHAIN_PATH_DECISION.md`): the prover wraps the inner balance-attestation
+receipt in an outer LEZ-gate receipt that the LEZ on-chain program verifies.
+
 ```mermaid
 sequenceDiagram
   participant A as Presenter
-  participant CLI as CLI/Basecamp
+  participant CLI as CLI / SDK
+  participant L as lez-verifier (host)
   participant P as LEZ Verifier Program
   participant S as Sequencer
 
-  A->>CLI: Generate proof or private gate witness
-  CLI->>S: Submit gated action transaction
-  S->>P: Execute selected verifier/gate program
-  P->>P: Verify selected proof path and presenter authorization
-  P->>S: Accept action or return deterministic error
+  A->>CLI: prove_attestation(witness, params) -> envelope
+  CLI->>L: prove_lez_gate(envelope, gate_config)
+  L->>L: Outer guest: env::verify(BALANCE_ATTESTATION_ID, inner_journal)
+  L->>L: Recompute context_id, assert match, threshold floor, verifier_id
+  L->>CLI: LezGateProof { outer_journal, outer_receipt_bytes }
+  CLI->>S: Submit (outer_receipt_bytes, presenter_account)
+  S->>P: admit(outer_receipt_bytes)
+  P->>P: Verify outer receipt against pinned LEZ_BALANCE_GATE_ID
+  P->>P: Assert outer_journal.inner_image_id == BALANCE_ATTESTATION_ID
+  P->>P: Assert gate_context_id matches; dedup nullifier
+  P->>S: Admit or return deterministic BAxxx error
 ```
 
-The first gated action should be intentionally small, such as:
+The outer LEZ-gate guest lives at `lez-verifier/guest/src/bin/lez_balance_gate.rs`
+and is built into a self-contained image (`LEZ_BALANCE_GATE_ID`). The LEZ
+on-chain program (modeled in-memory by `lez_verifier::LezGateProgram`) runs
+exactly the steps above.
+
+The first gated action is intentionally small:
 
 ```text
-claim_access(context_id, proof_envelope)
+admit(outer_receipt_bytes) -> Result<recorded_nullifier, BAxxx>
 ```
 
-The program writes public state showing that the presenter passed the gate for a
-context. It must not write the private account id, `npk`, balance, or witness.
+The program writes public state `(gate_context_id → set<context_nullifier>)`
+showing that the presenter passed the gate for a context. It does not write
+the private account id, `npk`, balance, or witness.
 
-## Blocker 0: On-Chain Proof Path
+## Why this shape (Blocker 0)
 
-The on-chain verifier must be a real LEZ program. A previous LP-0005 submission
-was rejected for using a standalone Rust verifier that could not be deployed to
-LEZ.
-
-The implementation already tested direct public receipt verification inside a
-LEZ guest. It builds, but runtime execution currently fails because public LEZ
-execution does not expose a RISC Zero assumption/receipt channel:
+A previous LP-0005 submission was rejected for using a standalone Rust verifier
+that could not be deployed to LEZ. Spike 06 then established that direct
+public `env::verify` over an external receipt is currently not exposed by LEZ:
 
 ```text
 sys_verify_integrity: no receipt found to resolve assumption
 ```
 
-That makes direct public `env::verify` a failed/currently unsupported path, not
-the primary architecture.
+So the deployed shape **must** be a Logos-native private execution gate that
+can attach receipts as assumptions. That is exactly what the outer guest in
+`lez-verifier/` does. See `docs/ONCHAIN_PATH_DECISION.md` and
+`docs/RISK_SPIKES.md` for the path that led here:
 
-Remaining options:
-
-- use Logos-native private execution as the on-chain gate path if evaluators
-  confirm it satisfies LP-0005
-- keep host-side/off-chain receipt verification for Messaging and local app
-  flows
-
-Host-side pre-verification is useful for development, but it cannot satisfy the
-on-chain prize requirement by itself.
-
-This is a hard prerequisite, not a late implementation detail. See
-`docs/ONCHAIN_PATH_DECISION.md` and `docs/RISK_SPIKES.md` for the modular spike
-plan:
-
-1. direct RISC Zero receipt verification inside a LEZ guest: failed/currently
-   unsupported
-2. recursive/native verifier support: inspected; no local public LEZ path found
-3. Logos-native private execution gate with explicit evaluator confirmation:
-   passed locally, pending acceptance
+1. Direct public `env::verify` of an external receipt — failed/unsupported.
+2. Recursive / native verifier — no local public LEZ path found.
+3. Logos-native private execution gate — implemented (`lez-verifier/`),
+   pending evaluator acceptance for LP-0005.
