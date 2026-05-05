@@ -1,0 +1,24 @@
+[workspace]
+
+[package]
+name = "spike-08-runner"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "spike_08_run"
+path = "src/bin/spike_08_run.rs"
+
+[dependencies]
+nssa = { path = "../../../../logos/nssa" }
+nssa_core = { path = "../../../../logos/nssa/core" }
+wallet = { path = "../../../../logos/wallet" }
+common = { path = "../../../../logos/common" }
+sequencer_service_rpc = { path = "../../../../logos/sequencer/service/rpc" }
+borsh = { version = "1.5.7", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+anyhow = "1"
+hex = "0.4"
