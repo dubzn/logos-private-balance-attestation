@@ -27,6 +27,12 @@ Done locally:
 - challenge-bound local-sequencer E2E passed with `RISC0_DEV_MODE=0`: total
   00:01:30, build witness 00:01:01, proving 00:00:23, verify 00:00:03,
   verify `status: ok`
+- deployable LEZ gate program, Spike 08 live probe, and CLI
+  `gate-register-presenter` / `gate-init` / `gate-admit`
+- manual Workable gate flow passed locally: presenter account registered, gate
+  account initialized, host-verified admit persisted the context nullifier
+- `scripts/demo-local-gate-e2e.sh` passed locally with `RISC0_DEV_MODE=0`:
+  total 00:02:11, nullifier count `1`, duplicate admit `not-applied`
 
 Current command set:
 
@@ -36,12 +42,15 @@ scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
 PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
+RUN_DIR=.demo-runs/local-sequencer/<run> scripts/demo-local-gate-e2e.sh
 ```
 
 ## Ordered Backlog
 
 1. Harden the real local-sequencer E2E for submission.
    - Re-run `scripts/demo-local-sequencer-e2e.sh` from a clean wallet/sequencer.
+   - Re-run `scripts/demo-local-gate-e2e.sh` from the produced
+     `envelope.json`/`gate.json` in the same clean session.
    - Turn the successful `RISC0_DEV_MODE=0` run into a clean-room recording
      flow for the final demo.
    - Keep `witness.json` private and only publish envelope/report artifacts.

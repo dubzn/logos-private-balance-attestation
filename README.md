@@ -157,6 +157,20 @@ Add `--execute` to each command when you want to submit the LEZ transaction.
 Use separate fresh admin accounts for register and init; the current local LEZ
 nonce/freshness behavior can reject reused setup signers in the same flow.
 
+The same Workable live gate path is wrapped as a reproducible script:
+
+```sh
+RUN_DIR=.demo-runs/local-sequencer/<run> \
+RISC0_DEV_MODE=0 \
+  scripts/demo-local-gate-e2e.sh
+```
+
+By default it creates fresh public accounts, deploys the current program ELF,
+runs dry-runs, submits `RegisterPresenter`, `InitGate`, and `Admit`, then reads
+the gate account and asserts that the context nullifier was persisted in
+`account.data`. It writes logs and a Markdown report under
+`.demo-runs/local-gate/<timestamp>/`.
+
 ## Target Verification Paths
 
 LP-0005 requires two verification paths over the same attestation primitive:

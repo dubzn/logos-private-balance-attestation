@@ -290,6 +290,37 @@ It writes artifacts under `.demo-runs/local-sequencer/<timestamp>/`. Treat
 presenter secret. The public artifacts are `envelope.json`, `verify.json`, and
 `report.md`.
 
+## Run The Local Gate E2E
+
+After `scripts/demo-local-sequencer-e2e.sh` has produced a public
+`envelope.json` and `gate.json`, run the Workable live LEZ gate flow:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+RUN_DIR=.demo-runs/local-sequencer/<timestamp> \
+RISC0_DEV_MODE=0 \
+  scripts/demo-local-gate-e2e.sh
+```
+
+The script creates fresh public accounts by default, deploys the current
+`lez-verifier/program` ELF, runs dry-run checks, submits
+`gate-register-presenter`, `gate-init`, and `gate-admit --execute`, then polls
+`wallet account get` until the gate account persists the context nullifier in
+`account.data`.
+
+Artifacts are written under `.demo-runs/local-gate/<timestamp>/`:
+
+- `accounts.env`: fresh public account ids used by the run.
+- `dry-admit.json`: host-side verifier precheck output.
+- `logs/gate-account-after-admit.log`: account state proving the nullifier was
+  written.
+- `report.md` and `run.json`: reproducible run summary and timings.
+
+This script does not change the trust model: `gate-admit` verifies the public
+proof envelope on the host before submitting an LEZ transaction. The deployed
+program persists the admission/nullifier but still does not verify the RISC Zero
+receipt inside LEZ.
+
 For fast development, early local tests may use:
 
 ```sh
