@@ -321,6 +321,49 @@ proof envelope on the host before submitting an LEZ transaction. The deployed
 program persists the admission/nullifier but still does not verify the RISC Zero
 receipt inside LEZ.
 
+## Run The Full Local E2E
+
+To compose the proof phase and gate phase in one command:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+PRIVATE_ACCOUNT=Private/<private-account-id> \
+RISC0_DEV_MODE=0 \
+  scripts/demo-local-full-e2e.sh
+```
+
+The script creates:
+
+- `.demo-runs/local-full/<timestamp>/proof/`
+- `.demo-runs/local-full/<timestamp>/gate/`
+- `.demo-runs/local-full/<timestamp>/report.md`
+
+The proof subdirectory still contains a private `witness.json`; do not publish
+it. The report links to the public proof envelope, verifier output, gate report,
+and final nullifier assertion.
+
+## Clean Local Artifacts
+
+Build outputs are intentionally ignored by git but can become large. Inspect
+what would be removed:
+
+```sh
+scripts/clean-local-artifacts.sh
+```
+
+Delete build outputs only:
+
+```sh
+scripts/clean-local-artifacts.sh --yes
+```
+
+Optional flags:
+
+- `--include-runs`: remove `.demo-runs/` and `.spike-results/`.
+- `--include-logos`: remove the local `./logos` checkout.
+- `--include-claude`: remove `.claude/`.
+- `--include-wallets`: remove `.wallet-local` directories. Use with care.
+
 For fast development, early local tests may use:
 
 ```sh

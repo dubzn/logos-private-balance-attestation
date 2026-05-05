@@ -33,6 +33,9 @@ Done locally:
   account initialized, host-verified admit persisted the context nullifier
 - `scripts/demo-local-gate-e2e.sh` passed locally with `RISC0_DEV_MODE=0`:
   total 00:02:11, nullifier count `1`, duplicate admit `not-applied`
+- `scripts/demo-local-full-e2e.sh` added to compose proof + gate phases
+- `scripts/clean-local-artifacts.sh` added for dry-run-first cleanup of build
+  outputs and optional run artifacts
 
 Current command set:
 
@@ -43,6 +46,8 @@ cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-o
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
 PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
 RUN_DIR=.demo-runs/local-sequencer/<run> scripts/demo-local-gate-e2e.sh
+PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-full-e2e.sh
+scripts/clean-local-artifacts.sh
 ```
 
 ## Ordered Backlog
@@ -51,6 +56,7 @@ RUN_DIR=.demo-runs/local-sequencer/<run> scripts/demo-local-gate-e2e.sh
    - Re-run `scripts/demo-local-sequencer-e2e.sh` from a clean wallet/sequencer.
    - Re-run `scripts/demo-local-gate-e2e.sh` from the produced
      `envelope.json`/`gate.json` in the same clean session.
+   - Run `scripts/demo-local-full-e2e.sh` to prove the composed operator path.
    - Turn the successful `RISC0_DEV_MODE=0` run into a clean-room recording
      flow for the final demo.
    - Keep `witness.json` private and only publish envelope/report artifacts.

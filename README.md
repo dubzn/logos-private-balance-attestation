@@ -171,6 +171,32 @@ the gate account and asserts that the context nullifier was persisted in
 `account.data`. It writes logs and a Markdown report under
 `.demo-runs/local-gate/<timestamp>/`.
 
+For the complete local flow in one command:
+
+```sh
+PRIVATE_ACCOUNT=Private/<private-account-id> \
+RISC0_DEV_MODE=0 \
+  scripts/demo-local-full-e2e.sh
+```
+
+This composes the local sequencer proof phase and the live gate phase into
+`.demo-runs/local-full/<timestamp>/`.
+
+Local builds can get large. To inspect cleanup candidates without deleting
+anything:
+
+```sh
+scripts/clean-local-artifacts.sh
+```
+
+Delete only build outputs with:
+
+```sh
+scripts/clean-local-artifacts.sh --yes
+```
+
+Use `--include-runs` only after saving any reports you care about.
+
 ## Target Verification Paths
 
 LP-0005 requires two verification paths over the same attestation primitive:
