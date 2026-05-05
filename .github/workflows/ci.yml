@@ -74,3 +74,25 @@ jobs:
         # chat-gate integration suites that need RISC0_DEV_MODE=1 and the
         # compiled guest ELFs. Dev mode is fast enough to be CI-friendly.
         run: cargo test --workspace -- --include-ignored
+
+  lez-program:
+    name: deployable LEZ program checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Checkout LEZ reference dependency
+        # `lez-verifier/program` and the Spike 08 runner are intentionally
+        # isolated from the root workspace, but they depend on the same LEZ
+        # checkout layout used locally at `<repo-root>/logos`.
+        run: git clone --depth 1 https://github.com/syafiqeil/logos-execution-zone.git logos
+      - name: Install risc0 toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
+          "$HOME/.risc0/bin/rzup" install
+      - name: Test deployable program
+        run: cargo test --manifest-path lez-verifier/program/Cargo.toml
+      - name: Check Spike 08 live runner
+        run: cargo check --manifest-path spikes/spike-08-program-chaining/lez/runner/Cargo.toml

@@ -13,8 +13,9 @@ verifies an external standalone RISC Zero receipt.
 Use a two-track architecture:
 
 1. **Off-chain path:** standalone RISC Zero proof envelope verified locally.
-2. **On-chain path:** Logos-native private execution gate as the only working
-   local route, pending evaluator confirmation for LP-0005.
+2. **On-chain path:** deployable LEZ gate ledger plus nullifier set, with
+   host-side proof verification before submission. This is the only working
+   local route today and remains pending evaluator confirmation for LP-0005.
 
 ## Evidence
 
@@ -82,11 +83,13 @@ It does block a naive on-chain verifier program that accepts a receipt and calls
 For now, the on-chain path should be treated as:
 
 ```text
-private account -> Logos-native private execution gate -> public gate claim
+private account -> host-verified proof -> LEZ gate ledger/nullifier claim
 ```
 
-That path works locally, but it needs evaluator confirmation because LP-0005
-wording asks for a reusable proof accepted by a LEZ verifier program.
+That path works locally as an application gate, but it needs evaluator
+confirmation because LP-0005 wording asks for a reusable proof accepted by a
+LEZ verifier program. In the current implementation the LEZ program does not
+cryptographically verify the receipt; it records the host-verified journal.
 
 ## Next Implementation Consequence
 
@@ -101,3 +104,36 @@ off-chain verifier shape
 
 The LEZ verifier program should remain behind an interface until evaluator or
 Logos team feedback confirms the expected on-chain verification path.
+
+## Spike 0C live implementation (2026-05)
+
+The plan settled into the two-layer Spike 0C shape:
+
+1. **Outer recursion artifact** —
+   `lez-verifier/guest/src/bin/lez_balance_gate.rs` (built into
+   `LEZ_BALANCE_GATE_ID`) is the receipt the host produces via
+   `lez_verifier::prove_lez_gate`. This stays unchanged.
+2. **Deployable LEZ program** —
+   `lez-verifier/program/guest/src/bin/balance_attestation_program.rs`
+   (built into `BALANCE_ATTESTATION_PROGRAM_ID`) is the on-chain program
+   shipped with `wallet deploy-program`. It follows the LEZ program contract
+   (`read_nssa_inputs::<Instruction>()` →
+   `ProgramOutput::new(...).write()`), encodes its state as a borsh
+   `GateState` in `pre_states[0].account.data`, and dispatches
+   `RegisterPresenter` / `InitGate` / `Admit`. Roundtrip and failure-mode
+   tests in `lez-verifier/program/tests/program_journal_roundtrip.rs` (6/6).
+
+The deployable program does **not** call `env::verify`. The trust seat for
+the outer balance-attestation receipt is at the host: the CLI calls
+`attestation_verifier::verify_envelope` before building the LEZ tx. Spike 08
+ran against a live local sequencer and confirmed the Workable branch: a
+fabricated but well-formed journal was applied, so the sequencer does not bind
+external receipts for this public program path. The host pre-verification is
+therefore the documented sole cryptographic guarantee — see
+`lez-verifier/program/README.md` and
+`spikes/spike-08-program-chaining/README.md`.
+
+`attestation-cli` now exposes the live setup/admission flow directly:
+`gate-register-presenter`, `gate-init`, and `gate-admit`. This removes the
+manual dependency on the Spike 08 script for normal operator testing while
+keeping the same honest trust boundary.

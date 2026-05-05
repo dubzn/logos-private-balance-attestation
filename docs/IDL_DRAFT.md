@@ -2,16 +2,31 @@
 
 This is the **human-readable** companion to `idl/balance-attestation-verifier.json`,
 the SPEL-compatible IDL artifact. The two MUST be kept in sync; the JSON is
-authoritative for tooling, this file is authoritative for prose.
+authoritative for our tooling, this file is authoritative for prose.
 
-The architecture has resolved to **Spike 0C** (per `docs/ONCHAIN_PATH_DECISION.md`):
-the LEZ program does NOT verify the off-chain envelope directly. Instead the
-prover wraps the inner balance-attestation receipt with `lez_verifier::prove_lez_gate`
-into an outer LEZ-gate receipt; the LEZ program's `admit` instruction consumes
-the outer receipt and checks (a) it verifies against the pinned `LEZ_BALANCE_GATE_ID`,
-(b) `outer_journal.inner_image_id == BALANCE_ATTESTATION_ID`, (c) gate context match,
-(d) exact context-bound threshold, (e) nullifier dedup, (f) presenter LEZ
-tx-signing account hash.
+> **SPEL on the LEZ side is documentation-only.** The local LEZ build does
+> not ingest a SPEL/IDL artifact at deployment time — instruction dispatch
+> is static Rust code in the deployed program guest, with calldata
+> serialized via `risc0_zkvm::serde` (the `Vec<u32>` instruction words
+> consumed by `read_nssa_inputs`). The IDL JSON in this repo is the public
+> contract our developers and external integrators read; the deployed
+> program's wire format is whatever `serde::Deserialize` accepts on its
+> `Instruction` enum and whatever `borsh` accepts on its `OuterJournal` /
+> `GateState` types.
+
+The architecture resolved to the **Workable** Spike 0C path (per
+`docs/ONCHAIN_PATH_DECISION.md`): the LEZ program does NOT verify the off-chain
+envelope or outer RISC Zero receipt directly. The host (CLI) calls
+`attestation_verifier::verify_envelope` before submission so the deployed
+program can treat the journal it receives in calldata as host-verified. The
+deployed program
+(`lez-verifier/program/guest/src/bin/balance_attestation_program.rs`) then
+checks (a) `outer_journal.version == 1`, (b)
+`outer_journal.inner_image_id == gate_state.expected_inner_image_id`,
+(c) gate context match, (d) exact context-bound threshold, (e) presenter id
+== `H(PRESENTER_DOMAIN || presenter.account.data[..32])` over an authorized
+presenter pre-state, and (f) nullifier dedup against
+`gate_state.admitted_nullifiers`.
 
 ## Program
 
@@ -23,8 +38,8 @@ version: 1
 Purpose:
 
 ```text
-Verify a private balance attestation proof and gate a public action without
-revealing the private token account.
+Record a host-verified private balance attestation admission and gate a public
+action without revealing the private token account.
 ```
 
 ## Accounts
@@ -38,10 +53,12 @@ Stores:
 ```text
 magic: "BAT1"
 version: u16
-context_id: [u8; 32]
+chain_id: [u8; 32]
+verifier_id: [u8; 32]
+gate_id: [u8; 32]
 threshold: u128
-verifier_id: string
-claims: Vec<GateClaim>
+expected_inner_image_id: [u8; 32]
+admitted_nullifiers: Vec<[u8; 32]>
 ```
 
 ### Presenter Account
@@ -53,18 +70,14 @@ The program checks:
 
 ```text
 presenter_account.is_authorized == true
+presenter_account.program_owner == balance_attestation_verifier
+presenter_account.data[..32] == registered BIP-340 x-only pubkey
 derive_presenter_id(presenter_account) == proof.journal.presenter_id
 ```
 
 ## Data Types
 
 ```rust
-pub struct GateClaim {
-    pub presenter_id: String,
-    pub context_nullifier: [u8; 32],
-    pub claimed_at: u64,
-}
-
 pub struct BalanceAttestationJournal {
     pub version: u16,
     pub threshold: u128,
@@ -85,6 +98,15 @@ pub struct BalanceAttestationEnvelope {
     pub presentation_challenge: [u8; 32],
     pub presenter_signature: Vec<u8>,
 }
+
+pub struct LezGateJournal {
+    pub version: u16,
+    pub inner_image_id: [u8; 32],
+    pub gate_context_id: [u8; 32],
+    pub accepted_context_nullifier: [u8; 32],
+    pub accepted_presenter_id: [u8; 32],
+    pub accepted_threshold: u128,
+}
 ```
 
 The LEZ wire format is Borsh V1 unless the current LEZ/SPEL tooling requires a
@@ -93,6 +115,29 @@ but runners must convert JSON into the Borsh payload used on-chain.
 
 ## Instructions
 
+### `register_presenter`
+
+Writes a presenter's 32-byte BIP-340 x-only pubkey into a fresh presenter
+account and claims that account for the verifier program. This gives the live
+LEZ gate a concrete account to compare against `outer_journal.accepted_presenter_id`.
+
+Inputs:
+
+```text
+presenter_pubkey: [u8; 32]
+```
+
+Accounts:
+
+| Index | Account | Writable | Authorized | Notes |
+| --- | --- | --- | --- | --- |
+| 0 | presenter | yes | yes | Must be uninitialized; claimed by this program. |
+| 1 | admin | no | yes | Demo admin or deployer account. |
+
+Errors:
+
+- `BA502 UnauthorizedPresenterAccount`
+
 ### `init_gate`
 
 Initializes a gate state account.
@@ -100,9 +145,11 @@ Initializes a gate state account.
 Inputs:
 
 ```text
-context_id: [u8; 32]
+chain_id: [u8; 32]
+verifier_id: [u8; 32]
+gate_id: [u8; 32]
 threshold: u128
-verifier_id: string
+expected_inner_image_id: [u8; 32]
 ```
 
 Accounts:
@@ -117,10 +164,9 @@ Errors:
 - `BA500 GateAlreadyInitialized`
 - `BA503 InvalidGateAccount`
 
-### `claim_access`
+### `admit`
 
-Verifies the selected on-chain proof path and records access for the
-presenter/context.
+Records access for the presenter/context from a host-verified outer journal.
 
 Current status:
 
@@ -131,15 +177,15 @@ channel is available to env::verify.
 ```
 
 Spike 06 closes the current local decision: this IDL should be read as the
-desired gate state interface, not as proof that public receipt verification is
-currently deployable. The likely local fallback is a Logos-native private
-execution gate that writes the same `GateClaim` shape, pending evaluator
-confirmation.
+deployed gate state interface, not as proof that public receipt verification is
+currently deployable. Spike 08 confirmed that a fabricated but well-formed
+journal can be applied if the host submits it. Therefore a production CLI must
+verify the envelope/outer receipt before it submits this instruction.
 
 Inputs:
 
 ```text
-proof_envelope: BalanceAttestationEnvelope
+outer_journal: Vec<u8> // Borsh LezGateJournal
 ```
 
 Accounts:
@@ -152,13 +198,12 @@ Accounts:
 Checks:
 
 1. Gate state is initialized.
-2. Proof envelope version is supported.
-3. Proof image id is expected.
-4. Proof receipt verifies.
-5. Journal context id matches gate context.
-6. Journal threshold equals the gate threshold.
-7. Journal presenter id matches the authorized presenter account.
-8. Context nullifier has not already been claimed for this gate.
+2. Outer journal version is supported.
+3. Outer journal inner image id is expected.
+4. Journal context id matches the derived gate context.
+5. Journal threshold exactly equals the gate threshold.
+6. Journal presenter id matches the authorized presenter account's pubkey hash.
+7. Context nullifier has not already been admitted for this gate.
 
 Errors:
 
@@ -173,15 +218,9 @@ Errors:
 - `BA502 UnauthorizedPresenterAccount`
 - `BA503 InvalidGateAccount`
 
-### `read_gate`
-
-Read helper used by CLI/Basecamp runners. It decodes gate state and prints
-claims. It does not mutate chain state.
-
-Presenter ids in claims are public by design for V1. The private account id
-remains hidden; the public presenter id is the identity being admitted to the
-gate. If a future integration needs hidden presenter membership, it should store
-presenter-id hashes instead of raw presenter ids.
+Read helpers are off-chain CLI/Basecamp utilities for now: they fetch the gate
+state account and decode `GateState`. The deployed program currently exposes no
+separate read-only instruction.
 
 ## SPEL Requirement
 

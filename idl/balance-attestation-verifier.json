@@ -2,7 +2,7 @@
   "$schema": "https://logos.co/spel/v0/idl.schema.json",
   "name": "balance_attestation_verifier",
   "version": "1.0.0",
-  "description": "LEZ on-chain gate that admits a presenter once per (gate, nullifier) after recursively verifying a balance-attestation receipt. Implements the Spike-0C / Logos-native private execution path described in docs/ONCHAIN_PATH_DECISION.md.",
+  "description": "LEZ gate-state program for LP-0005. Current Workable implementation admits a presenter once per (gate, nullifier) from a host-verified outer journal; the deployed program does not verify a RISC Zero receipt on-chain in the current local LEZ build.",
   "metadata": {
     "license": "MIT OR Apache-2.0",
     "lp_prize": "LP-0005",
@@ -11,9 +11,22 @@
   },
   "instructions": [
     {
-      "name": "init_gate",
+      "name": "register_presenter",
       "discriminator": 0,
-      "description": "Initialize a fresh gate state account pinned to a (chain_id, verifier_id, gate_id, threshold) tuple. The expected_inner_image_id is also recorded so future admit calls can reject outer receipts with a different inner circuit.",
+      "description": "Register a presenter account by writing the presenter's 32-byte BIP-340 x-only pubkey into account data and claiming the account for this verifier program. Admit later derives accepted_presenter_id from this stored pubkey.",
+      "args": [
+        { "name": "presenter_pubkey", "type": { "array": ["u8", 32] } }
+      ],
+      "accounts": [
+        { "name": "presenter", "writable": true, "signer": true, "notes": "Must be uninitialized; claimed by the verifier program." },
+        { "name": "admin", "writable": false, "signer": true, "notes": "Deployer or governance owner." }
+      ],
+      "errors": ["BA502"]
+    },
+    {
+      "name": "init_gate",
+      "discriminator": 1,
+      "description": "Initialize a fresh gate state account pinned to a (chain_id, verifier_id, gate_id, threshold) tuple. The expected_inner_image_id is also recorded so future admit calls can reject journals with a different inner circuit.",
       "args": [
         { "name": "chain_id", "type": { "array": ["u8", 32] } },
         { "name": "verifier_id", "type": { "array": ["u8", 32] } },
@@ -29,26 +42,16 @@
     },
     {
       "name": "admit",
-      "discriminator": 1,
-      "description": "Validate an outer LEZ-gate receipt and admit the presenter. Steps mirror lez_verifier::LezGateProgram::admit: (1) outer receipt verifies against the pinned LEZ_BALANCE_GATE_ID, (2) outer journal version + inner_image_id match the gate state, (3) gate_context_id matches the gate, (4) accepted_threshold >= gate.threshold, (5) accepted_context_nullifier is not already in admitted_nullifiers, (6) presenter LEZ tx-signing account hashes to accepted_presenter_id.",
+      "discriminator": 2,
+      "description": "Admit the presenter from a host-verified outer journal. Current deployed program steps: (1) outer journal version + inner_image_id match the gate state, (2) gate_context_id matches the gate, (3) accepted_threshold exactly equals gate.threshold, (4) accepted_context_nullifier is not already in admitted_nullifiers, (5) presenter LEZ tx-signing account hashes to accepted_presenter_id. Receipt verification must happen before submission in CLI/SDK until LEZ exposes receipt-bound admission for this path.",
       "args": [
-        { "name": "outer_receipt_bytes", "type": "bytes", "notes": "JSON-encoded risc0_zkvm::Receipt; see lez-verifier::prove_lez_gate." }
+        { "name": "outer_journal", "type": "bytes", "notes": "Borsh-encoded LezGateJournal. Must be produced only after host-side attestation_verifier::verify_envelope / prove_lez_gate checks pass." }
       ],
       "accounts": [
         { "name": "gate_state", "writable": true, "signer": false, "notes": "Stores admitted_nullifiers." },
         { "name": "presenter", "writable": false, "signer": true, "notes": "LEZ account whose hash must equal outer_journal.accepted_presenter_id." }
       ],
-      "errors": ["BA100", "BA102", "BA200", "BA201", "BA202", "BA203", "BA204", "BA206", "BA501", "BA502", "BA503"]
-    },
-    {
-      "name": "read_gate",
-      "discriminator": 2,
-      "description": "Read-only helper used by CLI / Basecamp runners. Returns the gate state's pinned (chain_id, verifier_id, gate_id, threshold, expected_inner_image_id) and the list of admitted nullifiers. Does not mutate state.",
-      "args": [],
-      "accounts": [
-        { "name": "gate_state", "writable": false, "signer": false, "notes": "Initialized gate state." }
-      ],
-      "errors": ["BA501"]
+      "errors": ["BA100", "BA102", "BA200", "BA201", "BA202", "BA203", "BA206", "BA501", "BA502", "BA503"]
     }
   ],
   "accounts": [
@@ -86,7 +89,7 @@
     },
     {
       "name": "BalanceAttestationEnvelope",
-      "description": "Off-chain transport envelope. The on-chain admit() does NOT consume this directly — it consumes the outer LEZ-gate receipt produced by lez_verifier::prove_lez_gate(envelope).",
+      "description": "Off-chain transport envelope. The current on-chain admit() does NOT consume this directly — CLI/SDK verifies it before submitting a Borsh LezGateJournal to the deployed program.",
       "fields": [
         { "name": "version", "type": "u16" },
         { "name": "proof_system", "type": "string", "notes": "= \"risc0\" in V1" },
@@ -100,7 +103,7 @@
     },
     {
       "name": "LezGateJournal",
-      "description": "Journal committed by the outer lez_balance_gate guest. Decoded by admit() and compared against gate state.",
+      "description": "Journal committed by the outer lez_balance_gate guest and/or host-verified adapter. Decoded by admit() and compared against gate state.",
       "fields": [
         { "name": "version", "type": "u16" },
         { "name": "inner_image_id", "type": { "array": ["u8", 32] } },
@@ -131,6 +134,6 @@
   "encoding": {
     "wire": "borsh-v1",
     "developer_interchange": "json",
-    "notes": "CLI tooling reads/writes JSON; the LEZ runtime serializes program account data as Borsh V1. Receipt bytes inside the envelope are serde_json-encoded risc0_zkvm::Receipt for transport (verifiers deserialize and call .verify())."
+    "notes": "CLI tooling reads/writes JSON; the LEZ runtime serializes program instructions/account data as Borsh V1. The deployed admit instruction receives a Borsh LezGateJournal, not receipt bytes. Off-chain envelopes still carry serde_json-encoded risc0_zkvm::Receipt for transport; verifiers deserialize and call .verify() before any LEZ submission."
   }
 }

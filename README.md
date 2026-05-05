@@ -30,7 +30,25 @@ The core LP-0005 primitive is implemented as a local development base:
 - **lez-verifier/** — Spike-0C on-chain path: outer RISC Zero guest that nests
   the inner balance-attestation receipt via `env::verify`; `LezGateProgram` is
   an in-memory rehearsal of the LEZ on-chain program semantics.
-- **attestation-cli** — `balance-attest prove`, `verify`, `inspect-private`.
+- **lez-verifier/program/** — deployable LEZ program (isolated workspace)
+  following the `read_nssa_inputs` / `ProgramOutput::write()` contract.
+  `wallet deploy-program lez-verifier/program/target/.../balance_attestation_program.bin`
+  registers it; instructions are `RegisterPresenter`, `InitGate`, and `Admit`.
+  Pinned image id
+  `BALANCE_ATTESTATION_PROGRAM_ID`. Tests:
+  `cargo test --manifest-path lez-verifier/program/Cargo.toml` (6/6). This is
+  a gate-state/nullifier program; current local LEZ does not bind the
+  `Admit` journal to a RISC Zero receipt at admission time.
+- **spikes/spike-08-program-chaining/** + **scripts/spike-08-run.sh** —
+  live submit + receipt-binding probe. Deploys the program against a local
+  sequencer, runs `register_presenter`, `init_gate`, `admit` (real-shape), and
+  `admit-fabricated`, waits for block inclusion/nullifier state, and reports
+  `Best | Workable | Blocked` based on what the sequencer actually applies.
+- **attestation-cli** — `balance-attest prove`, `verify`, `inspect-private`,
+  `gate-register-presenter`, `gate-init`, and `gate-admit`. The gate commands
+  wrap the live LEZ runner; `gate-admit` always runs the verifier precheck
+  before it can submit an `Admit` transaction. Without `--execute`, all three
+  gate commands are safe dry runs.
 - **attestation-sdk** — single-dep umbrella crate (off-chain default,
   `on-chain` feature for the LEZ gate).
 - **examples/governance-gate, examples/chat-gate** — two reference
@@ -42,9 +60,10 @@ The core LP-0005 primitive is implemented as a local development base:
   (default + `--include-ignored` E2E suites) under RISC0_DEV_MODE=1.
 
 What's still pending for prize submission: a narrated recording of the
-`RISC0_DEV_MODE=0` local-sequencer E2E, the live LEZ signer/account adapter for
-the on-chain gate, a third reference integration (one externally built), a
-Basecamp app GUI, CU benchmarks, and deployment to a live LEZ testnet.
+`RISC0_DEV_MODE=0` local-sequencer E2E, an evaluator-approved on-chain
+proof-verification story, a third reference integration (one externally
+built), a Basecamp app GUI, CU benchmarks, and deployment to a live LEZ
+testnet.
 
 ## Quick start: end-to-end demo
 
@@ -108,6 +127,36 @@ The recursion test wraps the off-chain envelope with `prove_lez_gate`
 program logic in-memory; the deployed adapter must derive `presenter_id` from
 the authenticated LEZ signer/account.
 
+For the current Workable live path, the CLI can prepare the gate and then
+verify the envelope before submitting an `Admit` transaction:
+
+```sh
+# Register the presenter pubkey into a fresh/default-owned presenter account.
+cargo run -p attestation-cli -- gate-register-presenter \
+  --presenter-account Public/<presenter> \
+  --admin-account Public/<fresh-register-admin> \
+  --presenter-pubkey-hex "$(jq -r .presenter_pubkey .demo-runs/local-sequencer/<run>/envelope.json)"
+
+# Initialize a fresh/default-owned gate account from the same gate file used
+# by the verifier.
+cargo run -p attestation-cli -- gate-init \
+  --gate .demo-runs/local-sequencer/<run>/gate.json \
+  --gate-account Public/<gate-state> \
+  --admin-account Public/<fresh-init-admin>
+
+# Dry-run the actual admit; add --execute only after the first two setup
+# commands have been run with --execute and settled.
+cargo run -p attestation-cli -- gate-admit \
+  --envelope .demo-runs/local-sequencer/<run>/envelope.json \
+  --gate .demo-runs/local-sequencer/<run>/gate.json \
+  --gate-account Public/<gate-state> \
+  --presenter-account Public/<registered-presenter>
+```
+
+Add `--execute` to each command when you want to submit the LEZ transaction.
+Use separate fresh admin accounts for register and init; the current local LEZ
+nonce/freshness behavior can reject reused setup signers in the same flow.
+
 ## Target Verification Paths
 
 LP-0005 requires two verification paths over the same attestation primitive:
@@ -131,8 +180,9 @@ The implementation must:
 - provide a deployable LEZ program, not a standalone mock verifier
 - document deterministic error codes and compute costs
 - include a SPEL/IDL story before submission
-- validate that RISC Zero receipt verification inside a LEZ guest is feasible
-  BEFORE writing the circuit; this is the failure mode that killed PR #17
+- never mark the on-chain verifier complete until either LEZ supports
+  receipt-bound admission for this path or evaluators explicitly accept the
+  host-preverified Workable model
 
 ## Planned Repository Shape
 

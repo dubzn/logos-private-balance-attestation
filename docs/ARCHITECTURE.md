@@ -241,46 +241,74 @@ whether the proof verifies.
 
 ## On-Chain Path
 
-The on-chain path is implemented as a two-stage recursion (Spike 0C, per
-`docs/ONCHAIN_PATH_DECISION.md`): the prover wraps the inner balance-attestation
-receipt in an outer LEZ-gate receipt that the LEZ on-chain program verifies.
+The on-chain path has two layers per Spike 0C
+(`docs/ONCHAIN_PATH_DECISION.md`):
+
+1. The prover wraps the inner balance-attestation receipt in an outer
+   LEZ-gate receipt (`lez-verifier/guest/src/bin/lez_balance_gate.rs`,
+   pinned `LEZ_BALANCE_GATE_ID`). This is the recursion artifact that
+   `lez_verifier::prove_lez_gate` produces.
+2. A deployable LEZ program
+   (`lez-verifier/program/guest/src/bin/balance_attestation_program.rs`,
+   pinned `BALANCE_ATTESTATION_PROGRAM_ID`) is registered on the sequencer
+   via `wallet deploy-program`. The program admits a presenter into a gate
+   state account (`(gate_context_id, threshold, admitted_nullifiers)`) when
+   submitted through the current public transaction runner.
 
 ```mermaid
 sequenceDiagram
   participant A as Presenter
   participant CLI as CLI / SDK
   participant L as lez-verifier (host)
-  participant P as LEZ Verifier Program
-  participant S as Sequencer
+  participant V as off-chain verifier
+  participant W as LEZ wallet
+  participant S as LEZ sequencer
+  participant P as deployed LEZ program
 
   A->>CLI: prove_attestation(witness, params, challenge) -> envelope
-  CLI->>L: prove_lez_gate(envelope, gate_config)
-  L->>L: Outer guest: env::verify(BALANCE_ATTESTATION_ID, inner_journal)
-  L->>L: Recompute context_id, assert match, exact threshold, verifier_id
-  L->>CLI: LezGateProof { outer_journal, outer_receipt_bytes }
-  CLI->>S: Submit (outer_receipt_bytes, presenter_account)
-  S->>P: admit(outer_receipt_bytes, presenter_account)
-  P->>P: Verify outer receipt against pinned LEZ_BALANCE_GATE_ID
-  P->>P: Assert outer_journal.inner_image_id == BALANCE_ATTESTATION_ID
-  P->>P: Assert gate_context_id and presenter match; dedup nullifier
-  P->>S: Admit or return deterministic BAxxx error
+  CLI->>L: prove_lez_gate(envelope, gate_config) -> LezGateProof
+  CLI->>V: verify_envelope(envelope, expected_gate)  // host trust seat
+  V-->>CLI: ok | BAxxx
+  CLI->>W: build Admit { outer_journal } over (gate, presenter) pre-states
+  W->>S: send public LEZ tx(accounts, instruction, program)
+  S->>P: execute Instruction::Admit
+  P->>P: decode GateState from pre_states[0].account.data
+  P->>P: derive presenter_id = H(PRESENTER_DOMAIN || presenter.account.data[..32])
+  P->>P: assert journal version, inner_image_id, context, threshold, presenter
+  P->>P: append accepted_context_nullifier; dedup against admitted_nullifiers
+  P-->>S: ProgramOutput (post_states updated)
+  S-->>A: tx hash | deterministic BAxxx panic in sequencer log
 ```
 
-The outer LEZ-gate guest lives at `lez-verifier/guest/src/bin/lez_balance_gate.rs`
-and is built into a self-contained image (`LEZ_BALANCE_GATE_ID`). The LEZ
-on-chain program is modeled in-memory by `lez_verifier::LezGateProgram`; the
-remaining live adapter work is deriving `presenter_account` from real LEZ
-transaction/account context instead of passing a test `presenter_id`.
+### Trust seat
 
-The first gated action is intentionally small:
+The deployed program does **not** call `env::verify` on the outer receipt
+(Spike 06: deployed public LEZ programs have no `add_assumption` channel
+for an external receipt). Spike 08 then showed that the live local sequencer
+applies a well-formed fabricated `outer_journal`; it does not bind that
+journal to a RISC Zero receipt at admission time. The trust seat is therefore
+at the host: the CLI calls `attestation_verifier::verify_envelope` before
+building the LEZ tx, and only submits if verification passes. The on-chain
+program then enforces all application-level binding (gate context, exact
+threshold, presenter pubkey hash, nullifier dedup) over the journal it
+receives in calldata.
 
-```text
-admit(outer_receipt_bytes, presenter_account) -> Result<recorded_nullifier, BAxxx>
-```
+### Live adapter
 
-The program writes public state `(gate_context_id → set<context_nullifier>)`
-showing that the presenter passed the gate for a context. It does not write
-the private account id, `npk`, balance, or witness.
+`scripts/spike-08-run.sh` plus
+`spikes/spike-08-program-chaining/lez/runner/` is the live submit binary —
+it builds the program ELF, deploys it, creates the gate-state and presenter
+accounts, and submits `register_presenter`, `init_gate`, then `admit` via
+an `nssa::PublicTransaction`. The CLI wraps the same runner with first-class
+`gate-register-presenter`, `gate-init`, and `gate-admit` commands. The admit
+command adds the host pre-verification step before any transaction can be
+submitted.
+
+The in-memory `LezGateProgram::admit` rehearsal stays as the
+no-sequencer regression suite (`lez-verifier/tests/onchain_e2e.rs`); it
+exercises the full receipt-verifying model. The deployed program currently
+exercises the application-state subset only, because the local sequencer does
+not expose receipt binding for this public program path.
 
 ## Why this shape (Blocker 0)
 
@@ -292,12 +320,14 @@ public `env::verify` over an external receipt is currently not exposed by LEZ:
 sys_verify_integrity: no receipt found to resolve assumption
 ```
 
-So the deployed shape **must** be a Logos-native private execution gate that
-can attach receipts as assumptions. That is exactly what the outer guest in
-`lez-verifier/` does. See `docs/ONCHAIN_PATH_DECISION.md` and
-`docs/RISK_SPIKES.md` for the path that led here:
+So the deployed shape cannot honestly be called a complete receipt-verifying
+LEZ program yet. The current repo ships both pieces: the outer guest in
+`lez-verifier/` proves the recursive gate off-chain, and the deployable LEZ
+program records/dedups admissions after a host precheck. See
+`docs/ONCHAIN_PATH_DECISION.md` and `docs/RISK_SPIKES.md` for the path that
+led here:
 
 1. Direct public `env::verify` of an external receipt — failed/unsupported.
 2. Recursive / native verifier — no local public LEZ path found.
-3. Logos-native private execution gate — implemented (`lez-verifier/`),
-   pending evaluator acceptance for LP-0005.
+3. Logos-native gate ledger with host pre-verification — implemented locally,
+   still pending evaluator acceptance for LP-0005's on-chain wording.
