@@ -283,6 +283,7 @@ dependencies = [
  "attestation-core",
  "attestation-prover",
  "attestation-verifier",
+ "hex",
  "serde",
  "serde_json",
 ]
