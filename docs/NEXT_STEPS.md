@@ -34,6 +34,9 @@ Done locally:
 - `scripts/demo-local-gate-e2e.sh` passed locally with `RISC0_DEV_MODE=0`:
   total 00:02:11, nullifier count `1`, duplicate admit `not-applied`
 - `scripts/demo-local-full-e2e.sh` added to compose proof + gate phases
+- full local E2E passed with `RISC0_DEV_MODE=0`: proof phase 00:02:20, gate
+  phase 00:02:49, total 00:05:09, verify `ok`, nullifier count `1`, duplicate
+  admit `not-applied`
 - `scripts/clean-local-artifacts.sh` added for dry-run-first cleanup of build
   outputs and optional run artifacts
 
@@ -56,7 +59,6 @@ scripts/clean-local-artifacts.sh
    - Re-run `scripts/demo-local-sequencer-e2e.sh` from a clean wallet/sequencer.
    - Re-run `scripts/demo-local-gate-e2e.sh` from the produced
      `envelope.json`/`gate.json` in the same clean session.
-   - Run `scripts/demo-local-full-e2e.sh` to prove the composed operator path.
    - Turn the successful `RISC0_DEV_MODE=0` run into a clean-room recording
      flow for the final demo.
    - Keep `witness.json` private and only publish envelope/report artifacts.
