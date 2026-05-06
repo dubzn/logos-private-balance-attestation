@@ -44,8 +44,8 @@ Status legend:
 
 | Requirement | Status | Artifact |
 | --- | --- | --- |
-| Document CU cost of on-chain operations. | planned | `docs/BENCHMARKS.md` after live LEZ deploy. |
-| Proof generation benchmark. | in-progress | Full local E2E `RISC0_DEV_MODE=0`: proof phase 00:02:20, gate phase 00:02:49, total 00:05:09. Earlier isolated proof run: build witness 00:01:01, prove 00:00:23, verify 00:00:03, total 00:01:30. Final benchmark doc still pending. |
+| Document CU cost of on-chain operations. | planned / local timings documented | `docs/BENCHMARKS.md` records local proof/gate wall-clock timings and explicitly lists missing devnet/testnet CU measurements. |
+| Proof generation benchmark. | in-progress | `docs/BENCHMARKS.md`: full local E2E `RISC0_DEV_MODE=0`: proof phase 00:02:20, gate phase 00:02:49, total 00:05:09; proof substeps include build witness 00:01:09, prove 00:00:23, verify 00:00:03. |
 
 ## Supportability
 

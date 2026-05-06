@@ -37,6 +37,8 @@ Done locally:
 - full local E2E passed with `RISC0_DEV_MODE=0`: proof phase 00:02:20, gate
   phase 00:02:49, total 00:05:09, verify `ok`, nullifier count `1`, duplicate
   admit `not-applied`
+- `docs/BENCHMARKS.md` records the local proof benchmark, gate transaction
+  timings, and the still-open devnet/testnet CU measurements
 - `scripts/clean-local-artifacts.sh` added for dry-run-first cleanup of build
   outputs and optional run artifacts
 
@@ -82,7 +84,8 @@ scripts/clean-local-artifacts.sh
 5. Add final submission support.
    - Third reference integration and external partner.
    - Live LEZ testnet deployment and program id docs.
-   - CU/proof benchmarks in `docs/BENCHMARKS.md`.
+   - Devnet/testnet CU measurements for the operations already listed in
+     `docs/BENCHMARKS.md`.
    - Narrated demo video with `RISC0_DEV_MODE=0`.
 
 9. Build reference integrations.
