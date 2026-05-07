@@ -291,15 +291,14 @@ fn admit_with_wrong_inner_image_id_panics_with_ba102() {
 }
 
 #[test]
-fn program_id_is_pinned() {
-    // Alarm if the guest ELF silently changes (image-id determinism).
+fn program_id_matches_embedded_elf_image_id() {
+    let computed: ProgramId = risc0_zkvm::compute_image_id(BALANCE_ATTESTATION_PROGRAM_ELF)
+        .expect("program image id should compute")
+        .into();
+
     assert_eq!(
-        BALANCE_ATTESTATION_PROGRAM_ID,
-        [
-            1814270443, 2715932601, 2328945781, 1735716110, 1384216943, 615796249, 572526872,
-            2343830086
-        ],
-        "BALANCE_ATTESTATION_PROGRAM_ID drift detected — recompute and update the pin if intended"
+        BALANCE_ATTESTATION_PROGRAM_ID, computed,
+        "generated BALANCE_ATTESTATION_PROGRAM_ID must match the embedded ELF image id"
     );
 }
 

@@ -119,11 +119,9 @@ probing duplicate admission. The expected Workable marker is:
 If the duplicate appears twice in `GateState.admitted_nullifiers`, the result
 must be treated as **Blocked** until the account-state race is resolved.
 
-Current source pin:
-`BALANCE_ATTESTATION_PROGRAM_ID = [1814270443, 2715932601, 2328945781,
-1735716110, 1384216943, 615796249, 572526872, 2343830086]` (base58
-`GrZAsBnfyJ2VXXaxzz2Sd3oUxZ89KWL23PnY321Z1h3x`). Rerun this spike after any
-guest source change; RISC Zero image ids intentionally drift with the ELF.
+`BALANCE_ATTESTATION_PROGRAM_ID` is derived from the guest ELF at build time.
+Rerun this spike after any guest source, LEZ `nssa_core`, or RISC Zero guest
+toolchain change; RISC Zero image ids intentionally drift with those inputs.
 
 ## Decision (independent of the marker above)
 

@@ -12,6 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   RUST_BACKTRACE: "1"
+  LEZ_REFERENCE_REF: "8fbf9ebcf18306b61c67b20c1ce938eadbaf3b96"
 
 jobs:
   fmt:
@@ -85,8 +86,12 @@ jobs:
       - name: Checkout LEZ reference dependency
         # `lez-verifier/program` and the Spike 08 runner are intentionally
         # isolated from the root workspace, but they depend on the same LEZ
-        # checkout layout used locally at `<repo-root>/logos`.
-        run: git clone --depth 1 https://github.com/syafiqeil/logos-execution-zone.git logos
+        # checkout layout used locally at `<repo-root>/logos`. Keep the commit
+        # pinned so CI does not silently change nssa_core under the deployable
+        # program.
+        run: |
+          git clone https://github.com/syafiqeil/logos-execution-zone.git logos
+          git -C logos checkout --detach "$LEZ_REFERENCE_REF"
       - name: Install risc0 toolchain
         run: |
           curl -L https://risczero.com/install | bash
