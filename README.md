@@ -1,9 +1,9 @@
 # Logos Private Balance Attestation
 
-Implementation workspace for LP-0005: Private Token Balance Attestation.
+Implementation workspace for [LP-0005: Private Token Balance Attestation](LP-0005.md).
 
-This repository targets a reusable Logos primitive that lets a holder of a
-private LEZ account prove:
+This repository builds a reusable Logos primitive that lets a holder of a private
+LEZ account prove:
 
 ```text
 private_balance >= public_threshold
@@ -12,383 +12,130 @@ private_balance >= public_threshold
 without revealing the private account id, nullifier public key, exact balance,
 nonce, or account data.
 
-## Status
+## Current Status
 
-The core LP-0005 primitive is implemented as a local development base:
+This is a draft-stage implementation for technical review, not an award-ready
+submission yet.
 
-- **attestation-core** — proof envelope, journal, context/nullifier derivation,
-  BIP-340 Schnorr presenter binding, deterministic error codes.
-- **methods/** — production RISC Zero circuit proving `balance >= N` with
-  Merkle membership against the LEZ commitment format, presenter binding via
-  `H(pubkey)`, context binding, context nullifier.
-- **attestation-prover** — `prove_attestation(witness, params, challenge) ->
-  envelope`, signs `presentation_digest(journal.digest(), challenge)` with the
-  presenter Schnorr secret.
-- **attestation-verifier** — `verify_envelope(envelope, expected_gate)`
-  performs all 8 checks (receipt, image_id, journal match, context, exact
-  threshold, presentation challenge, presenter pubkey hash, signature).
-- **lez-verifier/** — Spike-0C on-chain path: outer RISC Zero guest that nests
-  the inner balance-attestation receipt via `env::verify`; `LezGateProgram` is
-  an in-memory rehearsal of the LEZ on-chain program semantics.
-- **lez-verifier/program/** — deployable LEZ program (isolated workspace)
-  following the `read_nssa_inputs` / `ProgramOutput::write()` contract.
-  `wallet deploy-program lez-verifier/program/target/.../balance_attestation_program.bin`
-  registers it; instructions are `RegisterPresenter`, `InitGate`, and `Admit`.
-  Pinned image id
-  `BALANCE_ATTESTATION_PROGRAM_ID`. Tests:
-  `cargo test --manifest-path lez-verifier/program/Cargo.toml` (6/6). This is
-  a gate-state/nullifier program; current local LEZ does not bind the
-  `Admit` journal to a RISC Zero receipt at admission time.
-- **spikes/spike-08-program-chaining/** + **scripts/spike-08-run.sh** —
-  live submit + receipt-binding probe. Deploys the program against a local
-  sequencer, runs `register_presenter`, `init_gate`, `admit` (real-shape), and
-  `admit-fabricated`, waits for block inclusion/nullifier state, and reports
-  `Best | Workable | Blocked` based on what the sequencer actually applies.
-- **attestation-cli** — `balance-attest prove`, `verify`, `inspect-private`,
-  `gate-register-presenter`, `gate-init`, and `gate-admit`. The gate commands
-  wrap the live LEZ runner; `gate-admit` always runs the verifier precheck
-  before it can submit an `Admit` transaction. Without `--execute`, all three
-  gate commands are safe dry runs.
-- **attestation-sdk** — single-dep umbrella crate (off-chain default,
-  `on-chain` feature for the LEZ gate).
-- **examples/governance-gate, examples/chat-gate** — two reference
-  integrations covering on-chain (governance vote) and off-chain (chat
-  admission via Logos Messaging-style wire transfer) flows.
-- **idl/balance-attestation-verifier.json** — SPEL-compatible IDL describing
-  the LEZ verifier program.
-- **CI** — `.github/workflows/ci.yml` runs fmt + clippy + workspace tests
-  (default + `--include-ignored` E2E suites) under RISC0_DEV_MODE=1.
+Implemented locally:
 
-What's still pending for prize submission: a narrated recording of the
-`RISC0_DEV_MODE=0` local-sequencer E2E, an evaluator-approved on-chain
-proof-verification story, a third reference integration (one externally
-built), a Basecamp app GUI, CU benchmarks, and deployment to a live LEZ
-testnet.
+- RISC Zero circuit proving `balance >= threshold` over the LEZ private account
+  commitment format.
+- Real wallet/sequencer witness path using local wallet private state and
+  `getProofForCommitment`.
+- Off-chain verifier crate for the public proof envelope.
+- CLI for inspect/prove/verify and LEZ gate commands.
+- Deployable LEZ gate-state program for the current Workable path.
+- Two reference integrations: governance gate and chat gate.
+- IDL artifact, deterministic error codes, CI, local E2E scripts, and local
+  benchmark documentation.
 
-## Quick start: end-to-end demo
+Still pending for final LP-0005 submission:
 
-Reproducible smoke script that exercises the full off-chain proof path
-(synthetic witness → envelope → verify):
+- Evaluator-approved on-chain verification model.
+- Basecamp GUI.
+- Logos Messaging-specific transport adapter or accepted equivalent.
+- Third reference integration, ideally with an external integrator.
+- LEZ devnet/testnet deployment and CU measurements.
+- Narrated demo video showing `RISC0_DEV_MODE=0`.
+
+## Important Limitation
+
+The local LEZ public execution path tested here does not currently expose a
+working assumptions/receipt channel for verifying an external RISC Zero receipt
+inside a public LEZ guest.
+
+Because of that, the current live LEZ path is **Workable / host-preverified**:
+
+1. The host verifies the public proof envelope with `attestation-verifier`.
+2. The host submits a LEZ transaction only after verification succeeds.
+3. The deployable LEZ program records gate admission state and deduplicates the
+   context nullifier in `account.data`.
+
+The deployable LEZ program does not yet cryptographically verify the RISC Zero
+receipt inside public LEZ execution. This is tracked explicitly in
+[docs/ONCHAIN_PATH_DECISION.md](docs/ONCHAIN_PATH_DECISION.md) and
+[docs/PRIZE_CHECKLIST.md](docs/PRIZE_CHECKLIST.md).
+
+## Repository Layout
+
+```text
+crates/attestation-core      shared types, hashes, envelope, error codes
+crates/attestation-prover    witness/proof construction helpers
+crates/attestation-verifier  off-chain proof envelope verifier
+crates/attestation-cli       CLI for inspect/prove/verify/gate commands
+crates/attestation-sdk       umbrella crate for integrations
+methods/                     production RISC Zero balance-attestation circuit
+lez-verifier/                in-memory recursive/on-chain-path rehearsal
+lez-verifier/program/        deployable LEZ gate-state program
+examples/governance-gate/    reference governance integration
+examples/chat-gate/          reference chat/admission integration
+spikes/                      risk spikes and local LEZ probes
+scripts/                     reproducible local flows and setup helpers
+idl/                         LEZ verifier IDL artifact
+docs/                        architecture, setup, security, benchmarks, checklist
+```
+
+## Quick Start
+
+Run the fast smoke demo with deterministic fixtures:
 
 ```sh
 scripts/demo-end-to-end.sh
 ```
 
-In dev mode (default) the run takes a few seconds. This uses deterministic
-fixtures, not a wallet account or live sequencer membership proof. To compare
-the same smoke path with real RISC Zero proving:
+This proves and verifies a synthetic witness. It is useful for checking the
+workspace quickly, but it does not use a wallet account or live sequencer
+membership proof.
+
+For the real local wallet + sequencer path, start a local LEZ sequencer, set a
+private account, and run:
 
 ```sh
-RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
-```
-
-For the wallet + local sequencer path, start the LEZ sequencer, set
-`PRIVATE_ACCOUNT`, and run:
-
-```sh
-PRIVATE_ACCOUNT=Private/<private-account-id> \
+PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
 THRESHOLD=1 \
-RISC0_DEV_MODE=1 \
-  scripts/demo-local-sequencer-e2e.sh
-```
-
-That script builds `witness.json` from real local wallet state and the real
-`getProofForCommitment` path, then proves and verifies the envelope. It writes
-artifacts under `.demo-runs/local-sequencer/<timestamp>/`; `witness.json` is
-private and must not be published.
-
-Manually, the same steps using the CLI directly:
-
-```sh
-# 1. Generate a witness + gate from a deterministic seed
-cargo run -p demo-runner --bin build-demo-fixtures -- ./demo
-
-# 2. Prove (writes envelope.json)
-RISC0_DEV_MODE=1 cargo run -p attestation-cli -- prove \
-    --witness ./demo/witness.json \
-    --out ./demo/envelope.json
-
-# 3. Verify off-chain (returns JSON status with presenter_id, context_id,
-#    context_nullifier, presentation_challenge, threshold)
-RISC0_DEV_MODE=1 cargo run -p attestation-cli -- verify \
-    --envelope ./demo/envelope.json \
-    --gate ./demo/gate.json
-```
-
-For the on-chain (Spike 0C) recursion path, see the LEZ-gate E2E test:
-
-```sh
-RISC0_DEV_MODE=1 cargo test -p lez-verifier -- --include-ignored
-```
-
-The recursion test wraps the off-chain envelope with `prove_lez_gate`
-(producing an outer RISC Zero receipt) and feeds it to
-`LezGateProgram::admit(&proof, presenter_id)`. This rehearses the intended LEZ
-program logic in-memory; the deployed adapter must derive `presenter_id` from
-the authenticated LEZ signer/account.
-
-For the current Workable live path, the CLI can prepare the gate and then
-verify the envelope before submitting an `Admit` transaction:
-
-```sh
-# Register the presenter pubkey into a fresh/default-owned presenter account.
-cargo run -p attestation-cli -- gate-register-presenter \
-  --presenter-account Public/<presenter> \
-  --admin-account Public/<fresh-register-admin> \
-  --presenter-pubkey-hex "$(jq -r .presenter_pubkey .demo-runs/local-sequencer/<run>/envelope.json)"
-
-# Initialize a fresh/default-owned gate account from the same gate file used
-# by the verifier.
-cargo run -p attestation-cli -- gate-init \
-  --gate .demo-runs/local-sequencer/<run>/gate.json \
-  --gate-account Public/<gate-state> \
-  --admin-account Public/<fresh-init-admin>
-
-# Dry-run the actual admit; add --execute only after the first two setup
-# commands have been run with --execute and settled.
-cargo run -p attestation-cli -- gate-admit \
-  --envelope .demo-runs/local-sequencer/<run>/envelope.json \
-  --gate .demo-runs/local-sequencer/<run>/gate.json \
-  --gate-account Public/<gate-state> \
-  --presenter-account Public/<registered-presenter>
-```
-
-Add `--execute` to each command when you want to submit the LEZ transaction.
-Use separate fresh admin accounts for register and init; the current local LEZ
-nonce/freshness behavior can reject reused setup signers in the same flow.
-
-The same Workable live gate path is wrapped as a reproducible script:
-
-```sh
-RUN_DIR=.demo-runs/local-sequencer/<run> \
-RISC0_DEV_MODE=0 \
-  scripts/demo-local-gate-e2e.sh
-```
-
-By default it creates fresh public accounts, deploys the current program ELF,
-runs dry-runs, submits `RegisterPresenter`, `InitGate`, and `Admit`, then reads
-the gate account and asserts that the context nullifier was persisted in
-`account.data`. It writes logs and a Markdown report under
-`.demo-runs/local-gate/<timestamp>/`.
-
-For the complete local flow in one command:
-
-```sh
-PRIVATE_ACCOUNT=Private/<private-account-id> \
 RISC0_DEV_MODE=0 \
   scripts/demo-local-full-e2e.sh
 ```
 
-This composes the local sequencer proof phase and the live gate phase into
-`.demo-runs/local-full/<timestamp>/`.
-
-Local builds can get large. To inspect cleanup candidates without deleting
-anything:
-
-```sh
-scripts/clean-local-artifacts.sh
-```
-
-Delete only build outputs with:
-
-```sh
-scripts/clean-local-artifacts.sh --yes
-```
-
-Use `--include-runs` only after saving any reports you care about.
-
-## Target Verification Paths
-
-LP-0005 requires two verification paths over the same attestation primitive:
-
-- On-chain: a LEZ verifier program accepts the proof and gates an on-chain
-  action, such as `claim_access` or `cast_vote`.
-- Off-chain: a recipient verifies the proof locally after receiving it through
-  Logos Messaging, enabling token-gated access without an on-chain
-  transaction.
-
-## Non-Negotiables
-
-The implementation must:
-
-- target the real LEZ private account commitment format, including the domain
-  prefix used in the local `logos-execution-zone` checkout
-- call the real JSON-RPC method `getProofForCommitment`
-- use the RISC Zero version compatible with the local LEZ toolchain
-- run against a real local sequencer
-- produce a final demo with `RISC0_DEV_MODE=0`
-- provide a deployable LEZ program, not a standalone mock verifier
-- document deterministic error codes and compute costs
-- include a SPEL/IDL story before submission
-- never mark the on-chain verifier complete until either LEZ supports
-  receipt-bound admission for this path or evaluators explicitly accept the
-  host-preverified Workable model
-
-## Planned Repository Shape
+That script composes:
 
 ```text
-logos-private-balance-attestation/
-|-- README.md
-|-- docs/
-|   |-- ARCHITECTURE.md
-|   |-- ERROR_CODES.md
-|   |-- IDL_DRAFT.md
-|   |-- IMPLEMENTATION_PLAN.md
-|   |-- LOCAL_SETUP.md
-|   |-- MODULAR_TEST_PLAN.md
-|   |-- PRIZE_CHECKLIST.md
-|   |-- RISK_SPIKES.md
-|   |-- SECURITY_MODEL.md
-|   `-- REFERENCE_NOTES.md
-|-- crates/
-|   |-- attestation-core/
-|   |-- attestation-prover/
-|   |-- attestation-verifier/
-|   `-- attestation-cli/
-|-- methods/
-|   `-- guest/
-|-- lez/
-|   `-- verifier-program/
-|-- apps/
-|   `-- basecamp/
-|-- examples/
-|   |-- governance-gate/
-|   |-- messaging-group-gate/
-|   `-- third-integration/
-`-- scripts/
-```
-
-The shape intentionally mirrors the lessons from `logos-document-guardian`:
-keep the SDK and CLI reusable, make LEZ runners explicit, keep Basecamp as a
-thin UI over local backend commands, and provide scripts that make the local
-flow reproducible.
-
-## Documentation Map
-
-- [Architecture](docs/ARCHITECTURE.md): system flow, proof format, LEZ
-  commitment compatibility, on-chain/off-chain paths.
-- [IDL Draft](docs/IDL_DRAFT.md): human-readable LEZ program interface before
-  the final SPEL artifact exists.
-- [Error Codes](docs/ERROR_CODES.md): deterministic error code plan shared by
-  CLI, off-chain verifier, and LEZ program.
-- [Implementation Plan](docs/IMPLEMENTATION_PLAN.md): milestone order and
-  acceptance criteria.
-- [Local Setup](docs/LOCAL_SETUP.md): sequencer, wallet, private account, and
-  future demo commands.
-- [Modular Test Plan](docs/MODULAR_TEST_PLAN.md): isolated commands for each
-  layer before the final E2E.
-- [Next Steps](docs/NEXT_STEPS.md): ordered backlog from the current state to
-  the final submission.
-- [On-Chain Path Decision](docs/ONCHAIN_PATH_DECISION.md): Spike 06 result for
-  the LEZ verifier path.
-- [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to
-  planned artifacts.
-- [Risk Spikes](docs/RISK_SPIKES.md): modular validation plan for the highest
-  risk assumptions before building the full stack.
-- [Security Model](docs/SECURITY_MODEL.md): privacy guarantees, replay,
-  forwarding, nullifiers, and known limitations.
-- [Reference Notes](docs/REFERENCE_NOTES.md): useful facts from LP-0005,
-  local LEZ, `logos-token-suite`, and `logos-document-guardian`.
-
-## First Risk Goal
-
-Before building the full circuit and CLI, validate the on-chain proof
-verification path. This is Blocker 0.
-
-The first implementation spike should prove at least one viable path for the
-LP-0005 on-chain requirement:
-
-- direct RISC Zero receipt verification inside a LEZ guest
-- recursive/native verifier support exposed by LEZ
-- Logos-native private execution gate accepted by evaluators as satisfying the
-  on-chain proof path
-
-Current Spike 06 decision: direct public `env::verify` is failed/currently
-unsupported, recursive/native public verifier support was not found in the
-local LEZ checkout, and Logos-native private execution is the only working
-local on-chain gate path pending evaluator confirmation.
-
-The core off-chain proof loop is now validated enough to start Milestone 1:
-
-```text
-wallet private account
-  -> real LEZ commitment reconstruction
+real local wallet state
   -> getProofForCommitment
-  -> RISC Zero proof for balance >= N
-  -> local verifier accepts/rejects
+  -> witness.json
+  -> RISC Zero proof envelope
+  -> off-chain verification
+  -> host-preverified LEZ gate admit
+  -> persisted context nullifier
 ```
 
-Only after that core loop is true should the project add the LEZ verifier
-program, Messaging path, Basecamp GUI, and external integrations.
+`witness.json` is private. Do not publish it. Public artifacts include the proof
+envelope, verifier output, gate report, and run summary.
 
-Start here:
+For setup details, see [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
 
-```sh
-scripts/spike-00-inspect-lez-proof-path.sh
-scripts/spike-00-build-lez-program.sh
-```
+## CLI Examples
 
-Then test the Logos-native private execution gate with a local sequencer
-running in dev mode:
+Generate and verify a deterministic fixture:
 
 ```sh
-RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
-```
+cargo run -p demo-runner --bin build-demo-fixtures -- ./demo
 
-Next, verify the prover-facing sequencer path for an initialized private
-account:
+RISC0_DEV_MODE=1 cargo run -p attestation-cli -- prove \
+  --witness ./demo/witness.json \
+  --out ./demo/envelope.json
 
-```sh
-PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
-  scripts/spike-02-inspect-membership-proof.sh
-```
-
-Then run the standalone balance circuit spike:
-
-```sh
-scripts/spike-03-build-balance-circuit.sh
-RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh
-
-PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
-THRESHOLD=25 \
-  RISC0_DEV_MODE=1 scripts/spike-03-run-balance-circuit.sh live
-```
-
-Then run the binding/nullifier circuit spike:
-
-```sh
-scripts/spike-04-build-binding-circuit.sh
-RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh
-
-PRIVATE_ACCOUNT=<initialized-private-account-id-without-Private> \
-THRESHOLD=25 \
-  RISC0_DEV_MODE=1 scripts/spike-04-run-binding-circuit.sh live
-```
-
-Before M1, close the remaining spike work:
-
-- Spike 05: passed locally with separate `RISC0_DEV_MODE=1` and
-  `RISC0_DEV_MODE=0` Markdown result files.
-- Spike 06: passed as a documented decision; do not build M1 around public
-  external receipt verification.
-
-Run the first reusable core tests:
-
-```sh
-cargo test -p attestation-core
-```
-
-Check the local LEZ commitment compatibility against `nssa_core`:
-
-```sh
-scripts/m2-check-lez-commitment-compat.sh
+RISC0_DEV_MODE=1 cargo run -p attestation-cli -- verify \
+  --envelope ./demo/envelope.json \
+  --gate ./demo/gate.json
 ```
 
 Inspect a local private account without printing witness data:
 
 ```sh
 cargo run -p attestation-cli -- inspect-private \
-  --account Private/<private-account-id> \
+  --account "Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
   --local-only
 ```
 
@@ -396,6 +143,87 @@ With a local sequencer running, request the real membership proof:
 
 ```sh
 cargo run -p attestation-cli -- inspect-private \
-  --account Private/<private-account-id> \
+  --account "Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
   --require-proof
 ```
+
+Prepare the current Workable LEZ gate path:
+
+```sh
+cargo run -p attestation-cli -- gate-register-presenter \
+  --presenter-account "Public/REPLACE_WITH_PRESENTER_ACCOUNT" \
+  --admin-account "Public/REPLACE_WITH_FRESH_REGISTER_ADMIN" \
+  --presenter-pubkey-hex "$(jq -r .presenter_pubkey .demo-runs/local-sequencer/REPLACE_WITH_RUN/envelope.json)"
+
+cargo run -p attestation-cli -- gate-init \
+  --gate .demo-runs/local-sequencer/REPLACE_WITH_RUN/gate.json \
+  --gate-account "Public/REPLACE_WITH_GATE_STATE" \
+  --admin-account "Public/REPLACE_WITH_FRESH_INIT_ADMIN"
+
+cargo run -p attestation-cli -- gate-admit \
+  --envelope .demo-runs/local-sequencer/REPLACE_WITH_RUN/envelope.json \
+  --gate .demo-runs/local-sequencer/REPLACE_WITH_RUN/gate.json \
+  --gate-account "Public/REPLACE_WITH_GATE_STATE" \
+  --presenter-account "Public/REPLACE_WITH_REGISTERED_PRESENTER"
+```
+
+Add `--execute` to submit transactions. Use fresh public accounts for setup
+commands; local LEZ nonce/freshness behavior can reject reused setup signers in
+one flow.
+
+## Testing
+
+Core workspace tests:
+
+```sh
+cargo test --workspace
+```
+
+Ignored E2E-style suites in dev mode:
+
+```sh
+RISC0_DEV_MODE=1 cargo test --workspace -- --include-ignored
+```
+
+Deployable LEZ program checks:
+
+```sh
+cargo test --manifest-path lez-verifier/program/Cargo.toml
+cargo check --manifest-path spikes/spike-08-program-chaining/lez/runner/Cargo.toml
+```
+
+The runner check depends on the Logos Blockchain circuits bundle. See the CI
+workflow and [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) for setup details.
+
+## Benchmarks
+
+Local wall-clock timings from the latest full local E2E are documented in
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
+Latest recorded local run with `RISC0_DEV_MODE=0`:
+
+| Phase | Duration |
+| --- | ---: |
+| Proof phase | 00:02:20 |
+| Gate phase | 00:02:49 |
+| Total | 00:05:09 |
+
+These are not devnet/testnet CU metrics. CU measurement is still pending.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md): proof format, flow, and component boundaries.
+- [Local Setup](docs/LOCAL_SETUP.md): sequencer, wallet, private account, and demo commands.
+- [Security Model](docs/SECURITY_MODEL.md): privacy guarantees, replay, forwarding, nullifiers, and limits.
+- [On-Chain Path Decision](docs/ONCHAIN_PATH_DECISION.md): why the current on-chain path is Workable / host-preverified.
+- [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to current artifacts.
+- [Benchmarks](docs/BENCHMARKS.md): local proof/gate timings and remaining CU work.
+- [Error Codes](docs/ERROR_CODES.md): deterministic BAxxx errors.
+- [IDL Draft](docs/IDL_DRAFT.md): LEZ verifier interface.
+- [Next Steps](docs/NEXT_STEPS.md): ordered backlog to final submission.
+- [Risk Spikes](docs/RISK_SPIKES.md): high-risk assumptions and validation plan.
+- [Reference Notes](docs/REFERENCE_NOTES.md): local research log and prior-art notes.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
