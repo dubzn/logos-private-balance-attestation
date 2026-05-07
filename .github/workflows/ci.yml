@@ -13,6 +13,9 @@ env:
   CARGO_INCREMENTAL: "0"
   RUST_BACKTRACE: "1"
   LEZ_REFERENCE_REF: "8fbf9ebcf18306b61c67b20c1ce938eadbaf3b96"
+  LOGOS_BLOCKCHAIN_REF: "1da154c74b911318fb853d37261f8a05ffe513b4"
+  LOGOS_BLOCKCHAIN_CIRCUITS_VERSION: "v0.4.2"
+  LOGOS_BLOCKCHAIN_CIRCUITS: "${{ github.workspace }}/.logos-blockchain-circuits"
 
 jobs:
   fmt:
@@ -99,5 +102,12 @@ jobs:
           "$HOME/.risc0/bin/rzup" install
       - name: Test deployable program
         run: cargo test --manifest-path lez-verifier/program/Cargo.toml
+      - name: Install Logos blockchain circuits
+        # The Spike 08 live runner depends on the LEZ wallet/nssa stack, which
+        # pulls Logos Blockchain proof crates whose build scripts require the
+        # matching verification-key bundle even for `cargo check`.
+        run: |
+          curl -sSL "https://raw.githubusercontent.com/logos-blockchain/logos-blockchain/${LOGOS_BLOCKCHAIN_REF}/scripts/setup-logos-blockchain-circuits.sh" \
+            | bash -s -- "$LOGOS_BLOCKCHAIN_CIRCUITS_VERSION" "$LOGOS_BLOCKCHAIN_CIRCUITS"
       - name: Check Spike 08 live runner
         run: cargo check --manifest-path spikes/spike-08-program-chaining/lez/runner/Cargo.toml
