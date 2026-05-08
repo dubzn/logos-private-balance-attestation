@@ -127,7 +127,7 @@ build_duration="$(duration "$build_started")"
 
 step "2/6 Check wallet/sequencer health"
 health_started="$(date +%s)"
-wallet check-health > "$HEALTH_LOG" 2>&1
+require_wallet_health "$HEALTH_LOG"
 health_duration="$(duration "$health_started")"
 note "wallet health log: $HEALTH_LOG"
 
@@ -234,7 +234,7 @@ async fn main() -> Result<()> {
         .context("private account id should be valid base58 without Private/ prefix")?;
 
     let wallet_core = WalletCore::from_env().context("wallet should initialize from env")?;
-    let Some((key_chain, account)) = wallet_core
+    let Some((key_chain, account, _identifier)) = wallet_core
         .storage()
         .user_data
         .get_private_account(account_id)

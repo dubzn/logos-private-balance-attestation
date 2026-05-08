@@ -43,6 +43,71 @@ Some isolated LEZ path dependencies still expect an ignored repo-local
 Use one wallet home per local demo. Mixing wallet homes makes private account
 state confusing because private account data is local-only.
 
+## Wallet Preflight
+
+Before running the local-sequencer or full E2E scripts, run:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+scripts/check-wallet-preflight.sh
+```
+
+This check is intentionally non-interactive. If `wallet check-health` would ask
+for setup/password input, the script fails with setup instructions instead of
+blocking with the prompt hidden in a log file.
+
+The preflight also checks for a common fork-sync failure: a `storage.json`
+created by an older `wallet` binary. In that case `wallet check-health` may
+appear healthy, but the witness builder fails later with an error like:
+
+```text
+invalid type: map, expected a sequence
+```
+
+If that happens, reinstall `wallet` from the same LEZ checkout used by
+`LOGOS_LEZ_REPO`, then move the incompatible wallet home aside and initialize a
+fresh one.
+
+Another common failure is:
+
+```text
+Local ID for authenticated transfer program is different from remote
+```
+
+This means the wallet and the sequencer disagree about built-in program IDs.
+Most often, the process listening on port `3040` was started from a different
+`logos-execution-zone` checkout than `LOGOS_LEZ_REPO`. The preflight prints the
+listening process PID and current working directory when it can detect it.
+
+Stop the old sequencer, then start it from the same checkout:
+
+```sh
+cd "$LOGOS_LEZ_REPO"
+RISC0_DEV_MODE=0 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+  sequencer/service/configs/debug/sequencer_config.json
+```
+
+Common setup for a fresh LEZ fork:
+
+```sh
+export LOGOS_LEZ_REPO="/absolute/path/to/logos-execution-zone"
+export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+mkdir -p "$NSSA_WALLET_HOME_DIR"
+
+# Make the installed wallet CLI match this fork.
+cd "$LOGOS_LEZ_REPO"
+cargo install --path wallet --force
+
+# Run interactively; this initializes wallet storage if needed.
+wallet account new public --label presenter
+wallet check-health
+wallet account new private --label private-balance
+```
+
+Then fund/sync the private account as described below. Do not reuse an old
+`.wallet-local` from another `logos-execution-zone` checkout unless you know the
+wallet storage format is compatible.
+
 ## Prerequisites
 
 - Rust toolchain.
@@ -348,6 +413,12 @@ The script creates fresh public accounts by default, deploys the current
 `gate-register-presenter`, `gate-init`, and `gate-admit --execute`, then polls
 `wallet account get` until the gate account persists the context nullifier in
 `account.data`.
+
+Fresh accounts are the default on purpose. Reusing `GATE_ACCOUNT`,
+`PRESENTER_ACCOUNT`, `REGISTER_ADMIN`, or `INIT_ADMIN` from an older shell can
+fail with missing signing keys when the wallet home was reset. Set
+`REUSE_GATE_ACCOUNTS=1` only when those accounts definitely exist in the active
+`NSSA_WALLET_HOME_DIR`.
 
 Artifacts are written under `.demo-runs/local-gate/<timestamp>/`:
 

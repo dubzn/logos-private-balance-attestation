@@ -82,7 +82,10 @@ if [[ "$LOCAL_ONLY" == "1" ]]; then
   echo "skipped because --local-only was set" > "$HEALTH_LOG"
 else
   health_started="$(date +%s)"
-  if wallet check-health > "$HEALTH_LOG" 2>&1; then
+  if ! require_wallet_storage > "$HEALTH_LOG" 2>&1; then
+    health_status="fail"
+    status="fail"
+  elif wallet check-health < /dev/null >> "$HEALTH_LOG" 2>&1; then
     health_status="ok"
   else
     health_status="fail"
@@ -149,7 +152,7 @@ async fn main() -> Result<()> {
         .context("private account id should be valid base58 without Private/ prefix")?;
 
     let wallet_core = WalletCore::from_env().context("wallet should initialize from env")?;
-    let Some((key_chain, account)) = wallet_core
+    let Some((key_chain, account, _identifier)) = wallet_core
         .storage()
         .user_data
         .get_private_account(account_id)

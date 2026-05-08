@@ -105,7 +105,17 @@ workspace quickly, but it does not use a wallet account or live sequencer
 membership proof.
 
 For the real local wallet + sequencer path, start a local LEZ sequencer, set a
-private account, and run:
+private account, and run the non-interactive preflight first:
+
+```sh
+scripts/check-wallet-preflight.sh
+```
+
+If the wallet home is missing or the wallet wants setup/password input, the
+preflight prints the exact commands to initialize it instead of hanging inside
+an E2E script. It also detects wallet storage written by an older
+`logos-execution-zone` checkout, which otherwise fails later while building the
+real witness. Once it passes, run:
 
 ```sh
 PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \

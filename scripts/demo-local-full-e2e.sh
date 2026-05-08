@@ -17,6 +17,7 @@
 #   LOGOS_LEZ_REPO or LEZ_REPO       Defaults to ../logos-execution-zone when present.
 #   NSSA_WALLET_HOME_DIR             Defaults to $LOGOS_LEZ_REPO/.wallet-local.
 #   CHECK_DUPLICATE                  Defaults to 1 for the gate phase.
+#   REUSE_GATE_ACCOUNTS              Defaults to 0; set 1 to reuse exported gate accounts.
 
 set -euo pipefail
 
@@ -44,6 +45,7 @@ env:
   LOGOS_LEZ_REPO or LEZ_REPO        Path to logos-execution-zone checkout.
   NSSA_WALLET_HOME_DIR              Wallet home.
   CHECK_DUPLICATE                   Defaults to 1 for the gate phase.
+  REUSE_GATE_ACCOUNTS               Defaults to 0. Keep 0 for clean-room demos.
 EOF
 }
 
@@ -106,6 +108,7 @@ step "2/3 Register presenter, initialize LEZ gate, and admit"
 gate_started="$(date +%s)"
 RUN_DIR="$PROOF_DIR" \
 DEMO_DIR="$GATE_DIR" \
+REUSE_GATE_ACCOUNTS="${REUSE_GATE_ACCOUNTS:-0}" \
   "$ROOT_DIR/scripts/demo-local-gate-e2e.sh" \
   2>&1 | tee "$LOG_DIR/gate-phase.log"
 gate_duration="$(duration "$gate_started")"

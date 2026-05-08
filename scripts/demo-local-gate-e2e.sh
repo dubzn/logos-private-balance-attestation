@@ -5,7 +5,7 @@
 #   1. Load a public envelope + gate file from a local-sequencer proof run.
 #   2. Build the deployable LEZ gate program, Spike 08 runner, and CLI.
 #   3. Deploy the program to the local sequencer.
-#   4. Create fresh public accounts unless provided by env.
+#   4. Create fresh public accounts unless REUSE_GATE_ACCOUNTS=1 is set.
 #   5. Register presenter, initialize gate, submit host-verified admit.
 #   6. Read wallet state and assert the gate account persisted the nullifier.
 #
@@ -23,6 +23,7 @@
 #   INIT_ADMIN_ACCOUNT/INIT_ADMIN     Public/<id> or bare id. Created if unset.
 #   RISC0_DEV_MODE                    Defaults to 1. Should match the source envelope mode.
 #   CHECK_DUPLICATE                   Defaults to 1; submits duplicate admit and checks it does not apply.
+#   REUSE_GATE_ACCOUNTS               Defaults to 0; set 1 to honor account env vars.
 
 set -euo pipefail
 
@@ -47,6 +48,7 @@ INIT_WAIT_SECONDS="${INIT_WAIT_SECONDS:-120}"
 ADMIT_WAIT_SECONDS="${ADMIT_WAIT_SECONDS:-120}"
 DUPLICATE_SETTLE_SECONDS="${DUPLICATE_SETTLE_SECONDS:-45}"
 CHECK_DUPLICATE="${CHECK_DUPLICATE:-1}"
+REUSE_GATE_ACCOUNTS="${REUSE_GATE_ACCOUNTS:-0}"
 DEFAULT_PROGRAM_OWNER_B58='"program_owner":"11111111111111111111111111111111"'
 
 usage() {
@@ -65,6 +67,9 @@ env:
   REGISTER_ADMIN_ACCOUNT            Optional fresh public setup signer for RegisterPresenter.
   INIT_ADMIN_ACCOUNT                Optional fresh public setup signer for InitGate.
   CHECK_DUPLICATE                   Defaults to 1.
+  REUSE_GATE_ACCOUNTS               Defaults to 0. Set 1 to honor GATE_ACCOUNT,
+                                    PRESENTER_ACCOUNT, REGISTER_ADMIN_ACCOUNT,
+                                    and INIT_ADMIN_ACCOUNT from the environment.
 EOF
 }
 
@@ -162,7 +167,7 @@ run_logged() {
     printf '\n\n'
   } > "$log"
   set +e
-  "$@" >> "$log" 2>&1
+  "$@" < /dev/null >> "$log" 2>&1
   local status=$?
   set -e
   cat "$log"
@@ -300,7 +305,8 @@ fi
 
 step "2/8 Wallet/sequencer health and program deploy"
 health_started="$(date +%s)"
-run_logged wallet-health wallet check-health
+require_wallet_health "$LOG_DIR/wallet-health.log"
+cat "$LOG_DIR/wallet-health.log"
 if ! run_logged deploy-program wallet deploy-program "$PROGRAM_BIN"; then
   note "wallet deploy-program failed. Continuing because the program may already exist; later txs will prove it."
 fi
@@ -309,10 +315,18 @@ health_duration="$(duration "$health_started")"
 
 step "3/8 Create or load public accounts"
 accounts_started="$(date +%s)"
-GATE_ACCOUNT_ID="$(normalize_public_account "${GATE_ACCOUNT:-}")"
-PRESENTER_ACCOUNT_ID="$(normalize_public_account "${PRESENTER_ACCOUNT:-}")"
-REGISTER_ADMIN_ACCOUNT_ID="$(normalize_public_account "${REGISTER_ADMIN_ACCOUNT:-${REGISTER_ADMIN:-}}")"
-INIT_ADMIN_ACCOUNT_ID="$(normalize_public_account "${INIT_ADMIN_ACCOUNT:-${INIT_ADMIN:-}}")"
+if [[ "$REUSE_GATE_ACCOUNTS" == "1" ]]; then
+  GATE_ACCOUNT_ID="$(normalize_public_account "${GATE_ACCOUNT:-}")"
+  PRESENTER_ACCOUNT_ID="$(normalize_public_account "${PRESENTER_ACCOUNT:-}")"
+  REGISTER_ADMIN_ACCOUNT_ID="$(normalize_public_account "${REGISTER_ADMIN_ACCOUNT:-${REGISTER_ADMIN:-}}")"
+  INIT_ADMIN_ACCOUNT_ID="$(normalize_public_account "${INIT_ADMIN_ACCOUNT:-${INIT_ADMIN:-}}")"
+else
+  note "REUSE_GATE_ACCOUNTS=0; creating fresh public accounts and ignoring stale account env vars."
+  GATE_ACCOUNT_ID=""
+  PRESENTER_ACCOUNT_ID=""
+  REGISTER_ADMIN_ACCOUNT_ID=""
+  INIT_ADMIN_ACCOUNT_ID=""
+fi
 
 if [[ -z "$GATE_ACCOUNT_ID" ]]; then
   GATE_ACCOUNT_ID="$(new_public_account gate)"

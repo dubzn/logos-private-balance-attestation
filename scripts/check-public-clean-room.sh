@@ -61,6 +61,11 @@ fail() {
   exit 1
 }
 
+grep_pipe() {
+  local pattern="$1"
+  grep -E "$pattern" || true
+}
+
 require_empty() {
   local label="$1"
   local value="$2"
@@ -83,13 +88,13 @@ fi
 
 step "2/5 Forbidden tracked/untracked artifacts"
 tracked_forbidden="$(
-  git ls-files | rg '(^|/)(witness\.json|storage\.json|wallet_config\.json|accounts\.env|\.env|\.wallet-local)(/|$)|(^|/)(\.demo-runs|\.spike-results|target)/' || true
+  git ls-files | grep_pipe '(^|/)(witness\.json|storage\.json|wallet_config\.json|accounts\.env|\.env|\.wallet-local)(/|$)|(^|/)(\.demo-runs|\.spike-results|target)/'
 )"
 require_empty "Forbidden tracked artifacts found:" "$tracked_forbidden"
 
 untracked_forbidden="$(
   git status --porcelain --untracked-files=all \
-    | rg '(^|[[:space:]])(witness\.json|storage\.json|wallet_config\.json|accounts\.env|\.env|\.wallet-local)(/|$)|(^|[[:space:]])(\.demo-runs|\.spike-results|target)/' || true
+    | grep_pipe '(^|[[:space:]])(witness\.json|storage\.json|wallet_config\.json|accounts\.env|\.env|\.wallet-local)(/|$)|(^|[[:space:]])(\.demo-runs|\.spike-results|target)/'
 )"
 require_empty "Forbidden untracked artifacts found:" "$untracked_forbidden"
 
@@ -100,9 +105,9 @@ require_empty "Secret-like tracked strings found:" "$secret_hits"
 
 step "3/5 Public docs smoke"
 [[ -f scripts/env.example ]] || fail "missing scripts/env.example"
-rg -q 'Workable / host-preverified' README.md docs/ONCHAIN_PATH_DECISION.md \
+grep -q 'Workable / host-preverified' README.md docs/ONCHAIN_PATH_DECISION.md \
   || fail "README/docs should explicitly state the Workable / host-preverified on-chain path"
-rg -q 'RISC0_DEV_MODE=0' README.md docs/BENCHMARKS.md docs/PRIZE_CHECKLIST.md \
+grep -q 'RISC0_DEV_MODE=0' README.md docs/BENCHMARKS.md docs/PRIZE_CHECKLIST.md \
   || fail "README/docs should mention RISC0_DEV_MODE=0 final-demo mode"
 
 step "4/5 Shell syntax"
