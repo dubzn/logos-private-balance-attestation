@@ -6,7 +6,7 @@ pub const LEZ_COMMITMENT_PREFIX: &[u8; 32] =
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct LezPrivateAccountCommitmentInput {
-    pub npk: Digest32,
+    pub account_id: Digest32,
     pub program_owner: [u32; 8],
     #[serde(with = "crate::serde_helpers::u128_decimal")]
     pub balance: u128,
@@ -32,7 +32,7 @@ pub fn derive_lez_private_account_commitment(input: &LezPrivateAccountCommitment
 
     let mut commitment_bytes = Vec::with_capacity(32 + 32 + account_bytes.len());
     commitment_bytes.extend_from_slice(LEZ_COMMITMENT_PREFIX);
-    commitment_bytes.extend_from_slice(input.npk.as_bytes());
+    commitment_bytes.extend_from_slice(input.account_id.as_bytes());
     commitment_bytes.extend_from_slice(&account_bytes);
 
     sha256_bytes(&commitment_bytes)
@@ -69,7 +69,7 @@ mod tests {
 
     fn dummy_input() -> LezPrivateAccountCommitmentInput {
         LezPrivateAccountCommitmentInput {
-            npk: Digest32([0; 32]),
+            account_id: Digest32([0; 32]),
             program_owner: [0; 8],
             balance: 0,
             nonce: 0,
@@ -101,7 +101,7 @@ mod tests {
         let base = derive_lez_private_account_commitment(&dummy_input());
 
         let mut changed = dummy_input();
-        changed.npk = Digest32([1; 32]);
+        changed.account_id = Digest32([1; 32]);
         assert_ne!(base, derive_lez_private_account_commitment(&changed));
 
         let mut changed = dummy_input();

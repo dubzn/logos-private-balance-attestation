@@ -78,6 +78,22 @@ docs/                        architecture, setup, security, benchmarks, checklis
 
 ## Quick Start
 
+Recommended local layout:
+
+```text
+workdir/
+  logos-private-balance-attestation/
+  logos-execution-zone/
+```
+
+The scripts resolve the LEZ checkout in this order: `LOGOS_LEZ_REPO`,
+`LEZ_REPO`, sibling `../logos-execution-zone`, then the legacy
+`$HOME/logos/src/logos-execution-zone` path. For a local fork, source:
+
+```sh
+source scripts/env.example
+```
+
 Run the fast smoke demo with deterministic fixtures:
 
 ```sh
@@ -114,6 +130,15 @@ real local wallet state
 envelope, verifier output, gate report, and run summary.
 
 For setup details, see [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
+
+Before publishing or recording a run, check the public repo hygiene:
+
+```sh
+scripts/check-public-clean-room.sh
+```
+
+Use `--with-tests` for workspace tests and `--with-lez` for checks that need
+the local LEZ fork.
 
 ## CLI Examples
 

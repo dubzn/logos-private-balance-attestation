@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 // without depending on the guest crate directly.
 #[derive(Serialize, Deserialize)]
 struct BalanceAttestationInput {
+    account_id: [u8; 32],
     npk: [u8; 32],
     program_owner: [u32; 8],
     balance: u128,
@@ -74,6 +75,7 @@ fn fixture_witness(
     use attestation_core::{HexBytes, LezMembershipProof};
 
     let private_account = PrivateAccountWitness {
+        account_id: digest(0x06),
         npk: digest(0x07),
         program_owner: [1, 2, 3, 4, 5, 6, 7, 8],
         balance: 42,
@@ -113,6 +115,7 @@ fn build_input(
         expected_context_nullifier[0] ^= 0xff;
     }
     BalanceAttestationInput {
+        account_id: witness.private_account.account_id.0,
         npk: witness.private_account.npk.0,
         program_owner: witness.private_account.program_owner,
         balance: witness.private_account.balance,

@@ -48,13 +48,13 @@ The prize describes the private account commitment as:
 SHA256(npk || program_owner || balance || nonce || SHA256(data))
 ```
 
-The local `logos-execution-zone` implementation is more specific. In
-`nssa/core/src/commitment.rs`, `Commitment::new` computes:
+The current local `logos-execution-zone` fork is more specific. In
+`nssa/core/src/commitment.rs`, `Commitment::new(account_id, account)` computes:
 
 ```text
 SHA256(
   "/LEE/v0.3/Commitment/" padded to 32 bytes
-  || npk
+  || account_id
   || program_owner as 8 little-endian u32 words
   || balance as little-endian u128
   || nonce as little-endian u128
@@ -62,8 +62,12 @@ SHA256(
 )
 ```
 
-The circuit must match the implementation, not only the simplified prize text.
-This is a hard compatibility requirement.
+For private accounts, `account_id` is the LEZ private account id derived by
+LEZ from the nullifier public key and account identifier. The attestation
+witness keeps both `account_id` and `npk` private: `account_id` reconstructs the
+current LEZ commitment, while `npk` remains the input to the context nullifier.
+The circuit must match the checked-out implementation, not only the simplified
+prize text. This is a hard compatibility requirement.
 
 Milestone 2 starts this as pure Rust in `attestation-core`:
 

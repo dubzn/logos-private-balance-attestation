@@ -2,7 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LEZ_REPO="${LEZ_REPO:-$HOME/logos/src/logos-execution-zone}"
+source "$ROOT_DIR/scripts/common-env.sh"
+require_logos_lez_repo "$ROOT_DIR" Cargo.toml
 LEZ_CARGO="$LEZ_REPO/Cargo.toml"
 LOCAL_CARGO="$ROOT_DIR/Cargo.toml"
 
@@ -44,4 +45,3 @@ if [[ "$lez_version" != "$local_version" ]]; then
 fi
 
 echo "RISC Zero versions match."
-

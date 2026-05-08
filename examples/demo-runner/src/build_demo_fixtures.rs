@@ -64,6 +64,7 @@ fn main() {
 
     let witness = build_balance_attestation_witness(
         PrivateAccountWitness {
+            account_id: digest(0x06),
             npk: digest(0x07),
             program_owner: [1, 2, 3, 4, 5, 6, 7, 8],
             balance: 250,

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOGOS_LEZ_REPO="${LOGOS_LEZ_REPO:-${LEZ_REPO:-$HOME/logos/src/logos-execution-zone}}"
+source "$REPO_ROOT/scripts/common-env.sh"
 RESULT_DIR="${RESULT_DIR:-$REPO_ROOT/.spike-results/m2-private-account-inspect}"
 TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 REPORT="$RESULT_DIR/$TIMESTAMP.md"
@@ -56,12 +56,8 @@ if [[ "$LOCAL_ONLY" == "1" && "$REQUIRE_PROOF" == "1" ]]; then
   exit 2
 fi
 
-if [[ ! -d "$LOGOS_LEZ_REPO/wallet" || ! -d "$LOGOS_LEZ_REPO/nssa/core" ]]; then
-  echo "LOGOS_LEZ_REPO does not point to a logos-execution-zone checkout: $LOGOS_LEZ_REPO" >&2
-  exit 2
-fi
-
-export NSSA_WALLET_HOME_DIR="${NSSA_WALLET_HOME_DIR:-$LOGOS_LEZ_REPO/.wallet-local}"
+require_logos_lez_repo "$REPO_ROOT" wallet nssa/core
+export_default_wallet_home
 
 mkdir -p "$RESULT_DIR"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/balance-attest-m2-wallet.XXXXXX")"
@@ -167,6 +163,7 @@ async fn main() -> Result<()> {
     let wallet_commitment_bytes = wallet_commitment.to_byte_array();
 
     let private_account = PrivateAccountWitness {
+        account_id: Digest32(account_id.into_value()),
         npk: Digest32(key_chain.nullifier_public_key.to_byte_array()),
         program_owner: account.program_owner,
         balance: account.balance,

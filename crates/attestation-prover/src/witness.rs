@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 use crate::MembershipProofInspection;
 
 pub const WITNESS_REDACTION_POLICY: &str =
-    "witness debug/summary output redacts npk, balance, nonce, data, presenter secret, commitment, and membership siblings";
+    "witness debug/summary output redacts account id, npk, balance, nonce, data, presenter secret, commitment, and membership siblings";
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PrivateAccountWitness {
+    pub account_id: Digest32,
     pub npk: Digest32,
     pub program_owner: [u32; 8],
     #[serde(with = "u128_decimal")]
@@ -153,7 +154,7 @@ pub fn inspect_membership_proof(
 impl PrivateAccountWitness {
     pub fn commitment_input(&self) -> LezPrivateAccountCommitmentInput {
         LezPrivateAccountCommitmentInput {
-            npk: self.npk,
+            account_id: self.account_id,
             program_owner: self.program_owner,
             balance: self.balance,
             nonce: self.nonce,
@@ -200,6 +201,7 @@ impl fmt::Debug for PrivateAccountWitness {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("PrivateAccountWitness")
+            .field("account_id", &"<redacted>")
             .field("npk", &"<redacted>")
             .field("program_owner", &"<redacted>")
             .field("balance", &"<redacted>")
@@ -266,6 +268,7 @@ mod tests {
 
     fn private_account() -> PrivateAccountWitness {
         PrivateAccountWitness {
+            account_id: digest(0x06),
             npk: digest(0x07),
             program_owner: [1, 2, 3, 4, 5, 6, 7, 8],
             balance: 42,
@@ -309,7 +312,7 @@ mod tests {
         assert_eq!(witness.threshold, 25);
         assert_eq!(
             witness.commitment_root.to_hex(),
-            "4f0de4f7a77701eb493e2a24d9d6596ee153e8c6abcb7eba828ea5a3efb09854"
+            "9f2445da0e3f7ce7fed9f0197e9e6bf8104659960089b96c3b010af9ee1e7f6d"
         );
         assert_eq!(
             witness.context_id.to_hex(),

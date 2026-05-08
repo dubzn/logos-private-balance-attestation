@@ -78,13 +78,21 @@ The prize writes the commitment as:
 SHA256(npk || program_owner || balance || nonce || SHA256(data))
 ```
 
-The local code adds a domain prefix:
+The original local code added a domain prefix:
 
 ```text
 "/LEE/v0.3/Commitment/" padded to 32 bytes
 ```
 
-The implementation must match local LEZ code exactly.
+The current fork also uses the private `account_id` in `Commitment::new`
+instead of raw `npk`:
+
+```text
+SHA256(prefix || account_id || program_owner || balance || nonce || SHA256(data))
+```
+
+The implementation must match the checked-out LEZ code exactly; the M2
+compatibility script is the guardrail for this.
 
 ## Lessons From logos-document-guardian
 

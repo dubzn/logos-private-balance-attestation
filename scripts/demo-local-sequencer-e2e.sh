@@ -14,7 +14,7 @@
 #   PRIVATE_ACCOUNT=Private/<id> or <id-without-prefix>
 #
 # Optional:
-#   LOGOS_LEZ_REPO or LEZ_REPO       Defaults to $HOME/logos/src/logos-execution-zone
+#   LOGOS_LEZ_REPO or LEZ_REPO       Defaults to ../logos-execution-zone when present.
 #   NSSA_WALLET_HOME_DIR            Defaults to $LOGOS_LEZ_REPO/.wallet-local
 #   THRESHOLD                       Defaults to 1
 #   RISC0_DEV_MODE                  Defaults to 1
@@ -28,8 +28,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOGOS_LEZ_REPO="${LOGOS_LEZ_REPO:-${LEZ_REPO:-$HOME/logos/src/logos-execution-zone}}"
-export NSSA_WALLET_HOME_DIR="${NSSA_WALLET_HOME_DIR:-$LOGOS_LEZ_REPO/.wallet-local}"
+source "$ROOT_DIR/scripts/common-env.sh"
 
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 DEMO_DIR="${DEMO_DIR:-$ROOT_DIR/.demo-runs/local-sequencer/$TIMESTAMP}"
@@ -77,10 +76,8 @@ if [[ -z "${PRIVATE_ACCOUNT:-}" ]]; then
   exit 2
 fi
 
-if [[ ! -d "$LOGOS_LEZ_REPO/wallet" || ! -d "$LOGOS_LEZ_REPO/nssa/core" ]]; then
-  echo "LOGOS_LEZ_REPO does not point to a logos-execution-zone checkout: $LOGOS_LEZ_REPO" >&2
-  exit 2
-fi
+require_logos_lez_repo "$ROOT_DIR" wallet nssa/core
+export_default_wallet_home
 
 PRIVATE_ACCOUNT_ID="${PRIVATE_ACCOUNT#Private/}"
 
@@ -251,6 +248,7 @@ async fn main() -> Result<()> {
     let wallet_commitment_bytes = wallet_commitment.to_byte_array();
 
     let private_account = PrivateAccountWitness {
+        account_id: Digest32(account_id.into_value()),
         npk: Digest32(key_chain.nullifier_public_key.to_byte_array()),
         program_owner: account.program_owner,
         balance: account.balance,
@@ -333,7 +331,7 @@ async fn main() -> Result<()> {
         witness: witness.summary(),
         witness_path: witness_path.display().to_string(),
         gate_path: gate_path.display().to_string(),
-        redaction_note: "witness.json is private and contains npk, balance, nonce, account data, membership siblings, and presenter secret; this summary is sanitized",
+        redaction_note: "witness.json is private and contains account id, npk, balance, nonce, account data, membership siblings, and presenter secret; this summary is sanitized",
     };
 
     println!("{}", serde_json::to_string_pretty(&summary)?);

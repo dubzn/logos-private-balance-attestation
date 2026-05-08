@@ -14,7 +14,7 @@
 #
 # Optional:
 #   RUN_DIR or RUN                    Source run dir. Defaults to latest .demo-runs/local-sequencer/*.
-#   LOGOS_LEZ_REPO or LEZ_REPO        Defaults to $HOME/logos/src/logos-execution-zone.
+#   LOGOS_LEZ_REPO or LEZ_REPO        Defaults to ../logos-execution-zone when present.
 #   NSSA_WALLET_HOME_DIR              Defaults to $LOGOS_LEZ_REPO/.wallet-local.
 #   DEMO_DIR                          Defaults to .demo-runs/local-gate/<timestamp>.
 #   GATE_ACCOUNT                      Public/<id> or bare id. Created if unset.
@@ -27,8 +27,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOGOS_LEZ_REPO="${LOGOS_LEZ_REPO:-${LEZ_REPO:-$HOME/logos/src/logos-execution-zone}}"
-export NSSA_WALLET_HOME_DIR="${NSSA_WALLET_HOME_DIR:-$LOGOS_LEZ_REPO/.wallet-local}"
+source "$ROOT_DIR/scripts/common-env.sh"
 export RISC0_DEV_MODE="${RISC0_DEV_MODE:-1}"
 
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -73,6 +72,10 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
 fi
+
+require_logos_lez_repo "$ROOT_DIR" wallet
+export_default_wallet_home
+ensure_repo_local_lez_link "$ROOT_DIR"
 
 step() {
   printf '\n\033[1;36m== %s ==\033[0m\n' "$1"
@@ -270,10 +273,6 @@ GATE_JSON="$SOURCE_RUN_DIR/gate.json"
 
 if [[ ! -f "$ENVELOPE_JSON" || ! -f "$GATE_JSON" ]]; then
   echo "Source run must contain envelope.json and gate.json: $SOURCE_RUN_DIR" >&2
-  exit 2
-fi
-if [[ ! -d "$LOGOS_LEZ_REPO/wallet" ]]; then
-  echo "LOGOS_LEZ_REPO does not point to logos-execution-zone: $LOGOS_LEZ_REPO" >&2
   exit 2
 fi
 

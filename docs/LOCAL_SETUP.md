@@ -1,16 +1,44 @@
 # Local Setup
 
-This document describes the intended local development flow. Some commands are
-future-facing because the repo is still being built in layers. The LEZ and
-wallet commands are based on the local `logos-execution-zone` checkout.
+This document describes the intended local development flow. The LEZ and wallet
+commands are based on a local `logos-execution-zone` checkout.
 
 ## Expected Local Paths
 
-```sh
-export LOGOS_LEZ_REPO="$HOME/logos/src/logos-execution-zone"
-export BALANCE_ATTEST_REPO="/Users/dub/Desktop/logos/logos-private-balance-attestation"
-export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+Recommended layout:
+
+```text
+workdir/
+  logos-private-balance-attestation/
+  logos-execution-zone/
 ```
+
+From the attestation repo root:
+
+```sh
+source scripts/env.example
+export BALANCE_ATTEST_REPO="$(pwd)"
+```
+
+If your LEZ fork lives somewhere else:
+
+```sh
+export LOGOS_LEZ_REPO="/absolute/path/to/logos-execution-zone"
+export LEZ_REPO="$LOGOS_LEZ_REPO"
+export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+export BALANCE_ATTEST_REPO="$(pwd)"
+```
+
+Operational scripts resolve the LEZ checkout in this order:
+
+1. `LOGOS_LEZ_REPO`
+2. `LEZ_REPO`
+3. sibling `../logos-execution-zone`
+4. legacy `$HOME/logos/src/logos-execution-zone`
+
+Some isolated LEZ path dependencies still expect an ignored repo-local
+`logos/` path. Scripts that need it create or validate that link against
+`LOGOS_LEZ_REPO` so local runs do not silently use a stale checkout.
 
 Use one wallet home per local demo. Mixing wallet homes makes private account
 state confusing because private account data is local-only.
@@ -20,7 +48,8 @@ state confusing because private account data is local-only.
 - Rust toolchain.
 - Docker, for guest builds that use the LEZ/RISC Zero build flow.
 - RISC Zero toolchain compatible with the local LEZ checkout.
-- Local `logos-execution-zone` checkout at `~/logos/src/logos-execution-zone`.
+- Local `logos-execution-zone` checkout, preferably side-by-side at
+  `../logos-execution-zone`.
 - `wallet` installed from the local LEZ checkout.
 
 Install or refresh wallet:
@@ -40,9 +69,21 @@ risc0-build = 3.0.5
 The attestation workspace should use the same RISC Zero major version unless
 the LEZ checkout changes.
 
-The implementation should add `scripts/check-risc0-version.sh` before the first
-Rust milestone. That script must compare the attestation workspace RISC Zero
-version against the local LEZ checkout and fail CI on mismatch.
+Use `scripts/check-risc0-version.sh` to compare the attestation workspace RISC
+Zero version against the local LEZ checkout.
+
+Before publishing a branch, run the public hygiene check:
+
+```sh
+scripts/check-public-clean-room.sh
+```
+
+Add heavier checks as needed:
+
+```sh
+scripts/check-public-clean-room.sh --with-tests
+scripts/check-public-clean-room.sh --with-lez
+```
 
 ## Run The Core Unit Tests
 

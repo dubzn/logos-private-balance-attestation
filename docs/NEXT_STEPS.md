@@ -41,11 +41,18 @@ Done locally:
   timings, and the still-open devnet/testnet CU measurements
 - `scripts/clean-local-artifacts.sh` added for dry-run-first cleanup of build
   outputs and optional run artifacts
+- `scripts/common-env.sh` centralizes `LOGOS_LEZ_REPO` resolution with
+  side-by-side fork fallback (`../logos-execution-zone`)
+- `scripts/env.example` documents the public local environment shape
+- `scripts/check-public-clean-room.sh` checks public hygiene, forbidden
+  artifacts, shell syntax, and optional tests/LEZ compatibility
 
 Current command set:
 
 ```sh
+source scripts/env.example
 cargo test
+scripts/check-public-clean-room.sh
 scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
@@ -61,6 +68,8 @@ scripts/clean-local-artifacts.sh
    - Re-run `scripts/demo-local-sequencer-e2e.sh` from a clean wallet/sequencer.
    - Re-run `scripts/demo-local-gate-e2e.sh` from the produced
      `envelope.json`/`gate.json` in the same clean session.
+   - Run `scripts/check-public-clean-room.sh --with-tests --with-lez` before
+     publishing demo artifacts.
    - Turn the successful `RISC0_DEV_MODE=0` run into a clean-room recording
      flow for the final demo.
    - Keep `witness.json` private and only publish envelope/report artifacts.

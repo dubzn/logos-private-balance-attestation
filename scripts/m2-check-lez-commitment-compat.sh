@@ -2,16 +2,12 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOGOS_LEZ_REPO="${LOGOS_LEZ_REPO:-$HOME/logos/src/logos-execution-zone}"
+source "$REPO_ROOT/scripts/common-env.sh"
+require_logos_lez_repo "$REPO_ROOT" nssa/core
 RESULT_DIR="${RESULT_DIR:-$REPO_ROOT/.spike-results/m2-commitment-compat}"
 TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 REPORT="$RESULT_DIR/$TIMESTAMP.md"
 OUTPUT_JSON="$RESULT_DIR/$TIMESTAMP.json"
-
-if [[ ! -d "$LOGOS_LEZ_REPO/nssa/core" ]]; then
-  echo "LOGOS_LEZ_REPO does not point to a logos-execution-zone checkout: $LOGOS_LEZ_REPO" >&2
-  exit 2
-fi
 
 mkdir -p "$RESULT_DIR"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/balance-attest-m2.XXXXXX")"
@@ -52,8 +48,8 @@ use attestation_core::{
     LezPrivateAccountCommitmentInput,
 };
 use nssa_core::{
-    account::{Account, Data, Nonce},
-    compute_digest_for_path, Commitment, MembershipProof, NullifierPublicKey,
+    account::{Account, AccountId, Data, Nonce},
+    compute_digest_for_path, Commitment, MembershipProof,
 };
 use serde::Serialize;
 
@@ -82,7 +78,7 @@ fn main() {
         ),
         compare_case(
             "documented-fixture",
-            [0x07; 32],
+            [0x06; 32],
             [1, 2, 3, 4, 5, 6, 7, 8],
             42,
             123_456,
@@ -92,7 +88,7 @@ fn main() {
         ),
         compare_case(
             "wide-values",
-            [0xfe; 32],
+            [0xfd; 32],
             [
                 0,
                 1,
@@ -124,7 +120,7 @@ fn main() {
 #[allow(clippy::too_many_arguments)]
 fn compare_case(
     name: &'static str,
-    npk_bytes: [u8; 32],
+    account_id_bytes: [u8; 32],
     program_owner: [u32; 8],
     balance: u128,
     nonce: u128,
@@ -133,7 +129,7 @@ fn compare_case(
     siblings: Vec<[u8; 32]>,
 ) -> CaseReport {
     let ours = derive_lez_private_account_commitment(&LezPrivateAccountCommitmentInput {
-        npk: Digest32(npk_bytes),
+        account_id: Digest32(account_id_bytes),
         program_owner,
         balance,
         nonce,
@@ -146,7 +142,7 @@ fn compare_case(
         data: Data::try_from(data).expect("fixture data should fit"),
         nonce: Nonce(nonce),
     };
-    let theirs = Commitment::new(&NullifierPublicKey(npk_bytes), &account).to_byte_array();
+    let theirs = Commitment::new(&AccountId::new(account_id_bytes), &account).to_byte_array();
 
     let ours_leaf_hash = hash_lez_commitment_leaf(&ours);
     let theirs_leaf_hash =

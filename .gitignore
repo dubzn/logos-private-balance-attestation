@@ -3,6 +3,8 @@
 target/
 .DS_Store
 logos/
+logos
+logos.legacy/
 .wallet-local/
 */.wallet-local/
 **/.wallet-local/

@@ -48,6 +48,7 @@ fn witness_with(
 ) -> BalanceAttestationWitness {
     build_balance_attestation_witness(
         PrivateAccountWitness {
+            account_id: digest(npk_seed.wrapping_sub(1)),
             npk: digest(npk_seed),
             program_owner: [1, 2, 3, 4, 5, 6, 7, 8],
             balance,

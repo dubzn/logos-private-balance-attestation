@@ -14,13 +14,14 @@
 #   FULL_DEMO_DIR                    Defaults to .demo-runs/local-full/<timestamp>
 #   RISC0_DEV_MODE                   Defaults to 1. Use 0 for real proving.
 #   THRESHOLD                        Defaults to 1.
-#   LOGOS_LEZ_REPO or LEZ_REPO       Defaults to $HOME/logos/src/logos-execution-zone.
+#   LOGOS_LEZ_REPO or LEZ_REPO       Defaults to ../logos-execution-zone when present.
 #   NSSA_WALLET_HOME_DIR             Defaults to $LOGOS_LEZ_REPO/.wallet-local.
 #   CHECK_DUPLICATE                  Defaults to 1 for the gate phase.
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/common-env.sh"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 FULL_DEMO_DIR="${FULL_DEMO_DIR:-$ROOT_DIR/.demo-runs/local-full/$TIMESTAMP}"
 PROOF_DIR="$FULL_DEMO_DIR/proof"
@@ -56,6 +57,9 @@ if [[ -z "${PRIVATE_ACCOUNT:-}" ]]; then
   usage
   exit 2
 fi
+
+require_logos_lez_repo "$ROOT_DIR" wallet nssa/core
+export_default_wallet_home
 
 step() {
   printf '\n\033[1;36m== %s ==\033[0m\n' "$1"

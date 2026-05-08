@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   RUST_BACKTRACE: "1"
-  LEZ_REFERENCE_REF: "8fbf9ebcf18306b61c67b20c1ce938eadbaf3b96"
+  LEZ_REFERENCE_REF: "332bd29e938b8787fc1ce62a2a2987d20ad837f8"
   LOGOS_BLOCKCHAIN_REF: "1da154c74b911318fb853d37261f8a05ffe513b4"
   LOGOS_BLOCKCHAIN_CIRCUITS_VERSION: "v0.4.2"
   LOGOS_BLOCKCHAIN_CIRCUITS: "${{ github.workspace }}/.logos-blockchain-circuits"
@@ -93,7 +93,7 @@ jobs:
         # pinned so CI does not silently change nssa_core under the deployable
         # program.
         run: |
-          git clone https://github.com/syafiqeil/logos-execution-zone.git logos
+          git clone https://github.com/dubzn/logos-execution-zone.git logos
           git -C logos checkout --detach "$LEZ_REFERENCE_REF"
       - name: Install risc0 toolchain
         run: |

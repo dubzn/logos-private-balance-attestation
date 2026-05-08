@@ -5,7 +5,8 @@ Production RISC Zero circuit for LP-0005 Private Token Balance Attestation.
 ## What it proves
 
 1. `balance >= threshold` (private, hidden in journal).
-2. LEZ private account commitment resolves to the public Merkle root.
+2. LEZ private account commitment resolves to the public Merkle root using the
+   current LEZ `Commitment::new(account_id, account)` shape.
 3. Presenter secret derives the committed `presenter_id`.
 4. `context_id` is derived from public gate params (chain, circuit image, verifier, gate, threshold).
 5. `context_nullifier` derives from `npk`, `context_id`, and `presenter_id` — anti-replay tag.

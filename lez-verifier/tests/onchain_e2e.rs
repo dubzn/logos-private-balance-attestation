@@ -51,6 +51,7 @@ fn build_envelope(
     };
     let witness = build_balance_attestation_witness(
         PrivateAccountWitness {
+            account_id: digest(npk_seed.wrapping_sub(1)),
             npk: digest(npk_seed),
             program_owner: [3; 8],
             balance,

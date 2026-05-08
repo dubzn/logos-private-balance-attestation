@@ -23,6 +23,7 @@ impl std::error::Error for ProveError {}
 // Guest input — must match BalanceAttestationInput in methods/guest/src/bin/balance_attestation.rs.
 #[derive(Serialize, Deserialize)]
 struct GuestInput {
+    account_id: [u8; 32],
     npk: [u8; 32],
     program_owner: [u32; 8],
     balance: u128,
@@ -87,6 +88,7 @@ pub fn prove_attestation(
     let presenter_pubkey = witness.presenter.pubkey();
 
     let input = GuestInput {
+        account_id: witness.private_account.account_id.0,
         npk: witness.private_account.npk.0,
         program_owner: witness.private_account.program_owner,
         balance: witness.private_account.balance,
@@ -195,6 +197,7 @@ mod tests {
         };
         let witness = build_balance_attestation_witness(
             PrivateAccountWitness {
+                account_id: digest(0x06),
                 npk: digest(0x07),
                 program_owner: [1, 2, 3, 4, 5, 6, 7, 8],
                 balance: 42,

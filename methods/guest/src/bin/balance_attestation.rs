@@ -24,6 +24,7 @@ const LEZ_COMMITMENT_PREFIX: &[u8; 32] =
 #[derive(Serialize, Deserialize)]
 struct BalanceAttestationInput {
     // Private account — used to reconstruct the LEZ commitment.
+    account_id: [u8; 32],
     npk: [u8; 32],
     program_owner: [u32; 8],
     balance: u128,
@@ -132,10 +133,10 @@ fn derive_lez_commitment(input: &BalanceAttestationInput) -> [u8; 32] {
     account_bytes.extend_from_slice(&input.nonce.to_le_bytes());
     account_bytes.extend_from_slice(&sha256(&input.data));
 
-    // commitment = sha256(prefix || npk || account_bytes)
+    // commitment = sha256(prefix || account_id || account_bytes)
     let mut commitment_bytes = Vec::with_capacity(32 + 32 + account_bytes.len());
     commitment_bytes.extend_from_slice(LEZ_COMMITMENT_PREFIX);
-    commitment_bytes.extend_from_slice(&input.npk);
+    commitment_bytes.extend_from_slice(&input.account_id);
     commitment_bytes.extend_from_slice(&account_bytes);
     sha256(&commitment_bytes)
 }
