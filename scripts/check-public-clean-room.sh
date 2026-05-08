@@ -94,7 +94,7 @@ untracked_forbidden="$(
 require_empty "Forbidden untracked artifacts found:" "$untracked_forbidden"
 
 secret_hits="$(
-  git grep -n -E 'Private/[1-9A-HJ-NP-Za-km-z]{20,}|BEGIN [A-Z ]*PRIVATE KEY|seed phrase|mnemonic phrase|NSSA_PRIVATE' -- . || true
+  git grep -n -E 'Private/[1-9A-HJ-NP-Za-km-z]{20,}|BEGIN [A-Z ]*PRIVATE KEY|seed phrase|mnemonic phrase|NSSA_PRIVATE' -- . ':!scripts/check-public-clean-room.sh' || true
 )"
 require_empty "Secret-like tracked strings found:" "$secret_hits"
 
