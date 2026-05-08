@@ -2,7 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LEZ_REPO="${LEZ_REPO:-$HOME/logos/src/logos-execution-zone}"
+source "$ROOT_DIR/scripts/common-env.sh"
+require_logos_lez_repo "$ROOT_DIR" nssa/src/program.rs nssa/src/privacy_preserving_transaction/circuit.rs program_methods/guest/src/bin/privacy_preserving_circuit.rs
+LEZ_REPO="$LOGOS_LEZ_REPO"
 OUTPUT="${SPIKE06_OUTPUT:-$ROOT_DIR/.spike-results/spike-06-onchain-path.md}"
 
 mkdir -p "$(dirname "$OUTPUT")"
@@ -25,25 +27,37 @@ require_file "$PRIVATE_CIRCUIT_HOST"
 require_file "$PRIVATE_CIRCUIT_GUEST"
 require_file "$REFERENCE_NOTES"
 
-public_add_assumption_count="$((rg -n "add_assumption" "$PUBLIC_PROGRAM" || true) | wc -l | tr -d ' ')"
-private_add_assumption_count="$((rg -n "add_assumption" "$PRIVATE_CIRCUIT_HOST" || true) | wc -l | tr -d ' ')"
-private_env_verify_count="$((rg -n "env::verify" "$PRIVATE_CIRCUIT_GUEST" || true) | wc -l | tr -d ' ')"
+grep_count() {
+  local pattern="$1"
+  local file="$2"
+  (grep -nE "$pattern" "$file" 2>/dev/null || true) | wc -l | tr -d ' '
+}
+
+grep_has() {
+  local pattern="$1"
+  local file="$2"
+  grep -qE "$pattern" "$file"
+}
+
+public_add_assumption_count="$(grep_count "add_assumption" "$PUBLIC_PROGRAM")"
+private_add_assumption_count="$(grep_count "add_assumption" "$PRIVATE_CIRCUIT_HOST")"
+private_env_verify_count="$(grep_count "env::verify" "$PRIVATE_CIRCUIT_GUEST")"
 public_execute_uses_executor="$(
-  if rg -q "default_executor\\(\\)" "$PUBLIC_PROGRAM"; then
+  if grep_has "default_executor\\(\\)" "$PUBLIC_PROGRAM"; then
     printf yes
   else
     printf no
   fi
 )"
 private_uses_succinct="$(
-  if rg -q "ProverOpts::succinct" "$PRIVATE_CIRCUIT_HOST"; then
+  if grep_has "ProverOpts::succinct" "$PRIVATE_CIRCUIT_HOST"; then
     printf yes
   else
     printf no
   fi
 )"
 spike_00_error="$(
-  if rg -q "no receipt found to resolve assumption" "$REFERENCE_NOTES"; then
+  if grep_has "no receipt found to resolve assumption" "$REFERENCE_NOTES"; then
     printf observed
   else
     printf missing
@@ -59,10 +73,10 @@ cat > "$OUTPUT" <<EOF
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Public LEZ execution uses default executor | $public_execute_uses_executor | \`$PUBLIC_PROGRAM\` |
-| Public LEZ execution adds receipt assumptions | $public_add_assumption_count | \`rg add_assumption $PUBLIC_PROGRAM\` |
+| Public LEZ execution adds receipt assumptions | $public_add_assumption_count | \`grep add_assumption $PUBLIC_PROGRAM\` |
 | Private LEZ proof host adds assumptions | $private_add_assumption_count | \`$PRIVATE_CIRCUIT_HOST\` |
 | Private LEZ guest calls \`env::verify\` | $private_env_verify_count | \`$PRIVATE_CIRCUIT_GUEST\` |
-| Private LEZ proof uses succinct receipts | $private_uses_succinct | \`rg ProverOpts::succinct $PRIVATE_CIRCUIT_HOST\` |
+| Private LEZ proof uses succinct receipts | $private_uses_succinct | \`grep ProverOpts::succinct $PRIVATE_CIRCUIT_HOST\` |
 | Spike 0A missing assumption error recorded | $spike_00_error | \`$REFERENCE_NOTES\` |
 
 ## Interpretation
@@ -83,8 +97,9 @@ public LEZ program that directly verifies external RISC Zero receipts.
 Keep a two-track architecture:
 
 1. Off-chain path: standalone RISC Zero proof envelope verified locally.
-2. On-chain path: Logos-native private execution gate as the only working local
-   route, pending evaluator confirmation for LP-0005.
+2. On-chain path: host-verified proof envelope followed by a deployable LEZ
+   gate-ledger/nullifier transaction, pending evaluator confirmation for
+   LP-0005.
 
 EOF
 

@@ -36,12 +36,12 @@ Observed local result:
 | Private LEZ proof uses succinct receipts | yes |
 | Spike 0A missing assumption error recorded | observed |
 
-Relevant local files:
+Relevant files in the selected `logos-execution-zone` checkout:
 
 ```text
-/Users/dub/logos/src/logos-execution-zone/nssa/src/program.rs
-/Users/dub/logos/src/logos-execution-zone/nssa/src/privacy_preserving_transaction/circuit.rs
-/Users/dub/logos/src/logos-execution-zone/program_methods/guest/src/bin/privacy_preserving_circuit.rs
+nssa/src/program.rs
+nssa/src/privacy_preserving_transaction/circuit.rs
+program_methods/guest/src/bin/privacy_preserving_circuit.rs
 ```
 
 ## Interpretation

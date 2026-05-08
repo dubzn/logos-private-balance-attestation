@@ -11,7 +11,6 @@
 # Optional:
 #   --include-runs     also remove .demo-runs/ and .spike-results/
 #   --include-logos    also remove the local ./logos checkout
-#   --include-claude   also remove .claude/
 #   --include-wallets  also remove local .wallet-local dirs (dangerous)
 
 set -euo pipefail
@@ -20,7 +19,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIRM=0
 INCLUDE_RUNS=0
 INCLUDE_LOGOS=0
-INCLUDE_CLAUDE=0
 INCLUDE_WALLETS=0
 
 usage() {
@@ -32,7 +30,6 @@ options:
   --yes              Delete candidates. Without this, only prints what would be removed.
   --include-runs     Include .demo-runs/ and .spike-results/.
   --include-logos    Include ./logos local checkout.
-  --include-claude   Include .claude/.
   --include-wallets  Include .wallet-local directories. Dangerous: wallet state may be lost.
   -h, --help         Show this help.
 EOF
@@ -48,9 +45,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --include-logos)
       INCLUDE_LOGOS=1
-      ;;
-    --include-claude)
-      INCLUDE_CLAUDE=1
       ;;
     --include-wallets)
       INCLUDE_WALLETS=1
@@ -81,9 +75,6 @@ if [[ "$INCLUDE_RUNS" == "1" ]]; then
 fi
 if [[ "$INCLUDE_LOGOS" == "1" ]]; then
   CANDIDATES+=("logos")
-fi
-if [[ "$INCLUDE_CLAUDE" == "1" ]]; then
-  CANDIDATES+=(".claude")
 fi
 if [[ "$INCLUDE_WALLETS" == "1" ]]; then
   while IFS= read -r wallet_dir; do

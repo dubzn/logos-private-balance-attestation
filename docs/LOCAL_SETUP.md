@@ -473,7 +473,6 @@ Optional flags:
 
 - `--include-runs`: remove `.demo-runs/` and `.spike-results/`.
 - `--include-logos`: remove the local `./logos` checkout.
-- `--include-claude`: remove `.claude/`.
 - `--include-wallets`: remove `.wallet-local` directories. Use with care.
 
 For fast development, early local tests may use:

@@ -46,6 +46,11 @@ Done locally:
 - `scripts/env.example` documents the public local environment shape
 - `scripts/check-public-clean-room.sh` checks public hygiene, forbidden
   artifacts, shell syntax, and optional tests/LEZ compatibility
+- `scripts/check-wallet-preflight.sh` catches missing wallet setup, incompatible
+  wallet storage, and sequencer-checkout mismatches before heavy E2E runs
+- latest full local E2E against the synced LEZ fork passed with
+  `RISC0_DEV_MODE=0`: proof phase 00:01:48, gate phase 00:01:42, total
+  00:03:30, verify `ok`, nullifier count `1`, duplicate admit `not-applied`
 
 Current command set:
 
@@ -64,22 +69,19 @@ scripts/clean-local-artifacts.sh
 
 ## Ordered Backlog
 
-1. Harden the real local-sequencer E2E for submission.
-   - Re-run `scripts/demo-local-sequencer-e2e.sh` from a clean wallet/sequencer.
-   - Re-run `scripts/demo-local-gate-e2e.sh` from the produced
-     `envelope.json`/`gate.json` in the same clean session.
+1. Turn the successful `RISC0_DEV_MODE=0` run into final demo evidence.
+   - Record a clean-room narrated run.
+   - Run `scripts/check-wallet-preflight.sh` before recording.
    - Run `scripts/check-public-clean-room.sh --with-tests --with-lez` before
      publishing demo artifacts.
-   - Turn the successful `RISC0_DEV_MODE=0` run into a clean-room recording
-     flow for the final demo.
-   - Keep `witness.json` private and only publish envelope/report artifacts.
+   - Keep `witness.json` private and publish only envelope/report artifacts.
 
-2. Resolve the live on-chain path.
+2. Resolve the evaluator-approved live on-chain path.
    - Wait for evaluator/Discord answer if possible.
    - Keep direct public receipt verification marked unsupported for this LEZ
      version.
-   - Implement the Logos-native private execution gate fallback behind an
-     explicit interface.
+   - Keep the host-preverified Workable path documented unless evaluators
+     request a different native LEZ pattern.
 
 3. Add Messaging transport.
    - Start behind a local adapter.
@@ -97,12 +99,12 @@ scripts/clean-local-artifacts.sh
      `docs/BENCHMARKS.md`.
    - Narrated demo video with `RISC0_DEV_MODE=0`.
 
-9. Build reference integrations.
+6. Build the remaining reference integration.
    - Governance/access gate.
    - Messaging group gate.
    - Third integration with external validation.
 
-10. Submission hardening.
+7. Submission hardening.
     - CI.
     - Clean local E2E.
     - `RISC0_DEV_MODE=0` final demo.

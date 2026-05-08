@@ -239,9 +239,9 @@ Latest recorded local run with `RISC0_DEV_MODE=0`:
 
 | Phase | Duration |
 | --- | ---: |
-| Proof phase | 00:02:20 |
-| Gate phase | 00:02:49 |
-| Total | 00:05:09 |
+| Proof phase | 00:01:48 |
+| Gate phase | 00:01:42 |
+| Total | 00:03:30 |
 
 These are not devnet/testnet CU metrics. CU measurement is still pending.
 
@@ -257,7 +257,7 @@ These are not devnet/testnet CU metrics. CU measurement is still pending.
 - [IDL Draft](docs/IDL_DRAFT.md): LEZ verifier interface.
 - [Next Steps](docs/NEXT_STEPS.md): ordered backlog to final submission.
 - [Risk Spikes](docs/RISK_SPIKES.md): high-risk assumptions and validation plan.
-- [Reference Notes](docs/REFERENCE_NOTES.md): local research log and prior-art notes.
+- [Reference Notes](docs/REFERENCE_NOTES.md): public research notes and compatibility findings.
 
 ## License
 
