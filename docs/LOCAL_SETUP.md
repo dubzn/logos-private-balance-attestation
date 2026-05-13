@@ -454,6 +454,35 @@ The proof subdirectory still contains a private `witness.json`; do not publish
 it. The report links to the public proof envelope, verifier output, gate report,
 and final nullifier assertion.
 
+## Build The Basecamp MVP
+
+The Basecamp MVP is a backend-backed `ui_qml` module under:
+
+```text
+apps/basecamp/
+```
+
+It wraps the same local scripts used above: wallet preflight, proof generation,
+envelope verification, and the current Workable gate admit flow.
+
+Build check:
+
+```sh
+cd "$BALANCE_ATTEST_REPO/apps/basecamp"
+nix build
+```
+
+If Basecamp launches from outside the repository checkout, set:
+
+```sh
+export BALANCE_ATTEST_REPO="$BALANCE_ATTEST_REPO"
+export LOGOS_LEZ_REPO="$LOGOS_LEZ_REPO"
+export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+```
+
+The UI only displays public run summaries. `witness.json` remains private and
+is not surfaced by the QML view.
+
 ## Clean Local Artifacts
 
 Build outputs are intentionally ignored by git but can become large. Inspect

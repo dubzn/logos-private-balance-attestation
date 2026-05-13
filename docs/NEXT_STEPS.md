@@ -51,6 +51,8 @@ Done locally:
 - latest full local E2E against the synced LEZ fork passed with
   `RISC0_DEV_MODE=0`: proof phase 00:01:48, gate phase 00:01:42, total
   00:03:30, verify `ok`, nullifier count `1`, duplicate admit `not-applied`
+- `apps/basecamp/` contains a backend-backed `ui_qml` MVP that wraps preflight,
+  proof generation, envelope verification, and Workable gate admit
 
 Current command set:
 
@@ -65,6 +67,7 @@ PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
 RUN_DIR=.demo-runs/local-sequencer/<run> scripts/demo-local-gate-e2e.sh
 PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-full-e2e.sh
 scripts/clean-local-artifacts.sh
+cd apps/basecamp && nix build
 ```
 
 ## Ordered Backlog
@@ -87,10 +90,11 @@ scripts/clean-local-artifacts.sh
    - Start behind a local adapter.
    - Replace with the accepted Logos Messaging path once confirmed.
 
-4. Add Basecamp GUI.
-   - Backend-backed `ui_qml`.
-   - Wrap CLI/backend commands.
-   - Show only public/sanitized proof state.
+4. Harden Basecamp GUI.
+   - Confirm packaging/install flow against the active Basecamp build.
+   - Add typed replica generation if the selected Basecamp package path needs
+     it.
+   - Keep the UI limited to public/sanitized proof state.
 
 5. Add final submission support.
    - Third reference integration and external partner.

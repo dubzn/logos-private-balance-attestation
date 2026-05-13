@@ -1,0 +1,22 @@
+{
+  "name": "balance_attestation",
+  "version": "0.1.0",
+  "description": "Basecamp app for local private balance attestation proofs and gate admission",
+  "type": "ui_qml",
+  "main": "balance_attestation_plugin",
+  "view": "src/qml/BalanceAttestation.qml",
+  "dependencies": [],
+  "category": "blockchain",
+  "icon": null,
+  "nix": {
+    "packages": {
+      "build": [],
+      "runtime": ["qt6.qtdeclarative"]
+    },
+    "external_libraries": [],
+    "cmake": {
+      "find_packages": [],
+      "extra_sources": []
+    }
+  }
+}

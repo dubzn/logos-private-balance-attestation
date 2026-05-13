@@ -4,7 +4,7 @@
 private LEZ account balance meets a public threshold without revealing the
 account or exact balance.
 
-The intended final product has one proof format and two verification paths:
+The current implementation has one proof format and two verification paths:
 
 ```mermaid
 flowchart LR
@@ -14,7 +14,8 @@ flowchart LR
   Envelope["Attestation envelope<br/>receipt + public journal"]
   Offchain["Off-chain verifier<br/>local access decision"]
   Messaging["Logos Messaging<br/>proof transport"]
-  LEZProgram["LEZ verifier program<br/>gated action"]
+  HostVerifier["Host verifier<br/>mandatory precheck"]
+  GateLedger["LEZ gate ledger<br/>nullifier state"]
   ChainState["LEZ public state<br/>access/vote/claim"]
 
   Wallet --> Prover
@@ -23,8 +24,9 @@ flowchart LR
   Envelope --> Offchain
   Envelope --> Messaging
   Messaging --> Offchain
-  Envelope --> LEZProgram
-  LEZProgram --> ChainState
+  Envelope --> HostVerifier
+  HostVerifier --> GateLedger
+  GateLedger --> ChainState
 ```
 
 ## Components
@@ -34,11 +36,28 @@ flowchart LR
 | `attestation-core` | Shared types, error codes, public journal schema, context hashing, nullifier derivation, LEZ-compatible commitment and Merkle root helpers. |
 | `attestation-prover` | Reads local wallet state, fetches the Merkle membership proof from the sequencer, builds the witness, and runs the RISC Zero prover. |
 | `attestation-verifier` | Verifies an attestation envelope locally without submitting a transaction. |
-| `attestation-cli` | Developer CLI for proving, verifying, sending, receiving, and invoking the on-chain path. |
+| `attestation-cli` | Developer CLI for proving, verifying, and invoking the current Workable gate path. |
 | `methods/guest` | RISC Zero guest circuit that checks balance threshold, commitment reconstruction, Merkle membership, and context binding. |
-| `lez/verifier-program` | LEZ program that accepts a proof envelope and gates an on-chain action. |
-| `apps/basecamp` | Basecamp GUI that wraps the CLI/backend flow for a visual demo. |
+| `lez-verifier/program` | Deployable LEZ gate-ledger/nullifier program used after host-side envelope verification. |
+| `apps/basecamp` | Backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit. |
 | `examples` | Reference integrations required by the prize: governance gate, Messaging group gate, and a third app. |
+
+## Basecamp MVP
+
+`apps/basecamp/` keeps the visual layer thin and delegates to the same local
+scripts used by the reproducible terminal demo:
+
+```text
+check-wallet-preflight.sh
+  -> demo-local-sequencer-e2e.sh
+  -> balance-attest verify
+  -> demo-local-gate-e2e.sh
+```
+
+The backend sets `LOGOS_LEZ_REPO`, `LEZ_REPO`, `NSSA_WALLET_HOME_DIR`,
+`RISC0_DEV_MODE`, context fields, and output directories before each command.
+It reads public outputs such as `run.json`, `verify.json`, and gate reports.
+It does not parse or display `witness.json`.
 
 ## LEZ Private Account Commitment
 

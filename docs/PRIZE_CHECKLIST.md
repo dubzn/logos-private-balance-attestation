@@ -29,7 +29,7 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | SDK/module for Logos modules. | done | `crates/attestation-sdk/` umbrella; off-chain default + `on-chain` feature. |
-| Basecamp GUI with local build instructions. | planned | `apps/basecamp`, backend-backed `ui_qml`. |
+| Basecamp GUI with local build instructions. | in-progress | `apps/basecamp/`: backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit flow. |
 | SPEL IDL for LEZ program. | done | `idl/balance-attestation-verifier.json`; `docs/IDL_DRAFT.md` is the prose companion. |
 
 ## Reliability
@@ -54,7 +54,7 @@ Status legend:
 | Program deployed and tested on devnet/testnet. | partial | Spike 08 deployed a local build via `wallet deploy-program` on 2026-05-05 and included register/init/admit blocks. The deployable program id is generated from the embedded ELF image id at build time; `lez-verifier/program/tests/program_journal_roundtrip.rs::program_id_matches_embedded_elf_image_id` checks that the exported id matches the embedded ELF. Public testnet deployment still pending. |
 | E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites are in-memory/synthetic. `scripts/demo-local-sequencer-e2e.sh` exercises wallet + real `getProofForCommitment`; `scripts/demo-local-gate-e2e.sh` wraps the live Workable gate flow (register presenter, init gate, admit, nullifier assertion). CI/local clean-room automation still pending. |
 | CI green on default branch. | done locally / pending remote confirmation | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`) plus isolated deployable-program checks. Needs GitHub run after merge. |
-| README covers CLI and Basecamp for both paths. | done (CLI side) | `README.md` quick-start; Basecamp section pending the GUI. |
+| README covers CLI and Basecamp for both paths. | in-progress | `README.md` quick-start plus `apps/basecamp/README.md`; final package/install docs pending. |
 | Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | `scripts/demo-local-full-e2e.sh` passed locally on 2026-05-08 with synced LEZ fork, wallet state + real `getProofForCommitment`, proof verify `status: ok`, LEZ gate admit, nullifier persisted, and duplicate admit `not-applied`. Clean-room video still pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 

@@ -68,6 +68,7 @@ crates/attestation-sdk       umbrella crate for integrations
 methods/                     production RISC Zero balance-attestation circuit
 lez-verifier/                in-memory recursive/on-chain-path rehearsal
 lez-verifier/program/        deployable LEZ gate-state program
+apps/basecamp/               backend-backed ui_qml Basecamp MVP
 examples/governance-gate/    reference governance integration
 examples/chat-gate/          reference chat/admission integration
 spikes/                      risk spikes and local LEZ probes
@@ -255,6 +256,7 @@ These are not devnet/testnet CU metrics. CU measurement is still pending.
 - [Benchmarks](docs/BENCHMARKS.md): local proof/gate timings and remaining CU work.
 - [Error Codes](docs/ERROR_CODES.md): deterministic BAxxx errors.
 - [IDL Draft](docs/IDL_DRAFT.md): LEZ verifier interface.
+- [Basecamp MVP](apps/basecamp/README.md): local `ui_qml` proof and gate workflow.
 - [Next Steps](docs/NEXT_STEPS.md): ordered backlog to final submission.
 - [Risk Spikes](docs/RISK_SPIKES.md): high-risk assumptions and validation plan.
 - [Reference Notes](docs/REFERENCE_NOTES.md): public research notes and compatibility findings.

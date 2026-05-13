@@ -1,6 +1,7 @@
 .spike-results/
 .demo-runs/
 target/
+result
 .DS_Store
 logos/
 logos
