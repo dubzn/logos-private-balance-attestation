@@ -53,6 +53,12 @@ Done locally:
   00:03:30, verify `ok`, nullifier count `1`, duplicate admit `not-applied`
 - `apps/basecamp/` contains a backend-backed `ui_qml` MVP that wraps preflight,
   proof generation, envelope verification, and Workable gate admit
+- the local `logos-execution-zone` fork was synced with upstream `main` at
+  `41fa494e` on 2026-05-14; the update includes wallet/private-account changes
+  and Nix pin fixes, so fresh wallet homes may be needed after switching
+  checkouts
+- the Basecamp MVP now builds through `mkLogosQmlModule` as a real Qt plugin
+  plus replica factory; direct `ui-host` smoke test reached `READY`
 
 Current command set:
 
@@ -65,9 +71,9 @@ cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-o
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
 PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
 RUN_DIR=.demo-runs/local-sequencer/<run> scripts/demo-local-gate-e2e.sh
-PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-full-e2e.sh
+PRIVATE_ACCOUNT=Private/<id> ./demo.sh
 scripts/clean-local-artifacts.sh
-cd apps/basecamp && nix build
+cd apps/basecamp && nix build .#install
 ```
 
 ## Ordered Backlog
@@ -91,9 +97,9 @@ cd apps/basecamp && nix build
    - Replace with the accepted Logos Messaging path once confirmed.
 
 4. Harden Basecamp GUI.
-   - Confirm packaging/install flow against the active Basecamp build.
-   - Add typed replica generation if the selected Basecamp package path needs
-     it.
+   - Run a manual end-to-end UX pass from inside Basecamp.
+   - Keep the `nix build .#install` packaging path aligned with the active
+     Basecamp build.
    - Keep the UI limited to public/sanitized proof state.
 
 5. Add final submission support.

@@ -28,8 +28,39 @@ public run summaries and verifier/gate outputs.
 From this directory:
 
 ```sh
-nix build
+nix build .#install
 ```
+
+The build output is a Basecamp install tree:
+
+```text
+result/plugins/balance_attestation/
+```
+
+For a local Basecamp dev instance, install it under the Basecamp user
+`plugins/` directory, not `modules/`:
+
+```sh
+export BASECAMP_USER_DIR=/Users/dub/Desktop/logos/basecamp-balance-attestation-user
+
+rm -rf "$BASECAMP_USER_DIR/plugins/balance_attestation"
+mkdir -p "$BASECAMP_USER_DIR/plugins"
+cp -R result/plugins/balance_attestation "$BASECAMP_USER_DIR/plugins/"
+chmod -R u+w "$BASECAMP_USER_DIR/plugins/balance_attestation"
+```
+
+Then restart Basecamp with the same user dir. The app should appear in
+`Modules -> UI Modules` as `balance_attestation`.
+
+The install tree must contain both backend libraries:
+
+```text
+balance_attestation_plugin.dylib
+balance_attestation_replica_factory.dylib
+```
+
+A direct `ui-host` smoke test should reach `READY`; otherwise Basecamp will
+show the plugin but time out while loading it.
 
 If Nix/Qt is unavailable, the repository-level smoke check still validates the
 QML/C++ files for public hygiene and shell flow compatibility:

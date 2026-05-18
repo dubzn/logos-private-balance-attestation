@@ -13,6 +13,18 @@ workdir/
   logos-execution-zone/
 ```
 
+Current tested fork baseline:
+
+```text
+logos-blockchain/logos-execution-zone main @ 41fa494e
+synced locally on 2026-05-14
+```
+
+The LEZ wallet storage format and private-account helpers can change between
+checkouts. If you switch to a newer LEZ commit and see wallet deserialization,
+program-id, or local-id mismatch errors, create a fresh wallet home for that
+checkout and run `scripts/check-wallet-preflight.sh` before any heavy E2E.
+
 From the attestation repo root:
 
 ```sh
@@ -441,7 +453,7 @@ To compose the proof phase and gate phase in one command:
 cd "$BALANCE_ATTEST_REPO"
 PRIVATE_ACCOUNT=Private/<private-account-id> \
 RISC0_DEV_MODE=0 \
-  scripts/demo-local-full-e2e.sh
+  ./demo.sh
 ```
 
 The script creates:
@@ -469,8 +481,24 @@ Build check:
 
 ```sh
 cd "$BALANCE_ATTEST_REPO/apps/basecamp"
-nix build
+nix build .#install
 ```
+
+Install into a local Basecamp dev user directory:
+
+```sh
+export BASECAMP_USER_DIR=/Users/dub/Desktop/logos/basecamp-balance-attestation-user
+
+rm -rf "$BASECAMP_USER_DIR/plugins/balance_attestation"
+mkdir -p "$BASECAMP_USER_DIR/plugins"
+cp -R "$BALANCE_ATTEST_REPO/apps/basecamp/result/plugins/balance_attestation" \
+  "$BASECAMP_USER_DIR/plugins/"
+chmod -R u+w "$BASECAMP_USER_DIR/plugins/balance_attestation"
+```
+
+Launch Basecamp with that same user directory. The module should show under
+`Modules -> UI Modules` as `balance_attestation`. UI modules are discovered
+from `plugins/`; `modules/` is for core modules.
 
 If Basecamp launches from outside the repository checkout, set:
 

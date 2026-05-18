@@ -7,7 +7,7 @@
   "view": "src/qml/BalanceAttestation.qml",
   "dependencies": [],
   "category": "blockchain",
-  "icon": null,
+  "icon": "assets/icon.svg",
   "nix": {
     "packages": {
       "build": [],

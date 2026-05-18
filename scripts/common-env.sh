@@ -150,11 +150,29 @@ else:
 
         private = entry.get("Private")
         if isinstance(private, dict):
-            if "account_id" in private or "identifiers" not in private:
-                errors.append(
-                    f"accounts[{index}].Private uses an older private-account storage shape "
-                    "(expected 'identifiers', found old-style fields)"
-                )
+            if "kinds" not in private:
+                if "identifiers" in private:
+                    errors.append(
+                        f"accounts[{index}].Private uses the pre-PrivateAccountKind storage shape "
+                        "(found 'identifiers', expected 'kinds')"
+                    )
+                else:
+                    errors.append(
+                        f"accounts[{index}].Private is missing 'kinds' for this LEZ checkout"
+                    )
+
+            value = private.get("data", {}).get("value")
+            if isinstance(value, list) and len(value) > 1 and isinstance(value[1], list):
+                for account_index, pair in enumerate(value[1]):
+                    if (
+                        isinstance(pair, list)
+                        and pair
+                        and isinstance(pair[0], int)
+                    ):
+                        errors.append(
+                            f"accounts[{index}].Private.data.value[1][{account_index}] "
+                            "uses an integer identifier; expected a PrivateAccountKind object"
+                        )
 
         preconfigured = entry.get("Preconfigured")
         if isinstance(preconfigured, dict):

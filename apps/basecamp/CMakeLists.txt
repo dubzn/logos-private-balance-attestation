@@ -1,22 +1,19 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.14)
 project(balance_attestation LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_AUTOMOC ON)
+if(DEFINED ENV{LOGOS_MODULE_BUILDER_ROOT})
+    include($ENV{LOGOS_MODULE_BUILDER_ROOT}/cmake/LogosModule.cmake)
+else()
+    message(FATAL_ERROR "LogosModule.cmake not found. Set LOGOS_MODULE_BUILDER_ROOT.")
+endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Qml RemoteObjects)
-
-qt_add_library(balance_attestation_plugin SHARED
-    src/BalanceAttestationBackend.cpp
-    src/BalanceAttestationBackend.h
+logos_module(
+    NAME balance_attestation
+    REP_FILE src/balance_attestation.rep
+    SOURCES
+        src/BalanceAttestationBackend.cpp
+        src/BalanceAttestationBackend.h
+        src/balance_attestation_interface.h
+        src/balance_attestation_plugin.cpp
+        src/balance_attestation_plugin.h
 )
-
-target_link_libraries(balance_attestation_plugin
-    PRIVATE
-        Qt6::Core
-        Qt6::Qml
-        Qt6::RemoteObjects
-)
-
-target_include_directories(balance_attestation_plugin PRIVATE src)

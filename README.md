@@ -26,6 +26,7 @@ Implemented locally:
 - Off-chain verifier crate for the public proof envelope.
 - CLI for inspect/prove/verify and LEZ gate commands.
 - Deployable LEZ gate-state program for the current Workable path.
+- Backend-backed Basecamp GUI MVP that loads as a `ui_qml` plugin locally.
 - Two reference integrations: governance gate and chat gate.
 - IDL artifact, deterministic error codes, CI, local E2E scripts, and local
   benchmark documentation.
@@ -33,7 +34,7 @@ Implemented locally:
 Still pending for final LP-0005 submission:
 
 - Evaluator-approved on-chain verification model.
-- Basecamp GUI.
+- Basecamp UX polish and final package/install validation.
 - Logos Messaging-specific transport adapter or accepted equivalent.
 - Third reference integration, ideally with an external integrator.
 - LEZ devnet/testnet deployment and CU measurements.
@@ -95,6 +96,11 @@ The scripts resolve the LEZ checkout in this order: `LOGOS_LEZ_REPO`,
 source scripts/env.example
 ```
 
+The current local fork baseline is synced with
+`logos-blockchain/logos-execution-zone` `main` at `41fa494e` (2026-05-14). If
+you update LEZ again and hit wallet storage errors, create a fresh wallet home
+for that checkout and rerun `scripts/check-wallet-preflight.sh`.
+
 Run the fast smoke demo with deterministic fixtures:
 
 ```sh
@@ -122,10 +128,11 @@ real witness. Once it passes, run:
 PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
 THRESHOLD=1 \
 RISC0_DEV_MODE=0 \
-  scripts/demo-local-full-e2e.sh
+  ./demo.sh
 ```
 
-That script composes:
+`demo.sh` is the Lambda Prize root entrypoint and delegates to
+`scripts/demo-local-full-e2e.sh`. That script composes:
 
 ```text
 real local wallet state

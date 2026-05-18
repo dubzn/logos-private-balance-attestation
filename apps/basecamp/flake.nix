@@ -2,40 +2,15 @@
   description = "Private Balance Attestation Basecamp ui_qml module";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/e9f00bd893984bc8ce46c895c3bf7cac95331127";
+    logos-module-builder.url = "github:logos-co/logos-module-builder/b0e41abf3e14c0534b41933c5f8e3fc697319037";
+    logos-module-builder.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs }:
-    let
-      systems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ];
-      forAllSystems = f:
-        nixpkgs.lib.genAttrs systems (system:
-          f {
-            pkgs = import nixpkgs { inherit system; };
-          });
-    in
-    {
-      packages = forAllSystems ({ pkgs }: {
-        default = pkgs.stdenv.mkDerivation {
-          pname = "balance_attestation";
-          version = "0.1.0";
-          src = ./.;
-
-          nativeBuildInputs = [ pkgs.cmake pkgs.qt6.wrapQtAppsHook ];
-          buildInputs = [ pkgs.qt6.qtbase pkgs.qt6.qtdeclarative pkgs.qt6.qtremoteobjects ];
-
-          installPhase = ''
-            mkdir -p $out/balance_attestation/src/qml
-            cp $src/metadata.json $out/balance_attestation/
-            cp $src/src/qml/BalanceAttestation.qml $out/balance_attestation/src/qml/
-            if [ -f libbalance_attestation_plugin.dylib ]; then
-              cp libbalance_attestation_plugin.dylib $out/balance_attestation/
-            fi
-            if [ -f libbalance_attestation_plugin.so ]; then
-              cp libbalance_attestation_plugin.so $out/balance_attestation/
-            fi
-          '';
-        };
-      });
+  outputs = inputs@{ logos-module-builder, ... }:
+    logos-module-builder.lib.mkLogosQmlModule {
+      src = ./.;
+      configFile = ./metadata.json;
+      flakeInputs = inputs;
     };
 }

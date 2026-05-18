@@ -77,139 +77,88 @@ QString tailText(const QString &value, int maxChars = 12000)
 } // namespace
 
 BalanceAttestationBackend::BalanceAttestationBackend(QObject *parent)
-    : QObject(parent),
-      m_repoDir(discoverRepoRoot()),
-      m_lezRepoDir(defaultLezRepo(m_repoDir)),
-      m_walletHomeDir(m_lezRepoDir + "/.wallet-local"),
-      m_chainIdHex(repeatByte("10")),
-      m_verifierIdHex(repeatByte("20")),
-      m_gateIdHex(repeatByte("30")),
-      m_presentationChallengeHex(repeatByte("44"))
+    : BalanceAttestationSimpleSource(parent)
 {
+    const auto root = discoverRepoRoot();
+    setRepoDir(root);
+    setLezRepoDir(defaultLezRepo(root));
+    setWalletHomeDir(lezRepoDir() + "/.wallet-local");
+    setThreshold("1");
+    setChainIdHex(repeatByte("10"));
+    setVerifierIdHex(repeatByte("20"));
+    setGateIdHex(repeatByte("30"));
+    setPresentationChallengeHex(repeatByte("44"));
+    setRealProving(true);
+    setStatus("Ready");
 }
 
-QString BalanceAttestationBackend::repoDir() const { return m_repoDir; }
-QString BalanceAttestationBackend::lezRepoDir() const { return m_lezRepoDir; }
-QString BalanceAttestationBackend::walletHomeDir() const { return m_walletHomeDir; }
-QString BalanceAttestationBackend::privateAccount() const { return m_privateAccount; }
-QString BalanceAttestationBackend::threshold() const { return m_threshold; }
-QString BalanceAttestationBackend::chainIdHex() const { return m_chainIdHex; }
-QString BalanceAttestationBackend::verifierIdHex() const { return m_verifierIdHex; }
-QString BalanceAttestationBackend::gateIdHex() const { return m_gateIdHex; }
-QString BalanceAttestationBackend::presentationChallengeHex() const { return m_presentationChallengeHex; }
-bool BalanceAttestationBackend::realProving() const { return m_realProving; }
-bool BalanceAttestationBackend::busy() const { return m_busy; }
-QString BalanceAttestationBackend::status() const { return m_status; }
-QString BalanceAttestationBackend::proofRunDir() const { return m_proofRunDir; }
-QString BalanceAttestationBackend::gateRunDir() const { return m_gateRunDir; }
-QString BalanceAttestationBackend::proofRunJson() const { return m_proofRunJson; }
-QString BalanceAttestationBackend::verifyJson() const { return m_verifyJson; }
-QString BalanceAttestationBackend::gateRunJson() const { return m_gateRunJson; }
-
-void BalanceAttestationBackend::configureRepoDir(const QString &value)
+void BalanceAttestationBackend::setRepoDir(QString value)
 {
-    const auto cleaned = QDir::cleanPath(value.trimmed());
-    if (m_repoDir == cleaned) {
-        return;
-    }
-    m_repoDir = cleaned;
-    emit repoDirChanged();
+    BalanceAttestationSimpleSource::setRepoDir(QDir::cleanPath(value.trimmed()));
 }
 
-void BalanceAttestationBackend::configureLezRepoDir(const QString &value)
+void BalanceAttestationBackend::setLezRepoDir(QString value)
 {
     const auto cleaned = QDir::cleanPath(value.trimmed());
-    if (m_lezRepoDir == cleaned) {
-        return;
-    }
-    m_lezRepoDir = cleaned;
-    emit lezRepoDirChanged();
+    const auto previousWallet = walletHomeDir();
+    BalanceAttestationSimpleSource::setLezRepoDir(cleaned);
 
     const auto defaultWallet = cleaned + "/.wallet-local";
-    if (m_walletHomeDir.isEmpty() || m_walletHomeDir.endsWith("/.wallet-local")) {
-        m_walletHomeDir = defaultWallet;
-        emit walletHomeDirChanged();
+    if (previousWallet.isEmpty() || previousWallet.endsWith("/.wallet-local")) {
+        setWalletHomeDir(defaultWallet);
     }
 }
 
-void BalanceAttestationBackend::configureWalletHomeDir(const QString &value)
+void BalanceAttestationBackend::setWalletHomeDir(QString value)
 {
-    const auto cleaned = QDir::cleanPath(value.trimmed());
-    if (m_walletHomeDir == cleaned) {
-        return;
-    }
-    m_walletHomeDir = cleaned;
-    emit walletHomeDirChanged();
+    BalanceAttestationSimpleSource::setWalletHomeDir(QDir::cleanPath(value.trimmed()));
 }
 
-void BalanceAttestationBackend::configurePrivateAccount(const QString &value)
+void BalanceAttestationBackend::setPrivateAccount(QString value)
 {
-    const auto trimmed = value.trimmed();
-    if (m_privateAccount == trimmed) {
-        return;
-    }
-    m_privateAccount = trimmed;
-    emit privateAccountChanged();
+    BalanceAttestationSimpleSource::setPrivateAccount(value.trimmed());
 }
 
-void BalanceAttestationBackend::configureThreshold(const QString &value)
+void BalanceAttestationBackend::setThreshold(QString value)
 {
-    const auto trimmed = value.trimmed();
-    if (m_threshold == trimmed) {
-        return;
-    }
-    m_threshold = trimmed;
-    emit thresholdChanged();
+    BalanceAttestationSimpleSource::setThreshold(value.trimmed());
 }
 
-void BalanceAttestationBackend::configureChainIdHex(const QString &value)
+void BalanceAttestationBackend::setChainIdHex(QString value)
 {
-    const auto trimmed = value.trimmed();
-    if (m_chainIdHex == trimmed) {
-        return;
-    }
-    m_chainIdHex = trimmed;
-    emit chainIdHexChanged();
+    BalanceAttestationSimpleSource::setChainIdHex(value.trimmed());
 }
 
-void BalanceAttestationBackend::configureVerifierIdHex(const QString &value)
+void BalanceAttestationBackend::setVerifierIdHex(QString value)
 {
-    const auto trimmed = value.trimmed();
-    if (m_verifierIdHex == trimmed) {
-        return;
-    }
-    m_verifierIdHex = trimmed;
-    emit verifierIdHexChanged();
+    BalanceAttestationSimpleSource::setVerifierIdHex(value.trimmed());
 }
 
-void BalanceAttestationBackend::configureGateIdHex(const QString &value)
+void BalanceAttestationBackend::setGateIdHex(QString value)
 {
-    const auto trimmed = value.trimmed();
-    if (m_gateIdHex == trimmed) {
-        return;
-    }
-    m_gateIdHex = trimmed;
-    emit gateIdHexChanged();
+    BalanceAttestationSimpleSource::setGateIdHex(value.trimmed());
 }
 
-void BalanceAttestationBackend::configurePresentationChallengeHex(const QString &value)
+void BalanceAttestationBackend::setPresentationChallengeHex(QString value)
 {
-    const auto trimmed = value.trimmed();
-    if (m_presentationChallengeHex == trimmed) {
-        return;
-    }
-    m_presentationChallengeHex = trimmed;
-    emit presentationChallengeHexChanged();
+    BalanceAttestationSimpleSource::setPresentationChallengeHex(value.trimmed());
 }
 
-void BalanceAttestationBackend::configureRealProving(bool value)
+void BalanceAttestationBackend::setRealProving(bool value)
 {
-    if (m_realProving == value) {
-        return;
-    }
-    m_realProving = value;
-    emit realProvingChanged();
+    BalanceAttestationSimpleSource::setRealProving(value);
 }
+
+void BalanceAttestationBackend::configureRepoDir(QString value) { setRepoDir(value); }
+void BalanceAttestationBackend::configureLezRepoDir(QString value) { setLezRepoDir(value); }
+void BalanceAttestationBackend::configureWalletHomeDir(QString value) { setWalletHomeDir(value); }
+void BalanceAttestationBackend::configurePrivateAccount(QString value) { setPrivateAccount(value); }
+void BalanceAttestationBackend::configureThreshold(QString value) { setThreshold(value); }
+void BalanceAttestationBackend::configureChainIdHex(QString value) { setChainIdHex(value); }
+void BalanceAttestationBackend::configureVerifierIdHex(QString value) { setVerifierIdHex(value); }
+void BalanceAttestationBackend::configureGateIdHex(QString value) { setGateIdHex(value); }
+void BalanceAttestationBackend::configurePresentationChallengeHex(QString value) { setPresentationChallengeHex(value); }
+void BalanceAttestationBackend::configureRealProving(bool value) { setRealProving(value); }
 
 void BalanceAttestationBackend::runPreflight()
 {
@@ -234,12 +183,12 @@ void BalanceAttestationBackend::generateProof()
         {scriptPath("demo-local-sequencer-e2e.sh")},
         {
             {"PRIVATE_ACCOUNT", normalizedPrivateAccount()},
-            {"THRESHOLD", m_threshold},
+            {"THRESHOLD", threshold()},
             {"DEMO_DIR", dir},
-            {"CHAIN_ID_HEX", m_chainIdHex},
-            {"VERIFIER_ID_HEX", m_verifierIdHex},
-            {"GATE_ID_HEX", m_gateIdHex},
-            {"PRESENTATION_CHALLENGE_HEX", m_presentationChallengeHex},
+            {"CHAIN_ID_HEX", chainIdHex()},
+            {"VERIFIER_ID_HEX", verifierIdHex()},
+            {"GATE_ID_HEX", gateIdHex()},
+            {"PRESENTATION_CHALLENGE_HEX", presentationChallengeHex()},
         },
         OutputTarget::ProofRun
     );
@@ -260,9 +209,9 @@ void BalanceAttestationBackend::verifyEnvelope()
             "--",
             "verify",
             "--envelope",
-            m_proofRunDir + "/envelope.json",
+            proofRunDir() + "/envelope.json",
             "--gate",
-            m_proofRunDir + "/gate.json",
+            proofRunDir() + "/gate.json",
         },
         {},
         OutputTarget::Verify
@@ -283,7 +232,7 @@ void BalanceAttestationBackend::executeGateAdmit()
         "bash",
         {scriptPath("demo-local-gate-e2e.sh")},
         {
-            {"RUN_DIR", m_proofRunDir},
+            {"RUN_DIR", proofRunDir()},
             {"DEMO_DIR", dir},
             {"REUSE_GATE_ACCOUNTS", "0"},
         },
@@ -303,80 +252,64 @@ void BalanceAttestationBackend::clearOutputs()
 
 void BalanceAttestationBackend::setBusy(bool value)
 {
-    if (m_busy == value) {
-        return;
-    }
-    m_busy = value;
-    emit busyChanged();
+    BalanceAttestationSimpleSource::setBusy(value);
 }
 
-void BalanceAttestationBackend::setStatus(const QString &value)
+void BalanceAttestationBackend::setStatus(QString value)
 {
-    m_status = tailText(value.trimmed().isEmpty() ? QString("Done") : value.trimmed());
-    emit statusChanged();
+    BalanceAttestationSimpleSource::setStatus(tailText(value.trimmed().isEmpty() ? QString("Done") : value.trimmed()));
 }
 
-void BalanceAttestationBackend::setProofRunDir(const QString &value)
+void BalanceAttestationBackend::setProofRunDir(QString value)
 {
-    if (m_proofRunDir == value) {
-        return;
-    }
-    m_proofRunDir = value;
-    emit proofRunDirChanged();
+    BalanceAttestationSimpleSource::setProofRunDir(value);
 }
 
-void BalanceAttestationBackend::setGateRunDir(const QString &value)
+void BalanceAttestationBackend::setGateRunDir(QString value)
 {
-    if (m_gateRunDir == value) {
-        return;
-    }
-    m_gateRunDir = value;
-    emit gateRunDirChanged();
+    BalanceAttestationSimpleSource::setGateRunDir(value);
 }
 
-void BalanceAttestationBackend::setProofRunJson(const QString &value)
+void BalanceAttestationBackend::setProofRunJson(QString value)
 {
-    m_proofRunJson = value;
-    emit proofRunJsonChanged();
+    BalanceAttestationSimpleSource::setProofRunJson(value);
 }
 
-void BalanceAttestationBackend::setVerifyJson(const QString &value)
+void BalanceAttestationBackend::setVerifyJson(QString value)
 {
-    m_verifyJson = value;
-    emit verifyJsonChanged();
+    BalanceAttestationSimpleSource::setVerifyJson(value);
 }
 
-void BalanceAttestationBackend::setGateRunJson(const QString &value)
+void BalanceAttestationBackend::setGateRunJson(QString value)
 {
-    m_gateRunJson = value;
-    emit gateRunJsonChanged();
+    BalanceAttestationSimpleSource::setGateRunJson(value);
 }
 
 bool BalanceAttestationBackend::validateCommonInputs(bool requireProofRun)
 {
-    if (m_repoDir.isEmpty() || !QFileInfo::exists(m_repoDir + "/Cargo.toml")) {
+    if (repoDir().isEmpty() || !QFileInfo::exists(repoDir() + "/Cargo.toml")) {
         setStatus("Repository directory is invalid");
         return false;
     }
-    if (m_lezRepoDir.isEmpty() || !QFileInfo::exists(m_lezRepoDir + "/Cargo.toml")) {
+    if (lezRepoDir().isEmpty() || !QFileInfo::exists(lezRepoDir() + "/Cargo.toml")) {
         setStatus("LEZ repository directory is invalid");
         return false;
     }
-    if (m_walletHomeDir.isEmpty()) {
+    if (walletHomeDir().isEmpty()) {
         setStatus("Wallet home is required");
         return false;
     }
-    if (m_privateAccount.isEmpty()) {
+    if (privateAccount().isEmpty()) {
         setStatus("Private account is required");
         return false;
     }
     bool thresholdOk = false;
-    m_threshold.toULongLong(&thresholdOk);
+    threshold().toULongLong(&thresholdOk);
     if (!thresholdOk) {
         setStatus("Threshold must be a decimal integer");
         return false;
     }
-    if (requireProofRun && (m_proofRunDir.isEmpty() || !QFileInfo::exists(m_proofRunDir + "/envelope.json"))) {
+    if (requireProofRun && (proofRunDir().isEmpty() || !QFileInfo::exists(proofRunDir() + "/envelope.json"))) {
         setStatus("Generate a proof before this action");
         return false;
     }
@@ -385,7 +318,7 @@ bool BalanceAttestationBackend::validateCommonInputs(bool requireProofRun)
 
 QString BalanceAttestationBackend::normalizedPrivateAccount() const
 {
-    auto account = m_privateAccount.trimmed();
+    auto account = privateAccount().trimmed();
     if (!account.startsWith("Private/")) {
         account = "Private/" + account;
     }
@@ -394,21 +327,21 @@ QString BalanceAttestationBackend::normalizedPrivateAccount() const
 
 QString BalanceAttestationBackend::proofDemoDir() const
 {
-    return QDir::cleanPath(m_repoDir + "/.demo-runs/basecamp/" + timestamp() + "/proof");
+    return QDir::cleanPath(repoDir() + "/.demo-runs/basecamp/" + timestamp() + "/proof");
 }
 
 QString BalanceAttestationBackend::gateDemoDir() const
 {
-    const auto base = m_proofRunDir;
+    const auto base = proofRunDir();
     if (base.endsWith("/proof")) {
         return QDir::cleanPath(base.left(base.size() - QString("/proof").size()) + "/gate");
     }
-    return QDir::cleanPath(m_repoDir + "/.demo-runs/basecamp/" + timestamp() + "/gate");
+    return QDir::cleanPath(repoDir() + "/.demo-runs/basecamp/" + timestamp() + "/gate");
 }
 
 QString BalanceAttestationBackend::scriptPath(const QString &name) const
 {
-    return QDir::cleanPath(m_repoDir + "/scripts/" + name);
+    return QDir::cleanPath(repoDir() + "/scripts/" + name);
 }
 
 QString BalanceAttestationBackend::readTextFile(const QString &path) const
@@ -428,12 +361,12 @@ QString BalanceAttestationBackend::timestamp() const
 QProcessEnvironment BalanceAttestationBackend::processEnvironment(const QMap<QString, QString> &overrides) const
 {
     auto env = QProcessEnvironment::systemEnvironment();
-    env.insert("BALANCE_ATTEST_REPO", m_repoDir);
-    env.insert("LOGOS_BALANCE_ATTESTATION_ROOT", m_repoDir);
-    env.insert("LOGOS_LEZ_REPO", m_lezRepoDir);
-    env.insert("LEZ_REPO", m_lezRepoDir);
-    env.insert("NSSA_WALLET_HOME_DIR", m_walletHomeDir);
-    env.insert("RISC0_DEV_MODE", m_realProving ? "0" : "1");
+    env.insert("BALANCE_ATTEST_REPO", repoDir());
+    env.insert("LOGOS_BALANCE_ATTESTATION_ROOT", repoDir());
+    env.insert("LOGOS_LEZ_REPO", lezRepoDir());
+    env.insert("LEZ_REPO", lezRepoDir());
+    env.insert("NSSA_WALLET_HOME_DIR", walletHomeDir());
+    env.insert("RISC0_DEV_MODE", realProving() ? "0" : "1");
     for (auto it = overrides.constBegin(); it != overrides.constEnd(); ++it) {
         env.insert(it.key(), it.value());
     }
@@ -447,7 +380,7 @@ void BalanceAttestationBackend::runProcess(
     OutputTarget outputTarget
 )
 {
-    if (m_busy) {
+    if (busy()) {
         setStatus("Another command is already running");
         return;
     }
@@ -456,7 +389,7 @@ void BalanceAttestationBackend::runProcess(
     setStatus(program + " " + arguments.join(" "));
 
     auto *process = new QProcess(this);
-    process->setWorkingDirectory(m_repoDir);
+    process->setWorkingDirectory(repoDir());
     process->setProcessEnvironment(processEnvironment(envOverrides));
 
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, process, outputTarget](int exitCode, QProcess::ExitStatus exitStatus) {
@@ -466,12 +399,12 @@ void BalanceAttestationBackend::runProcess(
 
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
             if (outputTarget == OutputTarget::ProofRun) {
-                setProofRunJson(readTextFile(m_proofRunDir + "/run.json"));
-                setVerifyJson(readTextFile(m_proofRunDir + "/verify.json"));
+                setProofRunJson(readTextFile(proofRunDir() + "/run.json"));
+                setVerifyJson(readTextFile(proofRunDir() + "/verify.json"));
             } else if (outputTarget == OutputTarget::Verify) {
                 setVerifyJson(stdoutText.trimmed());
             } else if (outputTarget == OutputTarget::GateRun) {
-                setGateRunJson(readTextFile(m_gateRunDir + "/run.json"));
+                setGateRunJson(readTextFile(gateRunDir() + "/run.json"));
             }
             setStatus(combined.isEmpty() ? QString("Done") : combined);
         } else {
