@@ -7,6 +7,9 @@
 #include <QFileInfo>
 #include <QMap>
 #include <QProcessEnvironment>
+#include <QRegularExpression>
+
+#include <memory>
 
 namespace {
 
@@ -72,6 +75,13 @@ QString tailText(const QString &value, int maxChars = 12000)
         return value;
     }
     return value.right(maxChars);
+}
+
+QString stripAnsiSequences(QString value)
+{
+    static const QRegularExpression ansiPattern(QStringLiteral("\\x1B\\[[0-?]*[ -/]*[@-~]"));
+    value.remove(ansiPattern);
+    return value;
 }
 
 } // namespace
@@ -257,7 +267,8 @@ void BalanceAttestationBackend::setBusy(bool value)
 
 void BalanceAttestationBackend::setStatus(QString value)
 {
-    BalanceAttestationSimpleSource::setStatus(tailText(value.trimmed().isEmpty() ? QString("Done") : value.trimmed()));
+    const auto cleaned = stripAnsiSequences(value).trimmed();
+    BalanceAttestationSimpleSource::setStatus(tailText(cleaned.isEmpty() ? QString("Done") : cleaned));
 }
 
 void BalanceAttestationBackend::setProofRunDir(QString value)
@@ -386,23 +397,51 @@ void BalanceAttestationBackend::runProcess(
     }
 
     setBusy(true);
-    setStatus(program + " " + arguments.join(" "));
+    setStatus("Running:\n" + program + " " + arguments.join(" "));
 
     auto *process = new QProcess(this);
+    auto stdoutBuffer = std::make_shared<QString>();
+    auto stderrBuffer = std::make_shared<QString>();
     process->setWorkingDirectory(repoDir());
     process->setProcessEnvironment(processEnvironment(envOverrides));
 
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, process, outputTarget](int exitCode, QProcess::ExitStatus exitStatus) {
-        const auto stdoutText = QString::fromUtf8(process->readAllStandardOutput());
-        const auto stderrText = QString::fromUtf8(process->readAllStandardError());
-        const auto combined = QString(stdoutText + (stderrText.isEmpty() ? QString() : "\n" + stderrText)).trimmed();
+    auto appendOutput = [this, stdoutBuffer, stderrBuffer](const QString &text, bool isStdErr) {
+        if (text.isEmpty()) {
+            return;
+        }
+        if (isStdErr) {
+            stderrBuffer->append(text);
+        } else {
+            stdoutBuffer->append(text);
+        }
+
+        const auto combined = QString(*stdoutBuffer
+            + (stderrBuffer->isEmpty() ? QString() : "\n" + *stderrBuffer)).trimmed();
+        if (!combined.isEmpty()) {
+            setStatus(combined);
+        }
+    };
+
+    connect(process, &QProcess::readyReadStandardOutput, this, [process, appendOutput]() {
+        appendOutput(QString::fromUtf8(process->readAllStandardOutput()), false);
+    });
+    connect(process, &QProcess::readyReadStandardError, this, [process, appendOutput]() {
+        appendOutput(QString::fromUtf8(process->readAllStandardError()), true);
+    });
+
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, process, outputTarget, stdoutBuffer, stderrBuffer](int exitCode, QProcess::ExitStatus exitStatus) {
+        stdoutBuffer->append(QString::fromUtf8(process->readAllStandardOutput()));
+        stderrBuffer->append(QString::fromUtf8(process->readAllStandardError()));
+
+        const auto combined = QString(*stdoutBuffer
+            + (stderrBuffer->isEmpty() ? QString() : "\n" + *stderrBuffer)).trimmed();
 
         if (exitStatus == QProcess::NormalExit && exitCode == 0) {
             if (outputTarget == OutputTarget::ProofRun) {
                 setProofRunJson(readTextFile(proofRunDir() + "/run.json"));
                 setVerifyJson(readTextFile(proofRunDir() + "/verify.json"));
             } else if (outputTarget == OutputTarget::Verify) {
-                setVerifyJson(stdoutText.trimmed());
+                setVerifyJson(stdoutBuffer->trimmed());
             } else if (outputTarget == OutputTarget::GateRun) {
                 setGateRunJson(readTextFile(gateRunDir() + "/run.json"));
             }
