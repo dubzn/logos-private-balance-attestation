@@ -48,15 +48,17 @@ Done locally:
   artifacts, shell syntax, and optional tests/LEZ compatibility
 - `scripts/check-wallet-preflight.sh` catches missing wallet setup, incompatible
   wallet storage, and sequencer-checkout mismatches before heavy E2E runs
+- `scripts/prepare-local-private-account.sh` initializes/funds a selected
+  private account for local demos and confirms `getProofForCommitment`
 - latest full local E2E against the synced LEZ fork passed with
   `RISC0_DEV_MODE=0`: proof phase 00:01:48, gate phase 00:01:42, total
   00:03:30, verify `ok`, nullifier count `1`, duplicate admit `not-applied`
 - `apps/basecamp/` contains a backend-backed `ui_qml` MVP that wraps preflight,
   proof generation, envelope verification, and Workable gate admit
 - the local `logos-execution-zone` fork was synced with upstream `main` at
-  `41fa494e` on 2026-05-14; the update includes wallet/private-account changes
-  and Nix pin fixes, so fresh wallet homes may be needed after switching
-  checkouts
+  `4079b0c9` on 2026-05-18; the update includes wallet/private-account storage
+  changes, so fresh wallet homes and private-account preparation may be needed
+  after switching checkouts
 - the Basecamp MVP now builds through `mkLogosQmlModule` as a real Qt plugin
   plus replica factory; direct `ui-host` smoke test reached `READY`
 
@@ -69,6 +71,7 @@ scripts/check-public-clean-room.sh
 scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof
+PRIVATE_ACCOUNT=Private/<id> scripts/prepare-local-private-account.sh
 PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
 RUN_DIR=.demo-runs/local-sequencer/<run> scripts/demo-local-gate-e2e.sh
 PRIVATE_ACCOUNT=Private/<id> ./demo.sh

@@ -138,51 +138,67 @@ except Exception as exc:
     print(f"Wallet storage exists but is not readable JSON: {exc}", file=sys.stderr)
     sys.exit(2)
 
-accounts = storage.get("accounts")
 errors = []
-if not isinstance(accounts, list):
-    errors.append("top-level 'accounts' should be a JSON array")
+if isinstance(storage.get("key_chain"), dict):
+    # Current LEZ wallet storage shape:
+    # {
+    #   "key_chain": { "accounts": [...] },
+    #   "labels": { ... },
+    #   "last_synced_block": N
+    # }
+    key_chain = storage["key_chain"]
+    accounts = key_chain.get("accounts")
+    if not isinstance(accounts, list):
+        errors.append("top-level 'key_chain.accounts' should be a JSON array")
+    if "last_synced_block" not in storage:
+        errors.append("top-level 'last_synced_block' is missing")
+elif isinstance(storage.get("accounts"), list):
+    # Older wallet storage shape used by earlier local LEZ checkouts.
+    # Keep accepting it so the preflight can produce targeted migration errors
+    # for the specific private-account fields that drifted.
+    accounts = storage["accounts"]
 else:
-    for index, entry in enumerate(accounts):
-        if not isinstance(entry, dict):
-            errors.append(f"accounts[{index}] should be an object")
-            continue
+    errors.append(
+        "wallet storage has an unknown shape; expected current 'key_chain.accounts' "
+        "or legacy top-level 'accounts'"
+    )
+    accounts = []
 
-        private = entry.get("Private")
-        if isinstance(private, dict):
-            if "kinds" not in private:
-                if "identifiers" in private:
+for index, entry in enumerate(accounts):
+    if not isinstance(entry, dict):
+        errors.append(f"accounts[{index}] should be an object")
+        continue
+
+    private = entry.get("Private")
+    if isinstance(private, dict):
+        if "identifiers" in private:
+            errors.append(
+                f"accounts[{index}].Private uses the pre-PrivateAccountKind storage shape "
+                "(found 'identifiers', expected current key-chain account data)"
+            )
+
+        value = private.get("data", {}).get("value")
+        if isinstance(value, list) and len(value) > 1 and isinstance(value[1], list):
+            for account_index, pair in enumerate(value[1]):
+                if (
+                    isinstance(pair, list)
+                    and pair
+                    and isinstance(pair[0], int)
+                ):
                     errors.append(
-                        f"accounts[{index}].Private uses the pre-PrivateAccountKind storage shape "
-                        "(found 'identifiers', expected 'kinds')"
-                    )
-                else:
-                    errors.append(
-                        f"accounts[{index}].Private is missing 'kinds' for this LEZ checkout"
+                        f"accounts[{index}].Private.data.value[1][{account_index}] "
+                        "uses an integer identifier; expected a PrivateAccountKind object"
                     )
 
-            value = private.get("data", {}).get("value")
-            if isinstance(value, list) and len(value) > 1 and isinstance(value[1], list):
-                for account_index, pair in enumerate(value[1]):
-                    if (
-                        isinstance(pair, list)
-                        and pair
-                        and isinstance(pair[0], int)
-                    ):
-                        errors.append(
-                            f"accounts[{index}].Private.data.value[1][{account_index}] "
-                            "uses an integer identifier; expected a PrivateAccountKind object"
-                        )
-
-        preconfigured = entry.get("Preconfigured")
-        if isinstance(preconfigured, dict):
-            preconfigured_private = preconfigured.get("Private")
-            if isinstance(preconfigured_private, dict):
-                if "account_id" in preconfigured_private or "identifier" not in preconfigured_private:
-                    errors.append(
-                        f"accounts[{index}].Preconfigured.Private uses an older initial private-account storage shape "
-                        "(expected 'identifier', found old-style fields)"
-                    )
+    preconfigured = entry.get("Preconfigured")
+    if isinstance(preconfigured, dict):
+        preconfigured_private = preconfigured.get("Private")
+        if isinstance(preconfigured_private, dict):
+            if "account_id" in preconfigured_private or "identifier" not in preconfigured_private:
+                errors.append(
+                    f"accounts[{index}].Preconfigured.Private uses an older initial private-account storage shape "
+                    "(expected 'identifier', found old-style fields)"
+                )
 
 if errors:
     print("Wallet storage schema is incompatible with the selected logos-execution-zone checkout:", file=sys.stderr)

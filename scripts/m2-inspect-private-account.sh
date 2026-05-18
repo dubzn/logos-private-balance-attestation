@@ -152,13 +152,15 @@ async fn main() -> Result<()> {
         .context("private account id should be valid base58 without Private/ prefix")?;
 
     let wallet_core = WalletCore::from_env().context("wallet should initialize from env")?;
-    let Some((key_chain, account, _identifier)) = wallet_core
+    let Some(found_account) = wallet_core
         .storage()
-        .user_data
-        .get_private_account(account_id)
+        .key_chain()
+        .private_account(account_id)
     else {
         anyhow::bail!("private account was not found in local wallet storage");
     };
+    let key_chain = found_account.key_chain;
+    let account = found_account.account;
 
     let wallet_commitment = wallet_core
         .get_private_account_commitment(account_id)

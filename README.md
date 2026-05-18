@@ -97,7 +97,7 @@ source scripts/env.example
 ```
 
 The current local fork baseline is synced with
-`logos-blockchain/logos-execution-zone` `main` at `41fa494e` (2026-05-14). If
+`logos-blockchain/logos-execution-zone` `main` at `4079b0c9` (2026-05-18). If
 you update LEZ again and hit wallet storage errors, create a fresh wallet home
 for that checkout and rerun `scripts/check-wallet-preflight.sh`.
 
@@ -122,7 +122,19 @@ If the wallet home is missing or the wallet wants setup/password input, the
 preflight prints the exact commands to initialize it instead of hanging inside
 an E2E script. It also detects wallet storage written by an older
 `logos-execution-zone` checkout, which otherwise fails later while building the
-real witness. Once it passes, run:
+real witness.
+
+A newly generated private account is only local wallet state until it is
+initialized and funded on the local sequencer. Prepare it before proving:
+
+```sh
+PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
+THRESHOLD=1 \
+RISC0_DEV_MODE=0 \
+  scripts/prepare-local-private-account.sh
+```
+
+Once that passes, run:
 
 ```sh
 PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \

@@ -6,6 +6,7 @@ The QML surface calls a small C++ backend, and the backend delegates to the same
 CLI/scripts used by the reproducible terminal demo:
 
 - `scripts/check-wallet-preflight.sh`
+- `scripts/prepare-local-private-account.sh`
 - `scripts/demo-local-sequencer-e2e.sh`
 - `cargo run -p attestation-cli -- verify`
 - `scripts/demo-local-gate-e2e.sh`
@@ -19,6 +20,8 @@ public run summaries and verifier/gate outputs.
   threshold
 - edit context fields used by the proof harness
 - run wallet/sequencer preflight
+- prepare a local private account from the terminal when the account is not yet
+  initialized/funded
 - generate a proof from real wallet private state and `getProofForCommitment`
 - verify the public envelope locally
 - submit the current Workable gate admit flow
@@ -82,6 +85,22 @@ workdir/
 
 Set `BALANCE_ATTEST_REPO` and `LOGOS_LEZ_REPO` if Basecamp launches from a
 different working directory.
+
+Before pressing **Generate Proof**, make sure the selected private account is
+ready:
+
+```sh
+cd /path/to/logos-private-balance-attestation
+
+PRIVATE_ACCOUNT=Private/<id> \
+THRESHOLD=1 \
+RISC0_DEV_MODE=0 \
+  scripts/prepare-local-private-account.sh
+```
+
+Fresh private accounts created with `wallet account new private` are only local
+wallet keys at first. They must be initialized and funded before the app can
+build a membership proof from `getProofForCommitment`.
 
 The gate action uses the documented Workable path: host-side proof verification
 followed by a deployable LEZ gate-ledger/nullifier transaction. The deployed LEZ

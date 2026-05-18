@@ -16,8 +16,8 @@ workdir/
 Current tested fork baseline:
 
 ```text
-logos-blockchain/logos-execution-zone main @ 41fa494e
-synced locally on 2026-05-14
+logos-blockchain/logos-execution-zone main @ 4079b0c9
+synced locally on 2026-05-18
 ```
 
 The LEZ wallet storage format and private-account helpers can change between
@@ -116,9 +116,25 @@ wallet check-health
 wallet account new private --label private-balance
 ```
 
-Then fund/sync the private account as described below. Do not reuse an old
-`.wallet-local` from another `logos-execution-zone` checkout unless you know the
-wallet storage format is compatible.
+Then prepare the private account for proving:
+
+```sh
+cd "$BALANCE_ATTEST_REPO"
+
+PRIVATE_ACCOUNT=Private/<private-account-id> \
+THRESHOLD=1 \
+RISC0_DEV_MODE=0 \
+  scripts/prepare-local-private-account.sh
+```
+
+The helper initializes the private account under authenticated-transfer if
+needed, funds it through the local Pinata program if its balance is below the
+threshold, syncs private state, and confirms that `getProofForCommitment`
+returns a membership proof. Verbose wallet output is written under
+`.demo-runs/prepare-private-account/`.
+
+Do not reuse an old `.wallet-local` from another `logos-execution-zone` checkout
+unless you know the wallet storage format is compatible.
 
 ## Prerequisites
 
