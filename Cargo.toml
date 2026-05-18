@@ -2,6 +2,7 @@
 members = [
     "crates/attestation-core",
     "crates/attestation-cli",
+    "crates/attestation-messaging",
     "crates/attestation-prover",
     "crates/attestation-sdk",
     "crates/attestation-verifier",
@@ -19,6 +20,7 @@ license = "MIT"
 
 [workspace.dependencies]
 attestation-core = { path = "crates/attestation-core" }
+attestation-messaging = { path = "crates/attestation-messaging" }
 attestation-prover = { path = "crates/attestation-prover" }
 attestation-verifier = { path = "crates/attestation-verifier" }
 methods = { path = "methods" }

@@ -24,6 +24,8 @@ Implemented locally:
 - Real wallet/sequencer witness path using local wallet private state and
   `getProofForCommitment`.
 - Off-chain verifier crate for the public proof envelope.
+- Local/pluggable Messaging adapter for transporting proof envelopes and
+  simulating token-gated group admission.
 - CLI for inspect/prove/verify and LEZ gate commands.
 - Deployable LEZ gate-state program for the current Workable path.
 - Backend-backed Basecamp GUI MVP that loads as a `ui_qml` plugin locally.
@@ -35,7 +37,8 @@ Still pending for final LP-0005 submission:
 
 - Evaluator-approved on-chain verification model.
 - Basecamp UX polish and final package/install validation.
-- Logos Messaging-specific transport adapter or accepted equivalent.
+- Logos Messaging-specific network adapter, if evaluators require the real
+  transport instead of the current local JSON adapter.
 - Third reference integration, ideally with an external integrator.
 - LEZ devnet/testnet deployment and CU measurements.
 - Narrated demo video showing `RISC0_DEV_MODE=0`.
@@ -64,6 +67,7 @@ receipt inside public LEZ execution. This is tracked explicitly in
 crates/attestation-core      shared types, hashes, envelope, error codes
 crates/attestation-prover    witness/proof construction helpers
 crates/attestation-verifier  off-chain proof envelope verifier
+crates/attestation-messaging local/pluggable proof message transport
 crates/attestation-cli       CLI for inspect/prove/verify/gate commands
 crates/attestation-sdk       umbrella crate for integrations
 methods/                     production RISC Zero balance-attestation circuit
@@ -225,6 +229,42 @@ cargo run -p attestation-cli -- gate-admit \
 Add `--execute` to submit transactions. Use fresh public accounts for setup
 commands; local LEZ nonce/freshness behavior can reject reused setup signers in
 one flow.
+
+Simulate the off-chain Messaging path with local JSON transport:
+
+```sh
+RISC0_DEV_MODE=1 scripts/demo-local-messaging.sh
+```
+
+Or use the CLI pieces directly:
+
+```sh
+cargo run -p attestation-cli -- message-export \
+  --envelope ./demo/envelope.json \
+  --out ./demo/message.json \
+  --group demo-chat \
+  --sender presenter-local \
+  --recipient chat-host-local
+
+cargo run -p attestation-cli -- message-receive \
+  --message ./demo/message.json \
+  --out ./demo/received-envelope.json
+
+cargo run -p attestation-cli -- message-verify \
+  --message ./demo/message.json \
+  --gate ./demo/gate.json
+
+cargo run -p attestation-cli -- message-admit \
+  --message ./demo/message.json \
+  --gate ./demo/gate.json \
+  --state ./demo/admissions.json \
+  --group demo-chat
+```
+
+`message-admit` verifies the proof envelope locally, stores the context
+nullifier in `admissions.json`, and rejects duplicate admission attempts. This
+is the same admission model expected from a future Logos Messaging transport;
+only the transport is local JSON for now.
 
 ## Testing
 

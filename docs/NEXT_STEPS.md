@@ -95,9 +95,12 @@ cd apps/basecamp && nix build .#install
    - Keep the host-preverified Workable path documented unless evaluators
      request a different native LEZ pattern.
 
-3. Add Messaging transport.
-   - Start behind a local adapter.
-   - Replace with the accepted Logos Messaging path once confirmed.
+3. Replace local Messaging transport with the accepted real adapter if required.
+   - Current local adapter: `attestation-messaging::LocalFileTransport`.
+   - Current CLI flow: `message-export`, `message-receive`, `message-verify`,
+     `message-admit`.
+   - Keep the proof message bytes stable when wiring the real Logos Messaging
+     transport.
 
 4. Harden Basecamp GUI.
    - Run a manual end-to-end UX pass from inside Basecamp.

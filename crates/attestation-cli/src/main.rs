@@ -9,6 +9,10 @@ use attestation_core::{
     derive_context_id, derive_presenter_id, BalanceAttestationEnvelope, ContextBindingParams,
     Digest32, PresenterPubkey,
 };
+use attestation_messaging::{
+    build_local_message, read_message, read_or_init_admission_book, write_admission_book,
+    write_message, MessagingError, ProofMessageMetadata,
+};
 use attestation_prover::{
     balance_attestation_image_id, prove_attestation, AttestationPublicParams,
     BalanceAttestationWitness,
@@ -46,6 +50,10 @@ fn run(args: Vec<String>) -> Result<(), CliError> {
         CommandArgs::GateRegisterPresenter(options) => run_gate_register_presenter(options),
         CommandArgs::GateInit(options) => run_gate_init(options),
         CommandArgs::GateAdmit(options) => run_gate_admit(options),
+        CommandArgs::MessageExport(options) => run_message_export(options),
+        CommandArgs::MessageReceive(options) => run_message_receive(options),
+        CommandArgs::MessageVerify(options) => run_message_verify(options),
+        CommandArgs::MessageAdmit(options) => run_message_admit(options),
     }
 }
 
@@ -58,6 +66,10 @@ enum CommandArgs {
     GateRegisterPresenter(GateRegisterPresenterOptions),
     GateInit(GateInitOptions),
     GateAdmit(GateAdmitOptions),
+    MessageExport(MessageExportOptions),
+    MessageReceive(MessageReceiveOptions),
+    MessageVerify(MessageVerifyOptions),
+    MessageAdmit(MessageAdmitOptions),
 }
 
 // ── prove ─────────────────────────────────────────────────────────────────────
@@ -253,6 +265,38 @@ struct GateAdmitOptions {
     wallet_home: Option<PathBuf>,
     execute: bool,
     skip_build: bool,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct MessageExportOptions {
+    envelope: PathBuf,
+    out: PathBuf,
+    group: String,
+    sender: String,
+    recipient: Option<String>,
+    message_id: Option<String>,
+    created_at_unix: Option<u64>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct MessageReceiveOptions {
+    message: PathBuf,
+    out: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct MessageVerifyOptions {
+    message: PathBuf,
+    gate: PathBuf,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct MessageAdmitOptions {
+    message: PathBuf,
+    gate: PathBuf,
+    state: PathBuf,
+    group: Option<String>,
+    admitted_at_unix: Option<u64>,
 }
 
 fn parse_gate_register_presenter(
@@ -500,6 +544,211 @@ fn parse_gate_admit(args: Vec<String>) -> Result<GateAdmitOptions, CliError> {
     })
 }
 
+fn parse_message_export(args: Vec<String>) -> Result<MessageExportOptions, CliError> {
+    let mut envelope = None;
+    let mut out = None;
+    let mut group = None;
+    let mut sender = None;
+    let mut recipient = None;
+    let mut message_id = None;
+    let mut created_at_unix = None;
+    let mut args = args.into_iter();
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "-h" | "--help" => return Err(CliError::Usage(message_export_help())),
+            "--envelope" => {
+                envelope = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--envelope needs a value".to_owned())
+                })?));
+            }
+            "--out" => {
+                out = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--out needs a value".to_owned())
+                })?));
+            }
+            "--group" => {
+                group = Some(
+                    args.next()
+                        .ok_or_else(|| CliError::Usage("--group needs a value".to_owned()))?,
+                );
+            }
+            "--sender" => {
+                sender = Some(
+                    args.next()
+                        .ok_or_else(|| CliError::Usage("--sender needs a value".to_owned()))?,
+                );
+            }
+            "--recipient" => {
+                recipient = Some(
+                    args.next()
+                        .ok_or_else(|| CliError::Usage("--recipient needs a value".to_owned()))?,
+                );
+            }
+            "--message-id" => {
+                message_id = Some(
+                    args.next()
+                        .ok_or_else(|| CliError::Usage("--message-id needs a value".to_owned()))?,
+                );
+            }
+            "--created-at-unix" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| CliError::Usage("--created-at-unix needs a value".to_owned()))?;
+                created_at_unix = Some(value.parse::<u64>().map_err(|error| {
+                    CliError::Usage(format!("invalid --created-at-unix: {error}"))
+                })?);
+            }
+            _ => {
+                return Err(CliError::Usage(format!(
+                    "unknown message-export argument: {arg}"
+                )))
+            }
+        }
+    }
+
+    Ok(MessageExportOptions {
+        envelope: envelope
+            .ok_or_else(|| CliError::Usage("message-export needs --envelope <path>".to_owned()))?,
+        out: out.ok_or_else(|| CliError::Usage("message-export needs --out <path>".to_owned()))?,
+        group: group
+            .ok_or_else(|| CliError::Usage("message-export needs --group <group-id>".to_owned()))?,
+        sender: sender.ok_or_else(|| {
+            CliError::Usage("message-export needs --sender <sender-id>".to_owned())
+        })?,
+        recipient,
+        message_id,
+        created_at_unix,
+    })
+}
+
+fn parse_message_receive(args: Vec<String>) -> Result<MessageReceiveOptions, CliError> {
+    let mut message = None;
+    let mut out = None;
+    let mut args = args.into_iter();
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "-h" | "--help" => return Err(CliError::Usage(message_receive_help())),
+            "--message" => {
+                message = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--message needs a value".to_owned())
+                })?));
+            }
+            "--out" => {
+                out = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--out needs a value".to_owned())
+                })?));
+            }
+            _ => {
+                return Err(CliError::Usage(format!(
+                    "unknown message-receive argument: {arg}"
+                )))
+            }
+        }
+    }
+
+    Ok(MessageReceiveOptions {
+        message: message
+            .ok_or_else(|| CliError::Usage("message-receive needs --message <path>".to_owned()))?,
+        out,
+    })
+}
+
+fn parse_message_verify(args: Vec<String>) -> Result<MessageVerifyOptions, CliError> {
+    let mut message = None;
+    let mut gate = None;
+    let mut args = args.into_iter();
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "-h" | "--help" => return Err(CliError::Usage(message_verify_help())),
+            "--message" => {
+                message = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--message needs a value".to_owned())
+                })?));
+            }
+            "--gate" => {
+                gate = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--gate needs a value".to_owned())
+                })?));
+            }
+            _ => {
+                return Err(CliError::Usage(format!(
+                    "unknown message-verify argument: {arg}"
+                )))
+            }
+        }
+    }
+
+    Ok(MessageVerifyOptions {
+        message: message
+            .ok_or_else(|| CliError::Usage("message-verify needs --message <path>".to_owned()))?,
+        gate: gate
+            .ok_or_else(|| CliError::Usage("message-verify needs --gate <path>".to_owned()))?,
+    })
+}
+
+fn parse_message_admit(args: Vec<String>) -> Result<MessageAdmitOptions, CliError> {
+    let mut message = None;
+    let mut gate = None;
+    let mut state = None;
+    let mut group = None;
+    let mut admitted_at_unix = None;
+    let mut args = args.into_iter();
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "-h" | "--help" => return Err(CliError::Usage(message_admit_help())),
+            "--message" => {
+                message = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--message needs a value".to_owned())
+                })?));
+            }
+            "--gate" => {
+                gate = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--gate needs a value".to_owned())
+                })?));
+            }
+            "--state" => {
+                state = Some(PathBuf::from(args.next().ok_or_else(|| {
+                    CliError::Usage("--state needs a value".to_owned())
+                })?));
+            }
+            "--group" => {
+                group = Some(
+                    args.next()
+                        .ok_or_else(|| CliError::Usage("--group needs a value".to_owned()))?,
+                );
+            }
+            "--admitted-at-unix" => {
+                let value = args.next().ok_or_else(|| {
+                    CliError::Usage("--admitted-at-unix needs a value".to_owned())
+                })?;
+                admitted_at_unix = Some(value.parse::<u64>().map_err(|error| {
+                    CliError::Usage(format!("invalid --admitted-at-unix: {error}"))
+                })?);
+            }
+            _ => {
+                return Err(CliError::Usage(format!(
+                    "unknown message-admit argument: {arg}"
+                )))
+            }
+        }
+    }
+
+    Ok(MessageAdmitOptions {
+        message: message
+            .ok_or_else(|| CliError::Usage("message-admit needs --message <path>".to_owned()))?,
+        gate: gate
+            .ok_or_else(|| CliError::Usage("message-admit needs --gate <path>".to_owned()))?,
+        state: state
+            .ok_or_else(|| CliError::Usage("message-admit needs --state <path>".to_owned()))?,
+        group,
+        admitted_at_unix,
+    })
+}
+
 fn run_gate_register_presenter(options: GateRegisterPresenterOptions) -> Result<(), CliError> {
     let presenter_pubkey = parse_presenter_pubkey_hex(&options.presenter_pubkey_hex)?;
     let presenter_pubkey_hex = hex::encode(presenter_pubkey.as_bytes());
@@ -626,6 +875,130 @@ fn run_gate_admit(options: GateAdmitOptions) -> Result<(), CliError> {
 
     eprintln!("gate-admit precheck ok; transaction submitted by live runner");
     print_runner_output(&output);
+    Ok(())
+}
+
+// ── messaging ─────────────────────────────────────────────────────────────────
+
+fn run_message_export(options: MessageExportOptions) -> Result<(), CliError> {
+    let envelope = load_envelope_file(&options.envelope)?;
+    let message_id = options.message_id.unwrap_or_else(default_message_id);
+    let created_at_unix = options.created_at_unix.unwrap_or_else(unix_now);
+
+    let message = build_local_message(
+        envelope,
+        ProofMessageMetadata {
+            message_id,
+            group_id: options.group,
+            sender: options.sender,
+            recipient: options.recipient,
+            created_at_unix,
+        },
+    )
+    .map_err(CliError::Messaging)?;
+
+    write_message(&options.out, &message).map_err(CliError::Messaging)?;
+
+    println!(
+        "{}",
+        serde_json::json!({
+            "status": "exported",
+            "message": options.out,
+            "message_id": message.message_id,
+            "group_id": message.group_id,
+            "sender": message.sender,
+            "recipient": message.recipient,
+            "presenter_id": message.envelope.journal.presenter_id.to_hex(),
+            "context_nullifier": message.envelope.journal.context_nullifier.to_hex(),
+        })
+    );
+    Ok(())
+}
+
+fn run_message_receive(options: MessageReceiveOptions) -> Result<(), CliError> {
+    let message = read_message(&options.message).map_err(CliError::Messaging)?;
+    let envelope_json = serde_json::to_string_pretty(&message.envelope)
+        .map_err(|error| CliError::Usage(error.to_string()))?;
+
+    if let Some(out) = &options.out {
+        if let Some(parent) = out.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(out, envelope_json).map_err(|source| CliError::FileRead {
+            path: out.clone(),
+            source,
+        })?;
+        println!(
+            "{}",
+            serde_json::json!({
+                "status": "received",
+                "message": options.message,
+                "envelope": out,
+                "message_id": message.message_id,
+                "group_id": message.group_id,
+                "sender": message.sender,
+                "recipient": message.recipient,
+            })
+        );
+    } else {
+        println!("{envelope_json}");
+    }
+
+    Ok(())
+}
+
+fn run_message_verify(options: MessageVerifyOptions) -> Result<(), CliError> {
+    let message = read_message(&options.message).map_err(CliError::Messaging)?;
+    let gate = load_gate_file(&options.gate)?;
+    let expected = expected_gate(&gate);
+
+    attestation_messaging::verify_message(&message, &expected).map_err(CliError::Messaging)?;
+
+    println!(
+        "{}",
+        serde_json::json!({
+            "status": "ok",
+            "message_id": message.message_id,
+            "group_id": message.group_id,
+            "sender": message.sender,
+            "recipient": message.recipient,
+            "presenter_id": message.envelope.journal.presenter_id.to_hex(),
+            "context_id": message.envelope.journal.context_id.to_hex(),
+            "context_nullifier": message.envelope.journal.context_nullifier.to_hex(),
+            "threshold": message.envelope.journal.threshold.to_string(),
+        })
+    );
+    Ok(())
+}
+
+fn run_message_admit(options: MessageAdmitOptions) -> Result<(), CliError> {
+    let message = read_message(&options.message).map_err(CliError::Messaging)?;
+    let gate = load_gate_file(&options.gate)?;
+    let expected = expected_gate(&gate);
+    let group_id = options.group.unwrap_or_else(|| message.group_id.clone());
+    let admitted_at_unix = options.admitted_at_unix.unwrap_or_else(unix_now);
+
+    let mut book =
+        read_or_init_admission_book(&options.state, &group_id).map_err(CliError::Messaging)?;
+    let record = book
+        .admit_verified_message(&message, &expected, admitted_at_unix)
+        .map_err(CliError::Messaging)?;
+    write_admission_book(&options.state, &book).map_err(CliError::Messaging)?;
+
+    println!(
+        "{}",
+        serde_json::json!({
+            "status": "admitted",
+            "state": options.state,
+            "message_id": record.message_id,
+            "group_id": book.group_id,
+            "session_token": record.session_token,
+            "member_count": book.member_count(),
+            "presenter_id": record.presenter_id.to_hex(),
+            "context_id": record.context_id.to_hex(),
+            "context_nullifier": record.context_nullifier.to_hex(),
+        })
+    );
     Ok(())
 }
 
@@ -796,6 +1169,10 @@ fn parse_args(args: Vec<String>) -> Result<CommandArgs, CliError> {
         }
         "gate-init" => parse_gate_init(args.collect()).map(CommandArgs::GateInit),
         "gate-admit" => parse_gate_admit(args.collect()).map(CommandArgs::GateAdmit),
+        "message-export" => parse_message_export(args.collect()).map(CommandArgs::MessageExport),
+        "message-receive" => parse_message_receive(args.collect()).map(CommandArgs::MessageReceive),
+        "message-verify" => parse_message_verify(args.collect()).map(CommandArgs::MessageVerify),
+        "message-admit" => parse_message_admit(args.collect()).map(CommandArgs::MessageAdmit),
         _ => Err(CliError::Usage(format!("unknown command: {command}"))),
     }
 }
@@ -824,6 +1201,21 @@ fn unique_result_dir() -> PathBuf {
         .expect("system time should be after unix epoch")
         .as_millis();
     env::temp_dir().join(format!("balance-attest-cli-{}-{now}", std::process::id()))
+}
+
+fn unix_now() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time should be after unix epoch")
+        .as_secs()
+}
+
+fn default_message_id() -> String {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time should be after unix epoch")
+        .as_millis();
+    format!("local-message-{}-{millis}", std::process::id())
 }
 
 fn find_single_json_file(dir: &Path) -> Result<PathBuf, CliError> {
@@ -855,28 +1247,34 @@ fn load_gate_file(gate_path: &Path) -> Result<GateFile, CliError> {
     })
 }
 
-fn load_verified_inputs(
-    envelope_path: &Path,
-    gate_path: &Path,
-) -> Result<(BalanceAttestationEnvelope, GateFile, ExpectedGate), CliError> {
+fn load_envelope_file(envelope_path: &Path) -> Result<BalanceAttestationEnvelope, CliError> {
     let envelope_json = fs::read_to_string(envelope_path).map_err(|source| CliError::FileRead {
         path: envelope_path.to_path_buf(),
         source,
     })?;
-    let envelope: BalanceAttestationEnvelope =
-        serde_json::from_str(&envelope_json).map_err(|source| CliError::WitnessParse {
-            path: envelope_path.to_path_buf(),
-            source,
-        })?;
+    serde_json::from_str(&envelope_json).map_err(|source| CliError::WitnessParse {
+        path: envelope_path.to_path_buf(),
+        source,
+    })
+}
 
+fn load_verified_inputs(
+    envelope_path: &Path,
+    gate_path: &Path,
+) -> Result<(BalanceAttestationEnvelope, GateFile, ExpectedGate), CliError> {
+    let envelope = load_envelope_file(envelope_path)?;
     let gate = load_gate_file(gate_path)?;
-    let expected = ExpectedGate {
-        context_id: expected_context_id(&gate),
-        threshold: gate.threshold,
-        presentation_challenge: gate.presentation_challenge,
-    };
+    let expected = expected_gate(&gate);
 
     Ok((envelope, gate, expected))
+}
+
+fn expected_gate(gate: &GateFile) -> ExpectedGate {
+    ExpectedGate {
+        context_id: expected_context_id(gate),
+        threshold: gate.threshold,
+        presentation_challenge: gate.presentation_challenge,
+    }
 }
 
 fn expected_context_id(gate: &GateFile) -> Digest32 {
@@ -1046,7 +1444,7 @@ fn run_subprocess(label: &str, command: &mut Command) -> Result<(), CliError> {
 
 fn print_help() {
     println!(
-        "usage:\n  balance-attest <command> [options]\n\ncommands:\n  inspect-private          Inspect local private wallet state\n  prove                    Prove a balance attestation from a witness JSON file\n  verify                   Verify a balance attestation envelope against a gate file\n  gate-register-presenter  Register a presenter pubkey account in the LEZ gate program\n  gate-init                Initialize a LEZ gate account from a gate file\n  gate-admit               Verify locally, then submit an Admit tx through the live runner\n\nRun `balance-attest <command> --help` for command-specific usage."
+        "usage:\n  balance-attest <command> [options]\n\ncommands:\n  inspect-private          Inspect local private wallet state\n  prove                    Prove a balance attestation from a witness JSON file\n  verify                   Verify a balance attestation envelope against a gate file\n  message-export           Wrap an envelope as a local Messaging-style proof message\n  message-receive          Decode/import a proof message and optionally write its envelope\n  message-verify           Verify a proof message against a gate file\n  message-admit            Verify a proof message and admit it to a local group state\n  gate-register-presenter  Register a presenter pubkey account in the LEZ gate program\n  gate-init                Initialize a LEZ gate account from a gate file\n  gate-admit               Verify locally, then submit an Admit tx through the live runner\n\nRun `balance-attest <command> --help` for command-specific usage."
     );
 }
 
@@ -1100,6 +1498,30 @@ fn gate_admit_help() -> String {
         .to_owned()
 }
 
+fn message_export_help() -> String {
+    "usage: balance-attest message-export --envelope <path.json> --out <message.json> --group <group-id> --sender <sender-id> [--recipient <recipient-id>] [--message-id <id>] [--created-at-unix <seconds>]\n\n\
+     Wraps a public proof envelope in a transport-neutral message object. The V1 transport is local JSON; Logos Messaging can carry the same bytes later."
+        .to_owned()
+}
+
+fn message_receive_help() -> String {
+    "usage: balance-attest message-receive --message <message.json> [--out <envelope.json>]\n\n\
+     Decodes a proof message. With --out, writes the embedded envelope to disk and prints a short JSON status. Without --out, prints the embedded envelope JSON to stdout."
+        .to_owned()
+}
+
+fn message_verify_help() -> String {
+    "usage: balance-attest message-verify --message <message.json> --gate <gate.json>\n\n\
+     Verifies the proof envelope carried by a message against the verifier's gate file. No sequencer or on-chain transaction is involved."
+        .to_owned()
+}
+
+fn message_admit_help() -> String {
+    "usage: balance-attest message-admit --message <message.json> --gate <gate.json> --state <admissions.json> [--group <group-id>] [--admitted-at-unix <seconds>]\n\n\
+     Simulates token-gated group admission: verify the message off-chain, persist the context nullifier in a local admission book, and reject duplicate admissions."
+        .to_owned()
+}
+
 // ── error ─────────────────────────────────────────────────────────────────────
 
 #[derive(Debug)]
@@ -1123,6 +1545,7 @@ enum CliError {
     },
     Prove(String),
     Verify(VerifyError),
+    Messaging(MessagingError),
 }
 
 impl std::fmt::Display for CliError {
@@ -1162,6 +1585,7 @@ impl std::fmt::Display for CliError {
             }
             Self::Prove(message) => write!(f, "proving failed: {message}"),
             Self::Verify(error) => write!(f, "verify failed [{}]: {error}", error.code()),
+            Self::Messaging(error) => write!(f, "messaging failed [{}]: {error}", error.code()),
         }
     }
 }
@@ -1593,6 +2017,110 @@ mod tests {
         ])
         .unwrap_err();
         assert!(error.to_string().contains("--gate-account"));
+    }
+
+    #[test]
+    fn parses_message_export() {
+        let parsed = parse_args(vec![
+            "message-export".to_owned(),
+            "--envelope".to_owned(),
+            "envelope.json".to_owned(),
+            "--out".to_owned(),
+            "message.json".to_owned(),
+            "--group".to_owned(),
+            "demo-chat".to_owned(),
+            "--sender".to_owned(),
+            "alice".to_owned(),
+            "--recipient".to_owned(),
+            "host".to_owned(),
+            "--message-id".to_owned(),
+            "msg-1".to_owned(),
+            "--created-at-unix".to_owned(),
+            "123".to_owned(),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            parsed,
+            CommandArgs::MessageExport(MessageExportOptions {
+                envelope: PathBuf::from("envelope.json"),
+                out: PathBuf::from("message.json"),
+                group: "demo-chat".to_owned(),
+                sender: "alice".to_owned(),
+                recipient: Some("host".to_owned()),
+                message_id: Some("msg-1".to_owned()),
+                created_at_unix: Some(123),
+            })
+        );
+    }
+
+    #[test]
+    fn parses_message_receive_with_out() {
+        let parsed = parse_args(vec![
+            "message-receive".to_owned(),
+            "--message".to_owned(),
+            "message.json".to_owned(),
+            "--out".to_owned(),
+            "received-envelope.json".to_owned(),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            parsed,
+            CommandArgs::MessageReceive(MessageReceiveOptions {
+                message: PathBuf::from("message.json"),
+                out: Some(PathBuf::from("received-envelope.json")),
+            })
+        );
+    }
+
+    #[test]
+    fn parses_message_verify() {
+        let parsed = parse_args(vec![
+            "message-verify".to_owned(),
+            "--message".to_owned(),
+            "message.json".to_owned(),
+            "--gate".to_owned(),
+            "gate.json".to_owned(),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            parsed,
+            CommandArgs::MessageVerify(MessageVerifyOptions {
+                message: PathBuf::from("message.json"),
+                gate: PathBuf::from("gate.json"),
+            })
+        );
+    }
+
+    #[test]
+    fn parses_message_admit() {
+        let parsed = parse_args(vec![
+            "message-admit".to_owned(),
+            "--message".to_owned(),
+            "message.json".to_owned(),
+            "--gate".to_owned(),
+            "gate.json".to_owned(),
+            "--state".to_owned(),
+            "admissions.json".to_owned(),
+            "--group".to_owned(),
+            "demo-chat".to_owned(),
+            "--admitted-at-unix".to_owned(),
+            "456".to_owned(),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            parsed,
+            CommandArgs::MessageAdmit(MessageAdmitOptions {
+                message: PathBuf::from("message.json"),
+                gate: PathBuf::from("gate.json"),
+                state: PathBuf::from("admissions.json"),
+                group: Some("demo-chat".to_owned()),
+                admitted_at_unix: Some(456),
+            })
+        );
     }
 
     fn valid_presenter_pubkey_hex() -> &'static str {

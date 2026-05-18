@@ -280,17 +280,31 @@ Goal: transmit proof envelopes over Logos Messaging and verify locally.
 
 Implementation:
 
-- Add a Messaging adapter behind a small trait.
-- Start with the documented local Delivery API compose flow if full Logos
-  Messaging app integration is not yet stable.
+- Add a Messaging adapter behind a small trait. **Implemented as
+  `attestation-messaging::ProofMessageTransport`.**
+- Start with a local JSON adapter while full Logos Messaging app integration is
+  not yet stable. **Implemented as `LocalFileTransport` plus CLI commands.**
 - Preserve the proof envelope format so the transport can be replaced later.
 
 Acceptance:
 
-- Sender publishes proof envelope to a gate topic.
-- Recipient fetches/receives proof envelope.
-- Recipient verifies proof and presenter challenge locally.
+- Sender publishes proof envelope to a gate topic. **Local equivalent:
+  `message-export --group ... --out message.json`.**
+- Recipient fetches/receives proof envelope. **Local equivalent:
+  `message-receive --message message.json`.**
+- Recipient verifies proof and presenter challenge locally. **Implemented:
+  `message-verify`.**
 - Messaging failure surfaces a clear error without dumping witness data.
+  **Implemented via `MessagingError` and BA400/BA401 mapping.**
+
+Demo:
+
+```sh
+RISC0_DEV_MODE=1 scripts/demo-local-messaging.sh
+```
+
+The demo exports a proof message, receives/imports it, verifies it, admits it
+to a local group state, and confirms duplicate admission is rejected.
 
 ## Milestone 7: Basecamp App
 

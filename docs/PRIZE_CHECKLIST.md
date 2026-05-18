@@ -20,7 +20,7 @@ Status legend:
 | Bind proof to presenter identity to reduce forwarding. | done (V1) | BIP-340 Schnorr: `presenter_id = H(pubkey)` in circuit; envelope signature covers `presentation_digest(journal.digest(), presentation_challenge)`. Verifiers must generate fresh challenges per session. |
 | Target existing LEZ private account commitment format. | done | `attestation_core::derive_lez_private_account_commitment` mirrors `nssa_core` byte-for-byte (compat script + tests). |
 | On-chain LEZ verifier gates an action. | partial / Workable | `lez-verifier/program/` is a deployable LEZ guest (`BALANCE_ATTESTATION_PROGRAM_ID` pinned) that registers presenters, admits a presenter against gate state, and dedups nullifiers. Spike 08 validated local deployment and state updates over the all-public `nssa::PublicTransaction` path, but also showed `admit-fabricated` can be applied if the host submits it. The LEZ program is therefore a gate ledger/nullifier set with host-side proof verification, not yet a cryptographic on-chain proof verifier. CLI `gate-register-presenter`, `gate-init`, and `gate-admit` wrap the live runner; `gate-admit` performs mandatory `attestation_verifier::verify_envelope` precheck before submission. |
-| Off-chain path over Logos Messaging. | done (transport-agnostic) | `attestation-verifier` + `examples/chat-gate` (envelope JSON shipped as wire bytes). |
+| Off-chain path over Logos Messaging. | done (local/pluggable transport) | `attestation-verifier` + `attestation-messaging` + `examples/chat-gate`: envelope JSON is wrapped as a proof message, received/imported, verified locally, and admitted into a local token-gated group state. Real Logos Messaging network adapter remains replaceable behind `ProofMessageTransport`. |
 | Three distinct apps integrate on testnet, one outside team. | partial | `examples/governance-gate` + `examples/chat-gate` shipped; third + external integrator still pending. |
 | Full docs and clean public repo. | in-progress | README + `docs/`, IDL artifact, smoke demo script, CI, Basecamp MVP docs, and clean-room checks; final testnet deployment docs, CU metrics, and video artifacts pending. |
 
@@ -37,7 +37,7 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | Proof generation failures surface clear errors. | done | `ProveError`, `LezGateError` carry structured detail; CLI maps to non-zero exit + message. |
-| Messaging verification failures do not expose private data. | done | `VerifyError::*` carries no journal/witness internals; envelope is public by construction. |
+| Messaging verification failures do not expose private data. | done | `MessagingError` maps transport/decode failures to BA400/BA401 and wraps `VerifyError::*` without exposing witness internals; messages carry only the public envelope. |
 | Verifier returns deterministic documented error codes. | done | `AttestationErrorCode` BAxxx codes exposed via `VerifyError::code()` and `LezGateProgramError`. |
 
 ## Performance

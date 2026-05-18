@@ -36,6 +36,7 @@ flowchart LR
 | `attestation-core` | Shared types, error codes, public journal schema, context hashing, nullifier derivation, LEZ-compatible commitment and Merkle root helpers. |
 | `attestation-prover` | Reads local wallet state, fetches the Merkle membership proof from the sequencer, builds the witness, and runs the RISC Zero prover. |
 | `attestation-verifier` | Verifies an attestation envelope locally without submitting a transaction. |
+| `attestation-messaging` | Transport-neutral proof message wrapper, local JSON adapter, and token-gated admission book for the off-chain path. |
 | `attestation-cli` | Developer CLI for proving, verifying, and invoking the current Workable gate path. |
 | `methods/guest` | RISC Zero guest circuit that checks balance threshold, commitment reconstruction, Merkle membership, and context binding. |
 | `lez-verifier/program` | Deployable LEZ gate-ledger/nullifier program used after host-side envelope verification. |
@@ -261,6 +262,27 @@ sequenceDiagram
 
 The verifier learns only the public threshold, context, presenter id, and
 whether the proof verifies.
+
+The current repository implements this transport-neutral path in
+`crates/attestation-messaging` and exposes it through:
+
+```text
+balance-attest message-export
+balance-attest message-receive
+balance-attest message-verify
+balance-attest message-admit
+```
+
+`message-export` wraps the public proof envelope as a V1 proof message with
+`group_id`, `sender`, optional `recipient`, and local transport metadata.
+`message-receive` decodes the message and can write the embedded envelope back
+to disk. `message-verify` runs the same `attestation-verifier` checks as the
+regular off-chain path. `message-admit` verifies the message and persists the
+context nullifier in a local admission book, rejecting duplicate admission.
+
+This is intentionally a local JSON adapter. A future Logos Messaging adapter
+should implement the same `ProofMessageTransport` trait and carry the same
+message bytes over the real network.
 
 ## On-Chain Path
 

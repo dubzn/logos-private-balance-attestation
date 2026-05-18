@@ -15,6 +15,7 @@ on-chain = ["dep:lez-verifier"]
 
 [dependencies]
 attestation-core.workspace = true
+attestation-messaging.workspace = true
 attestation-prover.workspace = true
 attestation-verifier.workspace = true
 lez-verifier = { path = "../../lez-verifier", optional = true }

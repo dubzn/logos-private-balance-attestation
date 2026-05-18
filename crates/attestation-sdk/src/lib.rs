@@ -17,6 +17,8 @@
 //! 3. prove_attestation(&witness, &params, presentation_challenge)
 //!                                            -> BalanceAttestationEnvelope
 //! 4. verify_envelope(&envelope, &expected)  -> Result<(), VerifyError>
+//! 5. Optional: build_local_message(...) and AdmissionBook::admit_verified_message(...)
+//!    for transport-agnostic token-gated admission.
 //! ```
 //!
 //! ## On-chain flow (feature = "on-chain")
@@ -61,6 +63,15 @@ pub use attestation_prover::{
 
 // ── attestation-verifier: off-chain verification ──────────────────────────────
 pub use attestation_verifier::{verify_envelope, ExpectedGate, VerifyError};
+
+// ── attestation-messaging: local/pluggable off-chain transport ───────────────
+pub use attestation_messaging::{
+    build_local_message, decode_message, encode_message_pretty, read_message,
+    read_or_init_admission_book, validate_admission_book_unique, validate_message_shape,
+    verify_message, write_admission_book, write_message, AdmissionBook, AdmissionRecord,
+    LocalFileTransport, MessagingError, ProofMessage, ProofMessageMetadata, ProofMessageTransport,
+    ProofMessageTransportKind, ADMISSION_BOOK_VERSION, PROOF_MESSAGE_VERSION,
+};
 
 // ── lez-verifier: on-chain (LEZ) gate (recursion) ─────────────────────────────
 #[cfg(feature = "on-chain")]

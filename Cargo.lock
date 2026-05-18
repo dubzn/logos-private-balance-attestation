@@ -281,6 +281,7 @@ name = "attestation-cli"
 version = "0.1.0"
 dependencies = [
  "attestation-core",
+ "attestation-messaging",
  "attestation-prover",
  "attestation-verifier",
  "hex",
@@ -300,6 +301,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "attestation-messaging"
+version = "0.1.0"
+dependencies = [
+ "attestation-core",
+ "attestation-verifier",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "attestation-prover"
 version = "0.1.0"
 dependencies = [
@@ -315,6 +326,7 @@ name = "attestation-sdk"
 version = "0.1.0"
 dependencies = [
  "attestation-core",
+ "attestation-messaging",
  "attestation-prover",
  "attestation-verifier",
  "lez-verifier",
