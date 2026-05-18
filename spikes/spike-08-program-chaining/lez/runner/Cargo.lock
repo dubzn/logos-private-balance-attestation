@@ -759,6 +759,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "authenticated_transfer_core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1226,6 +1233,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "authenticated_transfer_core",
  "base64",
  "borsh",
  "clock_core",
@@ -1290,6 +1298,15 @@ name = "convert_case"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "convert_case"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -1635,6 +1652,7 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
 dependencies = [
+ "convert_case 0.10.0",
  "proc-macro2",
  "quote",
  "rustc_version",
@@ -1942,6 +1960,14 @@ name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
+
+[[package]]
+name = "faucet_core"
+version = "0.1.0"
+dependencies = [
+ "nssa_core",
+ "serde",
+]
 
 [[package]]
 name = "ff"
@@ -4707,6 +4733,7 @@ dependencies = [
  "anyhow",
  "borsh",
  "clock_core",
+ "faucet_core",
  "hex",
  "k256",
  "log",
@@ -5000,7 +5027,7 @@ name = "overwatch-derive"
 version = "0.1.0"
 source = "git+https://github.com/logos-co/Overwatch?rev=448c192#448c192895b8311c742b1726a1bb12ee314ad95c"
 dependencies = [
- "convert_case",
+ "convert_case 0.8.0",
  "proc-macro-error2",
  "proc-macro2",
  "quote",
@@ -7376,10 +7403,12 @@ dependencies = [
  "anyhow",
  "async-stream",
  "ata_core",
+ "authenticated_transfer_core",
  "base58",
  "bip39",
  "clap",
  "common",
+ "derive_more",
  "env_logger",
  "futures",
  "hex",
