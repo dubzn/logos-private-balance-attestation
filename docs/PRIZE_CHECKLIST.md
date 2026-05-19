@@ -19,7 +19,7 @@ Status legend:
 | Bind proof to a context to prevent cross-gate replay. | done | `attestation_core::derive_context_id` over `(chain_id, circuit_image_id, verifier_id, gate_id, threshold)`; circuit asserts. |
 | Bind proof to presenter identity to reduce forwarding. | done (V1) | BIP-340 Schnorr: `presenter_id = H(pubkey)` in circuit; envelope signature covers `presentation_digest(journal.digest(), presentation_challenge)`. Verifiers must generate fresh challenges per session. |
 | Target existing LEZ private account commitment format. | done | `attestation_core::derive_lez_private_account_commitment` mirrors `nssa_core` byte-for-byte (compat script + tests). |
-| On-chain LEZ verifier gates an action. | partial / Workable | `lez-verifier/program/` is a deployable LEZ guest (`BALANCE_ATTESTATION_PROGRAM_ID` pinned) that registers presenters, admits a presenter against gate state, and dedups nullifiers. Spike 08 validated local deployment and state updates over the all-public `nssa::PublicTransaction` path, but also showed `admit-fabricated` can be applied if the host submits it. The LEZ program is therefore a gate ledger/nullifier set with host-side proof verification, not yet a cryptographic on-chain proof verifier. CLI `gate-register-presenter`, `gate-init`, and `gate-admit` wrap the live runner; `gate-admit` performs mandatory `attestation_verifier::verify_envelope` precheck before submission. |
+| On-chain LEZ verifier gates an action. | partial / evaluator decision | Two local paths are implemented. Path A is the Workable public gate ledger: `lez-verifier/program/` registers presenters, admits against gate state, and dedups nullifiers after mandatory host-side `attestation_verifier::verify_envelope` precheck; Spike 08 showed fabricated journals can be applied if the host submits them, so this is not an in-guest receipt verifier. Path B is Spike 09 PPE-native gate: a LEZ privacy-preserving transaction checks private `balance >= threshold` and writes public `BAP1` gate/nullifier state; local `RISC0_DEV_MODE=0` run passed positive admit, `BA206` duplicate rejection, and `BA201` insufficient-balance rejection. Evaluator confirmation is still required because Path B does not verify the same portable off-chain proof envelope. |
 | Off-chain path over Logos Messaging. | done (local/pluggable transport) | `attestation-verifier` + `attestation-messaging` + `examples/chat-gate`: envelope JSON is wrapped as a proof message, received/imported, verified locally, and admitted into a local token-gated group state. Real Logos Messaging network adapter remains replaceable behind `ProofMessageTransport`. |
 | Three distinct apps integrate on testnet, one outside team. | partial | Three local reference integrations shipped: `examples/governance-gate`, `examples/chat-gate`, and `examples/fee-tier-gate`. Testnet deployment and external integrator still pending. |
 | Full docs and clean public repo. | in-progress | README + `docs/`, root `demo.sh`, root `balance-attestation-verifier.idl.json`, Basecamp `module.json`, CI, Basecamp MVP docs, and clean-room checks; final testnet deployment docs, CU metrics, and video artifacts pending. |
@@ -62,8 +62,9 @@ Status legend:
 
 Before submitting, the repo must prove:
 
-0. RISC Zero proof verification or an evaluator-approved native LEZ private
-   execution proof path is feasible for the on-chain gate.
+0. Evaluators confirm whether the Spike 09 native LEZ private execution proof
+   path satisfies the on-chain gate requirement, or provide the supported path
+   for a public LEZ program to verify an externally submitted receipt.
 1. Tests pass from a clean checkout.
 2. No invented sequencer endpoints are used.
 3. The verifier program is deployable to LEZ.
@@ -83,6 +84,7 @@ Before submitting, the repo must prove:
 | Binding/nullifier circuit | passed locally | Spike 04 adds presenter binding, context binding, and nullifier. |
 | Dev/prod proving baseline | passed locally | Spike 05 proved fixture with `RISC0_DEV_MODE=0`. |
 | On-chain path decision | passed locally | Spike 06 documents no local public external receipt verifier path; evaluator confirmation still needed. |
+| PPE-native balance gate | passed locally | Spike 09 runs a LEZ privacy-preserving transaction that checks private `balance >= threshold`, writes public `BAP1` gate/nullifier state, rejects duplicate admit with `BA206`, and rejects insufficient balance with `BA201`. Latest local run used `RISC0_DEV_MODE=0`; evaluator acceptance pending because this is not the same portable envelope used off-chain. |
 | `attestation-core` workspace | passed locally | M1 started with context hashing, nullifier/presenter helpers, envelope/journal types, and error-code tests. |
 | LEZ commitment helper compatibility | passed locally | M2 script compares commitment, leaf hash, and Merkle root helpers against local `nssa_core`. |
 | Sanitized private account inspect | passed local-only | M2 script reads wallet private state and checks commitment reconstruction without printing witness data. |

@@ -15,6 +15,7 @@ before the next layer depends on it.
 | 04 Binding circuit | passed locally | Context binding, presenter binding, and context nullifier work in the circuit shape. |
 | 05 Dev/prod proving baseline | passed locally | Dev-mode and prod-mode baselines completed with step-by-step timing tables. |
 | 06 On-chain path decision | passed locally | Use off-chain proof envelope plus Logos-native private execution fallback pending evaluator confirmation. |
+| 09 PPE-native balance gate | passed locally | A LEZ privacy-preserving transaction proved private `balance >= threshold`, wrote public `BAP1` gate/nullifier state, rejected duplicate admission with `BA206`, and rejected insufficient balance with `BA201`. Evaluator acceptance is still required. |
 
 ## Blocker 0: On-Chain Proof Path
 
@@ -146,6 +147,37 @@ RISC0_DEV_MODE=1 scripts/spike-01-demo-private-gate.sh
 The automated fixture covers both sides of the branch: a positive gate where
 the private balance is above threshold, and a negative gate where the threshold
 is intentionally too high.
+
+Extended PPE-native harness:
+
+```sh
+LOGOS_LEZ_REPO=/path/to/logos-execution-zone \
+  scripts/spike-09-build-ppe-gate.sh
+
+LOGOS_LEZ_REPO=/path/to/logos-execution-zone \
+NSSA_WALLET_HOME_DIR=/path/to/logos-execution-zone/.wallet-local \
+RISC0_DEV_MODE=0 \
+SKIP_BUILD=1 \
+  scripts/spike-09-demo-ppe-gate.sh
+```
+
+Current result:
+
+```text
+Passed locally with RISC0_DEV_MODE=0 against the local sequencer.
+
+The PPE transaction consumed a private holder account and public gate/presenter
+accounts, checked holder.balance >= threshold inside private execution, and
+wrote a public BAP1 gate state with one context nullifier. A second admission
+for the same private holder/context failed with BA206 DuplicateNullifier, and
+an intentionally high threshold failed with BA201 ThresholdMismatch.
+```
+
+This is stronger than the Workable host-preverified public gate path because
+the balance condition is checked inside LEZ privacy-preserving execution.
+It still does not verify the same portable off-chain proof envelope used by
+Messaging/off-chain verifiers, so LP-0005 evaluator confirmation is still
+needed before treating it as the final on-chain answer.
 
 ## Blocker 1: Real Commitment Membership Proof
 

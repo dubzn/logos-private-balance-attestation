@@ -6,6 +6,8 @@ testnet deployment, CU measurements, external integration evidence, and final
 video are still pending. The local proof, off-chain verification,
 Messaging-style transport, Basecamp MVP, three local reference integrations,
 and Workable host-preverified LEZ gate path are implemented.
+Spike 09 also demonstrates a PPE-native LEZ gate candidate where private
+execution checks `balance >= threshold` and writes public gate/nullifier state.
 
 ## What To Review First
 
@@ -13,7 +15,8 @@ and Workable host-preverified LEZ gate path are implemented.
 2. Read [ARCHITECTURE.md](ARCHITECTURE.md) for the proof envelope, context
    binding, presenter binding, off-chain path, and Workable on-chain path.
 3. Read [ONCHAIN_PATH_DECISION.md](ONCHAIN_PATH_DECISION.md) for why the current
-   LEZ path is host-preverified rather than an in-guest receipt verifier.
+   public LEZ path is host-preverified and why Spike 09 is the current
+   PPE-native candidate.
 4. Read [SECURITY_MODEL.md](SECURITY_MODEL.md) for privacy, replay, and
    forwarding assumptions.
 5. Check [PRIZE_CHECKLIST.md](PRIZE_CHECKLIST.md) for the exact requirement

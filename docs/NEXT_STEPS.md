@@ -102,9 +102,13 @@ cd apps/basecamp && nix build .#install
      version.
    - Keep the host-preverified Workable path documented unless evaluators
      request a different native LEZ pattern.
-   - Next technical candidate: implement a Logos-native private execution/PPE
-     gate spike, because LEZ currently shows `env::verify` working when the
-     outer PPE host injects inner receipts with `ExecutorEnv::add_assumption`.
+   - Spike 09 now validates the Logos-native private execution/PPE candidate
+     locally with `RISC0_DEV_MODE=0`: private balance check, public
+     gate/nullifier update, duplicate rejection, and insufficient-balance
+     rejection all work against the local sequencer.
+   - Ask evaluators whether this PPE-native path satisfies LP-0005's on-chain
+     verifier requirement, or whether the final submission must still use a
+     public LEZ program that verifies an externally supplied receipt.
 
 3. Replace local Messaging transport with the accepted real adapter if required.
    - Current local adapter: `attestation-messaging::LocalFileTransport`.

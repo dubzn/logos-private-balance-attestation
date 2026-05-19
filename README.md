@@ -29,6 +29,9 @@ Implemented locally:
   simulating token-gated group admission.
 - CLI for inspect/prove/verify and LEZ gate commands.
 - Deployable LEZ gate-state program for the current Workable path.
+- PPE-native LEZ balance-gate spike that checks private `balance >= threshold`
+  inside a privacy-preserving transaction and writes public gate/nullifier
+  state locally.
 - Backend-backed Basecamp GUI MVP that loads as a `ui_qml` plugin locally.
 - Three reference integrations: governance gate, chat gate, and fee-tier gate.
 - IDL artifact, deterministic error codes, CI, local E2E scripts, and local
@@ -62,6 +65,13 @@ The deployable LEZ program does not yet cryptographically verify the RISC Zero
 receipt inside public LEZ execution. This is tracked explicitly in
 [docs/ONCHAIN_PATH_DECISION.md](docs/ONCHAIN_PATH_DECISION.md) and
 [docs/PRIZE_CHECKLIST.md](docs/PRIZE_CHECKLIST.md).
+
+There is also a stronger local candidate in `spikes/spike-09-ppe-gate/`: a
+Logos privacy-preserving transaction checks the private balance condition and
+writes public `BAP1` gate/nullifier state. It passed locally with
+`RISC0_DEV_MODE=0`, including duplicate and insufficient-balance rejection.
+Evaluator confirmation is still required because this PPE-native path is not
+the same portable proof envelope used by the off-chain verifier.
 
 ## Repository Layout
 
@@ -107,7 +117,7 @@ These files are intentionally easy to find from the repository root:
 | Off-chain verification | Implemented via `attestation-verifier`. |
 | Presenter binding and nullifier | Implemented with challenge-bound BIP-340 presentation signatures and context nullifiers. |
 | Off-chain Messaging path | Implemented with a local/pluggable transport; real Logos Messaging network adapter pending if required. |
-| LEZ gate path | Workable/host-preverified: host verifies proof, LEZ persists/dedupes nullifier. Evaluator-approved in-LEZ proof verification is still pending. |
+| LEZ gate path | Workable/host-preverified public gate plus Spike 09 PPE-native private execution candidate. Evaluator-approved in-LEZ proof verification model is still pending. |
 | Basecamp app | Backend-backed `ui_qml` MVP builds and loads locally. |
 | Reference integrations | Governance gate, chat gate, and fee-tier gate are implemented locally; testnet/external integration pending. |
 | Devnet/testnet CU metrics | Pending; local timings are documented. |

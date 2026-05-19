@@ -98,9 +98,10 @@ submitted RISC Zero receipt, could you point us to the supported way to pass
 the receipt/assumption into public LEZ execution?
 ```
 
-Until this is answered, the next technical spike is to prototype the
-Logos-native private execution/PPE gate and compare it against LP-0005's
-"LEZ verifier program accepts and verifies the proof" wording.
+Spike 09 has now prototyped the Logos-native private execution/PPE gate. The
+remaining question is whether Logos evaluators consider that PPE-native proof
+path the expected on-chain verifier model for LP-0005, or whether they require
+a public LEZ program to verify an externally submitted standalone receipt.
 
 ## Impact On LP-0005
 
@@ -113,13 +114,16 @@ It does block a naive on-chain verifier program that accepts a receipt and calls
 For now, the on-chain path should be treated as:
 
 ```text
-private account -> host-verified proof -> LEZ gate ledger/nullifier claim
+Path A: private account -> host-verified proof -> public LEZ gate ledger/nullifier claim
+Path B: private account -> LEZ PPE balance check -> public gate/nullifier update
 ```
 
-That path works locally as an application gate, but it needs evaluator
-confirmation because LP-0005 wording asks for a reusable proof accepted by a
-LEZ verifier program. In the current implementation the LEZ program does not
-cryptographically verify the receipt; it records the host-verified journal.
+Path A works locally as an application gate, but the deployed public program
+does not cryptographically verify the receipt; it records the host-verified
+journal. Path B now works locally as a Logos-native private execution gate, but
+it does not verify the same portable off-chain proof envelope. Both paths need
+evaluator confirmation against LP-0005's on-chain wording before final
+submission.
 
 ## Next Implementation Consequence
 
@@ -167,3 +171,44 @@ therefore the documented sole cryptographic guarantee — see
 `gate-register-presenter`, `gate-init`, and `gate-admit`. This removes the
 manual dependency on the Spike 08 script for normal operator testing while
 keeping the same honest trust boundary.
+
+## Spike 09 PPE-native gate (2026-05)
+
+Spike 09 tested the Logos-native private execution alternative that LEZ already
+supports internally through the privacy-preserving execution circuit.
+
+The spike program receives:
+
+1. a private holder account,
+2. a public gate-state account,
+3. a public presenter account.
+
+Inside private execution it checks:
+
+```text
+holder is authorized
+holder.balance >= threshold
+presenter is authorized
+gate is default or already owned by this program
+context nullifier has not been admitted before
+```
+
+On success it writes public gate state into `account.data` with `BAP1` magic,
+the gate context, threshold, and admitted `(context_nullifier,
+presenter_account_id)` records. The private holder account id and balance are
+not written to public state.
+
+Local result:
+
+```text
+RISC0_DEV_MODE=0
+positive admit: passed and wrote one nullifier
+duplicate admit: failed with BA206 DuplicateNullifier
+insufficient balance: failed with BA201 ThresholdMismatch
+```
+
+This is the strongest local on-chain candidate found so far because the
+balance condition is checked by LEZ private execution rather than by a host
+precheck. It is still a different artifact from the reusable off-chain proof
+envelope, so the final submission should ask Logos to confirm whether this is
+the intended LP-0005 on-chain verification path.

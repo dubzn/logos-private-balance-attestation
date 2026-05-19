@@ -355,6 +355,28 @@ exercises the full receipt-verifying model. The deployed program currently
 exercises the application-state subset only, because the local sequencer does
 not expose receipt binding for this public program path.
 
+### PPE-native candidate
+
+Spike 09 adds the strongest local alternative found so far:
+
+```text
+private holder account
+  -> LEZ privacy-preserving transaction
+  -> guest checks balance >= threshold
+  -> public BAP1 gate/nullifier state update
+```
+
+This route does not verify the portable off-chain proof envelope inside a
+public LEZ program. Instead, it uses the Logos privacy-preserving execution
+path itself as the proof system for the on-chain gate. A local
+`RISC0_DEV_MODE=0` run passed the positive admit path and validated both
+duplicate-nullifier (`BA206`) and insufficient-balance (`BA201`) rejection.
+
+The open product question is whether LP-0005 evaluators consider this
+PPE-native gate the expected on-chain verification model, or whether the final
+submission must still verify an externally supplied standalone proof envelope
+inside a public LEZ program.
+
 ## Why this shape (Blocker 0)
 
 A previous LP-0005 submission was rejected for using a standalone Rust verifier
@@ -374,5 +396,6 @@ led here:
 
 1. Direct public `env::verify` of an external receipt — failed/unsupported.
 2. Recursive / native verifier — no local public LEZ path found.
-3. Logos-native gate ledger with host pre-verification — implemented locally,
-   still pending evaluator acceptance for LP-0005's on-chain wording.
+3. Logos-native gate ledger with host pre-verification — implemented locally.
+4. PPE-native private execution gate — implemented locally in Spike 09, still
+   pending evaluator acceptance for LP-0005's on-chain wording.

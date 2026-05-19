@@ -182,3 +182,30 @@ attestation-verifier precheck -> LEZ gate transaction -> account.data nullifier 
 
 `witness.json` is private and must not be published. Public artifacts are the
 proof envelope, verifier output, gate report, and run summary.
+
+## Spike 09 PPE-Native Gate Evidence
+
+Spike 09 tested the Logos-native private execution alternative for LP-0005's
+on-chain path.
+
+```text
+private holder account
+  -> LEZ privacy-preserving transaction
+  -> guest checks balance >= threshold
+  -> public BAP1 gate/nullifier state update
+```
+
+Latest local result:
+
+```text
+RISC0_DEV_MODE: 0
+positive admit: passed
+duplicate admit: BA206 DuplicateNullifier
+insufficient balance: BA201 ThresholdMismatch
+```
+
+This is stronger than the host-preverified public gate ledger because the
+balance condition is proven inside LEZ private execution. It is still not the
+same portable off-chain proof envelope transported over Messaging, so final
+LP-0005 submission should keep asking evaluators whether this is the intended
+on-chain verifier model.
