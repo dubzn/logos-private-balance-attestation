@@ -14,8 +14,9 @@ nonce, or account data.
 
 ## Current Status
 
-This is a draft-stage implementation for technical review, not an award-ready
-submission yet.
+This is a technical implementation for review, not an award-ready submission
+yet. The remaining blocker is the evaluator-approved live on-chain proof
+verification model.
 
 Implemented locally:
 
@@ -36,12 +37,13 @@ Implemented locally:
 Still pending for final LP-0005 submission:
 
 - Evaluator-approved on-chain verification model.
-- Basecamp UX polish and final package/install validation.
 - Logos Messaging-specific network adapter, if evaluators require the real
   transport instead of the current local JSON adapter.
-- External integrator validation for at least one reference integration.
+- Testnet deployment for the three reference integrations, including at least
+  one external integrator.
 - LEZ devnet/testnet deployment and CU measurements.
-- Narrated demo video showing `RISC0_DEV_MODE=0`.
+- Narrated demo video showing the CLI and Basecamp flows with
+  `RISC0_DEV_MODE=0`.
 
 ## Important Limitation
 
@@ -82,6 +84,34 @@ scripts/                     reproducible local flows and setup helpers
 idl/                         LEZ verifier IDL artifact
 docs/                        architecture, setup, security, benchmarks, checklist
 ```
+
+## Evaluator-Visible Artifacts
+
+These files are intentionally easy to find from the repository root:
+
+| Artifact | Path |
+| --- | --- |
+| Demo entrypoint | `demo.sh` |
+| SPEL-style IDL | `balance-attestation-verifier.idl.json` |
+| Basecamp module metadata | `apps/basecamp/module.json` |
+| Requirement map | `docs/PRIZE_CHECKLIST.md` |
+| Clean-room guide | `docs/EVALUATOR_GUIDE.md` |
+| Benchmarks | `docs/BENCHMARKS.md` |
+
+## LP-0005 Requirement Snapshot
+
+| Area | Current status |
+| --- | --- |
+| Circuit and proof generation | Implemented and tested locally. |
+| Real wallet + `getProofForCommitment` witness path | Implemented in the full local E2E. |
+| Off-chain verification | Implemented via `attestation-verifier`. |
+| Presenter binding and nullifier | Implemented with challenge-bound BIP-340 presentation signatures and context nullifiers. |
+| Off-chain Messaging path | Implemented with a local/pluggable transport; real Logos Messaging network adapter pending if required. |
+| LEZ gate path | Workable/host-preverified: host verifies proof, LEZ persists/dedupes nullifier. Evaluator-approved in-LEZ proof verification is still pending. |
+| Basecamp app | Backend-backed `ui_qml` MVP builds and loads locally. |
+| Reference integrations | Governance gate, chat gate, and fee-tier gate are implemented locally; testnet/external integration pending. |
+| Devnet/testnet CU metrics | Pending; local timings are documented. |
+| Narrated video | Pending. |
 
 ## Quick Start
 

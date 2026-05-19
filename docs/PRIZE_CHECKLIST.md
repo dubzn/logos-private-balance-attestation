@@ -22,15 +22,15 @@ Status legend:
 | On-chain LEZ verifier gates an action. | partial / Workable | `lez-verifier/program/` is a deployable LEZ guest (`BALANCE_ATTESTATION_PROGRAM_ID` pinned) that registers presenters, admits a presenter against gate state, and dedups nullifiers. Spike 08 validated local deployment and state updates over the all-public `nssa::PublicTransaction` path, but also showed `admit-fabricated` can be applied if the host submits it. The LEZ program is therefore a gate ledger/nullifier set with host-side proof verification, not yet a cryptographic on-chain proof verifier. CLI `gate-register-presenter`, `gate-init`, and `gate-admit` wrap the live runner; `gate-admit` performs mandatory `attestation_verifier::verify_envelope` precheck before submission. |
 | Off-chain path over Logos Messaging. | done (local/pluggable transport) | `attestation-verifier` + `attestation-messaging` + `examples/chat-gate`: envelope JSON is wrapped as a proof message, received/imported, verified locally, and admitted into a local token-gated group state. Real Logos Messaging network adapter remains replaceable behind `ProofMessageTransport`. |
 | Three distinct apps integrate on testnet, one outside team. | partial | Three local reference integrations shipped: `examples/governance-gate`, `examples/chat-gate`, and `examples/fee-tier-gate`. Testnet deployment and external integrator still pending. |
-| Full docs and clean public repo. | in-progress | README + `docs/`, IDL artifact, smoke demo script, CI, Basecamp MVP docs, and clean-room checks; final testnet deployment docs, CU metrics, and video artifacts pending. |
+| Full docs and clean public repo. | in-progress | README + `docs/`, root `demo.sh`, root `balance-attestation-verifier.idl.json`, Basecamp `module.json`, CI, Basecamp MVP docs, and clean-room checks; final testnet deployment docs, CU metrics, and video artifacts pending. |
 
 ## Usability
 
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | SDK/module for Logos modules. | done | `crates/attestation-sdk/` umbrella; off-chain default + `on-chain` feature. |
-| Basecamp GUI with local build instructions. | done (MVP) / final polish pending | `apps/basecamp/`: backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit flow. The Nix install target builds a Qt plugin plus replica factory and has been smoke-tested with `ui-host READY`; full UX pass/video flow still pending. |
-| SPEL IDL for LEZ program. | done | `idl/balance-attestation-verifier.json`; `docs/IDL_DRAFT.md` is the prose companion. |
+| Basecamp GUI with local build instructions. | done (MVP) | `apps/basecamp/`: backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit flow. The Nix install target builds a Qt plugin plus replica factory and has been smoke-tested with `ui-host READY`; final recorded walkthrough still pending. |
+| SPEL IDL for LEZ program. | done | `balance-attestation-verifier.idl.json` at the repository root points to `idl/balance-attestation-verifier.json`; `docs/IDL_DRAFT.md` is the prose companion. |
 
 ## Reliability
 
@@ -53,8 +53,8 @@ Status legend:
 | --- | --- | --- |
 | Program deployed and tested on devnet/testnet. | partial | Spike 08 deployed a local build via `wallet deploy-program` on 2026-05-05 and included register/init/admit blocks. The deployable program id is generated from the embedded ELF image id at build time; `lez-verifier/program/tests/program_journal_roundtrip.rs::program_id_matches_embedded_elf_image_id` checks that the exported id matches the embedded ELF. Public testnet deployment still pending. |
 | E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites are in-memory/synthetic. `scripts/demo-local-sequencer-e2e.sh` exercises wallet + real `getProofForCommitment`; `scripts/demo-local-gate-e2e.sh` wraps the live Workable gate flow (register presenter, init gate, admit, nullifier assertion). CI/local clean-room automation still pending. |
-| CI green on default branch. | done locally / pending remote confirmation | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`) plus isolated deployable-program checks. Needs GitHub run after merge. |
-| README covers CLI and Basecamp for both paths. | in-progress | `README.md` quick-start plus `apps/basecamp/README.md`; local CLI/Basecamp docs exist, while final testnet package/install docs remain pending. |
+| CI green on default branch. | done / rerun after next push | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`) plus isolated deployable-program checks. GitHub checks were green before this docs/artifact update; rerun after pushing. |
+| README covers CLI and Basecamp for both paths. | done for local flows | `README.md`, `docs/EVALUATOR_GUIDE.md`, and `apps/basecamp/README.md` cover quick, messaging, full local sequencer, Workable gate, and Basecamp flows. Final testnet deployment docs remain pending. |
 | Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | Root `demo.sh` supports `--quick`, `--messaging`, and full local sequencer mode with `--real-prover`. `scripts/demo-local-full-e2e.sh` passed locally on 2026-05-08 with synced LEZ fork, wallet state + real `getProofForCommitment`, proof verify `status: ok`, LEZ gate admit, nullifier persisted, and duplicate admit `not-applied`. Clean-room video still pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 

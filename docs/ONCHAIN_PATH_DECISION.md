@@ -72,6 +72,36 @@ of these:
 
 No such local path was found in the inspected LEZ checkout.
 
+## Feedback Request
+
+Use this wording when asking Logos reviewers/builders for the missing on-chain
+path detail:
+
+```text
+We found that direct public LEZ receipt verification with env::verify(...) fails
+locally because there is no receipt/assumption channel available in that public
+execution path.
+
+Looking at LEZ, the supported receipt-verification pattern seems to be inside
+the privacy-preserving execution circuit: nssa adds inner receipts via
+ExecutorEnv::add_assumption(...), and the PPE guest verifies chained program
+outputs with env::verify(...).
+
+For LP-0005, would a Logos-native private execution gate be considered the
+expected on-chain verification path? In that model, the reusable off-chain
+proof envelope remains locally verifiable, while the on-chain path uses LEZ
+private execution/PPE to verify the balance condition and gate a state
+update/nullifier on-chain.
+
+If the expected path is instead a public LEZ program verifying an externally
+submitted RISC Zero receipt, could you point us to the supported way to pass
+the receipt/assumption into public LEZ execution?
+```
+
+Until this is answered, the next technical spike is to prototype the
+Logos-native private execution/PPE gate and compare it against LP-0005's
+"LEZ verifier program accepts and verifies the proof" wording.
+
 ## Impact On LP-0005
 
 This does not block the off-chain path. The off-chain path can use the Spike 04

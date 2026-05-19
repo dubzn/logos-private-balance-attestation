@@ -61,6 +61,12 @@ Done locally:
   after switching checkouts
 - the Basecamp MVP now builds through `mkLogosQmlModule` as a real Qt plugin
   plus replica factory; direct `ui-host` smoke test reached `READY`
+- local/pluggable Messaging transport and token-gated admission flow:
+  `attestation-messaging`, CLI `message-*` commands, `./demo.sh --messaging`,
+  and `examples/chat-gate`
+- third local reference integration: `examples/fee-tier-gate`
+- evaluator-visible root artifacts: `demo.sh`,
+  `balance-attestation-verifier.idl.json`, and `apps/basecamp/module.json`
 
 Current command set:
 
@@ -96,6 +102,9 @@ cd apps/basecamp && nix build .#install
      version.
    - Keep the host-preverified Workable path documented unless evaluators
      request a different native LEZ pattern.
+   - Next technical candidate: implement a Logos-native private execution/PPE
+     gate spike, because LEZ currently shows `env::verify` working when the
+     outer PPE host injects inner receipts with `ExecutorEnv::add_assumption`.
 
 3. Replace local Messaging transport with the accepted real adapter if required.
    - Current local adapter: `attestation-messaging::LocalFileTransport`.
@@ -105,7 +114,7 @@ cd apps/basecamp && nix build .#install
      transport.
 
 4. Harden Basecamp GUI.
-   - Run a manual end-to-end UX pass from inside Basecamp.
+   - Run a final manual end-to-end UX pass from inside Basecamp for recording.
    - Keep the `nix build .#install` packaging path aligned with the active
      Basecamp build.
    - Keep the UI limited to public/sanitized proof state.
@@ -118,10 +127,11 @@ cd apps/basecamp && nix build .#install
    - Narrated demo video with `RISC0_DEV_MODE=0`.
 
 6. Submission hardening.
-    - CI.
-    - Clean local E2E.
-    - `RISC0_DEV_MODE=0` final demo.
-    - Benchmarks and CU docs.
-    - SPEL/IDL artifact.
-    - Testnet deployment details.
-    - Narrated video.
+   - Keep the Lambda Prize PR title exactly
+     `Solution: LP-0005 — Private Token Balance Attestation`.
+   - Do not reopen as a draft submission; use Discord or a separate discussion
+     for the on-chain-path question.
+   - Keep root `demo.sh`, root `*.idl.json`, and Basecamp `module.json`
+     visible for automated checks.
+   - Final submission should include testnet deployment details, CU docs,
+     clean local E2E evidence, and narrated video.

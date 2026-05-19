@@ -1,10 +1,11 @@
 # Evaluator Guide
 
-This repository is a draft LP-0005 implementation. It is not an award-ready
-submission yet because the evaluator-approved on-chain verification model and
-testnet deployment are still pending. The local proof, off-chain verification,
-Messaging-style transport, Basecamp MVP, and Workable host-preverified LEZ gate
-path are implemented.
+This repository is a technical LP-0005 implementation. It is not an award-ready
+submission yet because the evaluator-approved on-chain verification model,
+testnet deployment, CU measurements, external integration evidence, and final
+video are still pending. The local proof, off-chain verification,
+Messaging-style transport, Basecamp MVP, three local reference integrations,
+and Workable host-preverified LEZ gate path are implemented.
 
 ## What To Review First
 
