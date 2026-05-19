@@ -205,6 +205,19 @@ real local wallet state
 `witness.json` is private. Do not publish it. Public artifacts include the proof
 envelope, verifier output, gate report, and run summary.
 
+To exercise the Spike 09 PPE-native candidate, use the same local sequencer and
+wallet environment:
+
+```sh
+RISC0_DEV_MODE=0 ./demo.sh --ppe-gate --real-prover
+```
+
+This creates fresh local accounts, funds a private holder, proves
+`balance >= threshold` inside LEZ privacy-preserving execution, writes public
+`BAP1` gate/nullifier state, checks duplicate rejection, checks
+insufficient-balance rejection, and writes a benchmark report under
+`.demo-runs/spike-09-ppe-gate/`.
+
 For setup details, see [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md).
 
 Before publishing or recording a run, check the public repo hygiene:
@@ -345,7 +358,19 @@ Latest recorded local run with `RISC0_DEV_MODE=0`:
 | Gate phase | 00:01:42 |
 | Total | 00:03:30 |
 
+Latest Spike 09 PPE-native local run with `RISC0_DEV_MODE=0`:
+
+| Phase | Duration |
+| --- | ---: |
+| Fund private holder | 00:02:21 |
+| Positive PPE admit | 00:01:49 |
+| Duplicate rejection | 00:00:23 |
+| Insufficient-balance rejection | 00:00:02 |
+| Total | 00:04:56 |
+
 These are not devnet/testnet CU metrics. CU measurement is still pending.
+Spike 09 PPE-native runs now write their own local benchmark reports via
+`./demo.sh --ppe-gate --real-prover`.
 
 ## Documentation
 

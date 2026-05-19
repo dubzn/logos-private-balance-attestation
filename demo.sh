@@ -5,6 +5,7 @@
 #   --quick       Synthetic fixture: prove + verify, no wallet/sequencer.
 #   --messaging   Synthetic fixture: proof message + local admission.
 #   --full        Live local wallet/sequencer + Workable LEZ gate path.
+#   --ppe-gate    Live local PPE-native LEZ balance gate spike.
 #
 # Proving mode:
 #   --dev-mode    RISC0_DEV_MODE=1 (fast, non-production receipts).
@@ -21,7 +22,7 @@ RISC0_MODE="${RISC0_DEV_MODE:-1}"
 usage() {
   cat >&2 <<'EOF'
 usage:
-  ./demo.sh [--quick|--messaging|--full] [--dev-mode|--real-prover]
+  ./demo.sh [--quick|--messaging|--full|--ppe-gate] [--dev-mode|--real-prover]
 
 modes:
   --quick        Run scripts/demo-end-to-end.sh with deterministic fixtures.
@@ -34,6 +35,12 @@ modes:
   --full         Run scripts/demo-local-full-e2e.sh. Requires a local LEZ
                  sequencer, wallet home, and initialized/funded private account.
                  This is the default mode.
+
+  --ppe-gate     Run scripts/spike-09-demo-ppe-gate.sh. Requires a local LEZ
+                 sequencer and wallet home. Creates fresh local accounts,
+                 checks private balance inside LEZ privacy-preserving
+                 execution, writes public BAP1 gate/nullifier state, and
+                 benchmarks the positive, duplicate, and negative paths.
 
 proving:
   --dev-mode     Set RISC0_DEV_MODE=1. Fast, non-production receipts.
@@ -49,6 +56,7 @@ examples:
   ./demo.sh --quick
   ./demo.sh --messaging --real-prover
   PRIVATE_ACCOUNT=Private/<id> ./demo.sh --full --real-prover
+  ./demo.sh --ppe-gate --real-prover
 EOF
 }
 
@@ -64,6 +72,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --full)
       MODE="full"
+      shift
+      ;;
+    --ppe-gate)
+      MODE="ppe-gate"
       shift
       ;;
     --dev-mode)
@@ -115,6 +127,9 @@ EOF
       exit 2
     fi
     exec "$ROOT_DIR/scripts/demo-local-full-e2e.sh"
+    ;;
+  ppe-gate)
+    exec "$ROOT_DIR/scripts/spike-09-demo-ppe-gate.sh"
     ;;
   *)
     echo "internal error: unknown mode $MODE" >&2

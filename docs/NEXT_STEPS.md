@@ -65,6 +65,10 @@ Done locally:
   `attestation-messaging`, CLI `message-*` commands, `./demo.sh --messaging`,
   and `examples/chat-gate`
 - third local reference integration: `examples/fee-tier-gate`
+- Spike 09 PPE-native gate is available from the root demo entrypoint via
+  `./demo.sh --ppe-gate --real-prover`; it writes a local benchmark report for
+  wallet health, build, deploy, funding, positive admit, duplicate rejection,
+  and insufficient-balance rejection
 - evaluator-visible root artifacts: `demo.sh`,
   `balance-attestation-verifier.idl.json`, and `apps/basecamp/module.json`
 
@@ -74,6 +78,7 @@ Current command set:
 source scripts/env.example
 cargo test
 scripts/check-public-clean-room.sh
+./demo.sh --ppe-gate --real-prover
 scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --require-proof

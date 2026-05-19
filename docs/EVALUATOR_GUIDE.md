@@ -124,6 +124,22 @@ RISC0_DEV_MODE=0 \
 envelope, verifier output, gate report, and run summary artifacts under
 `.demo-runs/`.
 
+## PPE-Native Gate Candidate
+
+This path exercises the Spike 09 Logos privacy-preserving execution candidate.
+It does not use the portable off-chain proof envelope; instead, the LEZ private
+execution proof checks the balance condition and writes public gate/nullifier
+state.
+
+```sh
+RISC0_DEV_MODE=0 ./demo.sh --ppe-gate --real-prover
+```
+
+The script creates fresh local accounts, funds a private holder, admits once,
+checks duplicate rejection, checks insufficient-balance rejection, and writes a
+local benchmark report under `.demo-runs/spike-09-ppe-gate/`. Treat this as
+local evidence for the on-chain-path discussion, not as devnet/testnet CU data.
+
 ## Basecamp MVP
 
 Build the Basecamp plugin:

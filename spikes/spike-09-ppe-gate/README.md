@@ -107,9 +107,21 @@ RISC0_DEV_MODE=0 \
   scripts/spike-09-demo-ppe-gate.sh
 ```
 
+Repository-root equivalent:
+
+```sh
+RISC0_DEV_MODE=0 ./demo.sh --ppe-gate --real-prover
+```
+
 The automated fixture creates fresh local accounts, funds the private holder,
 admits once, verifies the nullifier is recorded, syncs private state, and then
 checks that a duplicate admission does not append a second nullifier.
+
+It writes a local benchmark report to:
+
+```text
+.demo-runs/spike-09-ppe-gate/<timestamp>/report.md
+```
 
 `RISC0_DEV_MODE` must match the mode used by the running sequencer. The latest
 validated run used `RISC0_DEV_MODE=0`; a mismatch can make private funding fail

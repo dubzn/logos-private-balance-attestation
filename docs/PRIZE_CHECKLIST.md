@@ -45,7 +45,7 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | Document CU cost of on-chain operations. | planned / local timings documented | `docs/BENCHMARKS.md` records local proof/gate wall-clock timings and explicitly lists missing devnet/testnet CU measurements. |
-| Proof generation benchmark. | in-progress | `docs/BENCHMARKS.md`: full local E2E `RISC0_DEV_MODE=0`: proof phase 00:01:48, gate phase 00:01:42, total 00:03:30; proof substeps include build witness 00:01:17, prove 00:00:24, verify 00:00:03. |
+| Proof generation benchmark. | in-progress | `docs/BENCHMARKS.md`: full local E2E `RISC0_DEV_MODE=0`: proof phase 00:01:48, gate phase 00:01:42, total 00:03:30; proof substeps include build witness 00:01:17, prove 00:00:24, verify 00:00:03. Spike 09 PPE-native benchmark also records local positive admit, duplicate rejection, and insufficient-balance rejection timings. |
 
 ## Supportability
 
@@ -55,7 +55,7 @@ Status legend:
 | E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites are in-memory/synthetic. `scripts/demo-local-sequencer-e2e.sh` exercises wallet + real `getProofForCommitment`; `scripts/demo-local-gate-e2e.sh` wraps the live Workable gate flow (register presenter, init gate, admit, nullifier assertion); Spike 09 exercises the PPE-native private execution gate locally. Live sequencer E2E is automated for local runs but not yet run inside GitHub CI. |
 | CI green on default branch. | done / local checks passed after latest commit | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`) plus isolated deployable-program checks. Local clean-room checks passed with `--with-tests` and `--with-lez`; GitHub should be rerun after pushing the latest commits. |
 | README covers CLI and Basecamp for both paths. | done for local flows | `README.md`, `docs/EVALUATOR_GUIDE.md`, and `apps/basecamp/README.md` cover quick, messaging, full local sequencer, Workable gate, and Basecamp flows. Final testnet deployment docs remain pending. |
-| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | Root `demo.sh` supports `--quick`, `--messaging`, and full local sequencer mode with `--real-prover`. `scripts/demo-local-full-e2e.sh` passed locally on 2026-05-08 with synced LEZ fork, wallet state + real `getProofForCommitment`, proof verify `status: ok`, LEZ gate admit, nullifier persisted, and duplicate admit `not-applied`. `scripts/spike-09-demo-ppe-gate.sh` also passed locally with `RISC0_DEV_MODE=0`. Clean-room video still pending. |
+| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | Root `demo.sh` supports `--quick`, `--messaging`, `--full`, and `--ppe-gate`. `scripts/demo-local-full-e2e.sh` passed locally on 2026-05-08 with synced LEZ fork, wallet state + real `getProofForCommitment`, proof verify `status: ok`, LEZ gate admit, nullifier persisted, and duplicate admit `not-applied`. `./demo.sh --ppe-gate --real-prover` passed locally on 2026-05-19 with `RISC0_DEV_MODE=0`, positive PPE admit, `BA206`/no-second-nullifier duplicate behavior, and `BA201` insufficient-balance rejection. Clean-room video still pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 
 ## Submission Blockers To Clear
