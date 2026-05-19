@@ -357,7 +357,7 @@ These are not devnet/testnet CU metrics. CU measurement is still pending.
 - [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to current artifacts.
 - [Benchmarks](docs/BENCHMARKS.md): local proof/gate timings and remaining CU work.
 - [Error Codes](docs/ERROR_CODES.md): deterministic BAxxx errors.
-- [IDL Draft](docs/IDL_DRAFT.md): LEZ verifier interface.
+- [IDL Reference](docs/IDL_DRAFT.md): LEZ verifier interface.
 - [Basecamp MVP](apps/basecamp/README.md): local `ui_qml` proof and gate workflow.
 - [Next Steps](docs/NEXT_STEPS.md): ordered backlog to final submission.
 - [Risk Spikes](docs/RISK_SPIKES.md): high-risk assumptions and validation plan.

@@ -144,17 +144,27 @@ recipient must generate a fresh challenge for each admission/session and reject
 envelopes whose challenge differs from the expected value. A static challenge
 collapses back into replayable-token behavior.
 
-For on-chain verification (Spike 0C path):
+For the current public Workable LEZ gate:
 
-- the LEZ tx must be signed by the presenter account, or otherwise carry an
-  authenticated presenter account from the runtime
-- the LEZ program must assert the signer/account-derived presenter id equals
-  `journal.presenter_id`
-- the in-memory `LezGateProgram` now models this as
-  `admit(proof, presenter_id)`; the live LEZ adapter still needs to derive that
-  `presenter_id` from real transaction/account context
-- once that adapter exists, the on-chain path does not need the off-chain
-  Schnorr signature because LEZ tx signing enforces presenter identity
+- `register_presenter` claims a public presenter account and stores the
+  32-byte BIP-340 x-only pubkey in `account.data`.
+- `admit` requires the presenter account to be authorized and derives
+  `presenter_id = H(PRESENTER_DOMAIN || presenter.account.data[..32])`.
+- `admit` rejects the journal if that derived id differs from
+  `outer_journal.accepted_presenter_id`.
+- The host must still verify the off-chain envelope before submission because
+  the public LEZ program does not verify the RISC Zero receipt itself.
+
+For the Spike 09 PPE-native gate:
+
+- the LEZ privacy-preserving transaction authorizes a public presenter account
+  alongside the private holder account,
+- the guest records the presenter account id with the admitted context
+  nullifier,
+- the private balance check happens inside LEZ private execution, not in the
+  host precheck,
+- this path is still awaiting evaluator confirmation and does not consume the
+  same portable off-chain envelope.
 
 This is the resolution of the open decision flagged in earlier drafts of this
 doc ("map presenter_secret to a wallet-compatible signing key or keep the

@@ -226,11 +226,16 @@ binds the proof to a presenter via BIP-340 Schnorr over secp256k1:
   If an application reuses a static challenge, a captured complete envelope can
   still be replayed into that same static session; fresh challenge generation is
   the application-layer responsibility.
-- On-chain: the LEZ tx must be signed by, or otherwise authenticated to, the
-  presenter account. The LEZ program must assert the runtime-derived presenter
-  id equals `journal.presenter_id`. The in-memory `LezGateProgram` models this
-  as `admit(proof, presenter_id)`; the live LEZ adapter still needs to derive
-  that presenter id from real signer/account context.
+- Current public Workable gate: `register_presenter` stores the presenter's
+  32-byte x-only pubkey in a claimed public presenter account. `admit` derives
+  the presenter id from that account data and rejects journals whose
+  `accepted_presenter_id` does not match. The host still verifies the off-chain
+  envelope before submitting because the public LEZ program does not verify the
+  RISC Zero receipt itself.
+- Spike 09 PPE-native gate: the privacy-preserving transaction authorizes a
+  public presenter account alongside the private holder account and records
+  the presenter account id with the admitted nullifier. This path is still a
+  spike pending evaluator confirmation.
 
 The circuit only hashes the pubkey (no in-circuit ECC). Knowledge-of-secret
 is proved off-circuit by the BIP-340 signature: only the secret-holder can

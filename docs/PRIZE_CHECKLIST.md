@@ -30,7 +30,7 @@ Status legend:
 | --- | --- | --- |
 | SDK/module for Logos modules. | done | `crates/attestation-sdk/` umbrella; off-chain default + `on-chain` feature. |
 | Basecamp GUI with local build instructions. | done (MVP) | `apps/basecamp/`: backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit flow. The Nix install target builds a Qt plugin plus replica factory and has been smoke-tested with `ui-host READY`; final recorded walkthrough still pending. |
-| SPEL IDL for LEZ program. | done | `balance-attestation-verifier.idl.json` at the repository root points to `idl/balance-attestation-verifier.json`; `docs/IDL_DRAFT.md` is the prose companion. |
+| SPEL IDL for LEZ program. | done (SPEL-style JSON) | `balance-attestation-verifier.idl.json` at the repository root points to `idl/balance-attestation-verifier.json`; `docs/IDL_DRAFT.md` is the prose companion. The local LEZ deployment path does not consume SPEL directly, so this remains a public contract artifact unless Logos requires regeneration with specific tooling. |
 
 ## Reliability
 
@@ -52,10 +52,10 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | Program deployed and tested on devnet/testnet. | partial | Spike 08 deployed a local build via `wallet deploy-program` on 2026-05-05 and included register/init/admit blocks. The deployable program id is generated from the embedded ELF image id at build time; `lez-verifier/program/tests/program_journal_roundtrip.rs::program_id_matches_embedded_elf_image_id` checks that the exported id matches the embedded ELF. Public testnet deployment still pending. |
-| E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites are in-memory/synthetic. `scripts/demo-local-sequencer-e2e.sh` exercises wallet + real `getProofForCommitment`; `scripts/demo-local-gate-e2e.sh` wraps the live Workable gate flow (register presenter, init gate, admit, nullifier assertion). CI/local clean-room automation still pending. |
-| CI green on default branch. | done / rerun after next push | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`) plus isolated deployable-program checks. GitHub checks were green before this docs/artifact update; rerun after pushing. |
+| E2E tests against standalone LEZ sequencer in CI. | partial | Workspace E2E suites are in-memory/synthetic. `scripts/demo-local-sequencer-e2e.sh` exercises wallet + real `getProofForCommitment`; `scripts/demo-local-gate-e2e.sh` wraps the live Workable gate flow (register presenter, init gate, admit, nullifier assertion); Spike 09 exercises the PPE-native private execution gate locally. Live sequencer E2E is automated for local runs but not yet run inside GitHub CI. |
+| CI green on default branch. | done / local checks passed after latest commit | `.github/workflows/ci.yml`: fmt + clippy + workspace tests (default + `--include-ignored`) plus isolated deployable-program checks. Local clean-room checks passed with `--with-tests` and `--with-lez`; GitHub should be rerun after pushing the latest commits. |
 | README covers CLI and Basecamp for both paths. | done for local flows | `README.md`, `docs/EVALUATOR_GUIDE.md`, and `apps/basecamp/README.md` cover quick, messaging, full local sequencer, Workable gate, and Basecamp flows. Final testnet deployment docs remain pending. |
-| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | Root `demo.sh` supports `--quick`, `--messaging`, and full local sequencer mode with `--real-prover`. `scripts/demo-local-full-e2e.sh` passed locally on 2026-05-08 with synced LEZ fork, wallet state + real `getProofForCommitment`, proof verify `status: ok`, LEZ gate admit, nullifier persisted, and duplicate admit `not-applied`. Clean-room video still pending. |
+| Reproducible demo script with `RISC0_DEV_MODE=0`. | partial | Root `demo.sh` supports `--quick`, `--messaging`, and full local sequencer mode with `--real-prover`. `scripts/demo-local-full-e2e.sh` passed locally on 2026-05-08 with synced LEZ fork, wallet state + real `getProofForCommitment`, proof verify `status: ok`, LEZ gate admit, nullifier persisted, and duplicate admit `not-applied`. `scripts/spike-09-demo-ppe-gate.sh` also passed locally with `RISC0_DEV_MODE=0`. Clean-room video still pending. |
 | Narrated demo video showing proof generation and dev mode off. | planned | Submission artifact. |
 
 ## Submission Blockers To Clear

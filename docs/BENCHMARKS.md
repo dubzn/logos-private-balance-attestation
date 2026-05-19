@@ -21,6 +21,9 @@ a local LEZ sequencer, local wallet private state, and the real
 - The gate path is the current Workable model: host-side proof verification via
   `attestation-verifier`, followed by a LEZ gate-ledger transaction that records
   and deduplicates the context nullifier.
+- Spike 09 PPE-native gate timing is not included in the tables below yet. It
+  passed locally with `RISC0_DEV_MODE=0`, but needs a dedicated benchmark run
+  before being treated as performance evidence.
 - These are local wall-clock timings, not LEZ devnet/testnet CU measurements.
 - Build steps are included where the scripts include them, so warmed-run timings
   may be lower.
@@ -127,6 +130,8 @@ local run does not provide CU data, so these remain open:
   program id.
 - Measure CU cost for `register_presenter`, `init_gate`, `admit`, and rejected
   duplicate admit if the chain exposes per-transaction CU metrics.
+- Measure the Spike 09 PPE-native gate path separately: positive admit,
+  duplicate rejection, and insufficient-balance rejection.
 - Record inclusion/finality timing on devnet/testnet separately from local
   wall-clock script timing.
 - Re-run proof generation on a clean machine and record hardware details.

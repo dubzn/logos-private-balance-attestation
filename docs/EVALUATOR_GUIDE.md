@@ -13,7 +13,8 @@ execution checks `balance >= threshold` and writes public gate/nullifier state.
 
 1. Read [README.md](../README.md) for status and limitations.
 2. Read [ARCHITECTURE.md](ARCHITECTURE.md) for the proof envelope, context
-   binding, presenter binding, off-chain path, and Workable on-chain path.
+   binding, presenter binding, off-chain path, Workable public gate, and
+   Spike 09 PPE-native candidate.
 3. Read [ONCHAIN_PATH_DECISION.md](ONCHAIN_PATH_DECISION.md) for why the current
    public LEZ path is host-preverified and why Spike 09 is the current
    PPE-native candidate.
@@ -191,6 +192,9 @@ Use `--with-lez` only when `LOGOS_LEZ_REPO` points at the intended local
 - The deployable LEZ program currently records gate/nullifier state after
   host-side verification. It does not cryptographically verify the RISC Zero
   receipt inside public LEZ execution.
+- Spike 09 demonstrates a stronger PPE-native LEZ gate candidate, but it is
+  still a spike and does not consume the same portable off-chain proof
+  envelope.
 - Real Logos Messaging network transport is not wired yet. The current adapter
   is local JSON and intentionally pluggable.
 - Testnet deployment, CU measurements, external integrator validation, and

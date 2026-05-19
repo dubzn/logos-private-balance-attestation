@@ -1,4 +1,4 @@
-# LEZ Verifier IDL Draft
+# LEZ Verifier IDL Reference
 
 This is the **human-readable** companion to `idl/balance-attestation-verifier.json`,
 the SPEL-compatible IDL artifact. The two MUST be kept in sync; the JSON is
@@ -27,6 +27,11 @@ checks (a) `outer_journal.version == 1`, (b)
 == `H(PRESENTER_DOMAIN || presenter.account.data[..32])` over an authorized
 presenter pre-state, and (f) nullifier dedup against
 `gate_state.admitted_nullifiers`.
+
+This reference covers the deployable public gate-state program. It does not
+describe the experimental Spike 09 PPE-native gate, which is intentionally kept
+under `spikes/spike-09-ppe-gate/` until evaluators confirm whether that path is
+the expected LP-0005 on-chain verification model.
 
 ## Program
 
@@ -222,10 +227,15 @@ Read helpers are off-chain CLI/Basecamp utilities for now: they fetch the gate
 state account and decode `GateState`. The deployed program currently exposes no
 separate read-only instruction.
 
-## SPEL Requirement
+## SPEL Status
 
-Before submission, this draft must become a real SPEL IDL artifact. The final
-repo should keep both:
+The repository now exposes a root-level IDL symlink for evaluator tooling:
 
-- SPEL file consumed by tooling
-- generated or hand-written markdown reference for humans
+```text
+balance-attestation-verifier.idl.json -> idl/balance-attestation-verifier.json
+```
+
+The JSON file is hand-written SPEL-style IDL because the current local LEZ
+deployment path does not consume SPEL artifacts directly. If Logos provides a
+required SPEL generator or schema during review, regenerate this JSON from that
+tooling and keep this human-readable reference in sync.
