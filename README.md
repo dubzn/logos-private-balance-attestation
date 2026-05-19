@@ -229,6 +229,20 @@ scripts/check-public-clean-room.sh
 Use `--with-tests` for workspace tests and `--with-lez` for checks that need
 the local LEZ fork.
 
+For an evaluator-style dry run, use the clean-room runner:
+
+```sh
+scripts/demo-clean-room.sh --real-prover
+```
+
+Add live paths when a local sequencer, wallet home, and private account are
+available:
+
+```sh
+PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
+  scripts/demo-clean-room.sh --real-prover --with-lez --with-live --with-ppe
+```
+
 ## CLI Examples
 
 Generate and verify a deterministic fixture:

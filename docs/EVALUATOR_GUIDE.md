@@ -203,6 +203,24 @@ scripts/check-public-clean-room.sh --with-tests
 Use `--with-lez` only when `LOGOS_LEZ_REPO` points at the intended local
 `logos-execution-zone` checkout.
 
+For a single evaluator-style dry run that writes a consolidated report:
+
+```sh
+scripts/demo-clean-room.sh --real-prover
+```
+
+This default dry run does not require a wallet or sequencer. It runs public
+hygiene checks, the quick proof/verify demo, and the local Messaging demo. To
+include live LEZ paths:
+
+```sh
+PRIVATE_ACCOUNT=Private/<private-account-id> \
+  scripts/demo-clean-room.sh --real-prover --with-lez --with-live --with-ppe
+```
+
+The live run writes private witness artifacts under `.demo-runs/clean-room/`;
+do not publish those artifacts without removing `witness.json`.
+
 ## Known Limitations
 
 - The deployable LEZ program currently records gate/nullifier state after
