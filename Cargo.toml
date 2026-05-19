@@ -8,6 +8,7 @@ members = [
     "crates/attestation-verifier",
     "examples/chat-gate",
     "examples/demo-runner",
+    "examples/fee-tier-gate",
     "examples/governance-gate",
     "lez-verifier",
     "methods",
