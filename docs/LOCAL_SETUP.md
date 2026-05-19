@@ -178,6 +178,19 @@ scripts/check-public-clean-room.sh --with-tests
 scripts/check-public-clean-room.sh --with-lez
 ```
 
+## Root Demo Entrypoint
+
+`demo.sh` is the Lambda Prize root entrypoint. It supports three modes:
+
+```sh
+./demo.sh --quick
+./demo.sh --messaging
+PRIVATE_ACCOUNT=Private/<private-account-id> ./demo.sh --full
+```
+
+Use `--real-prover` to force `RISC0_DEV_MODE=0`, or `--dev-mode` for fast
+non-production receipts.
+
 ## Run The Core Unit Tests
 
 The first reusable crate does not need a sequencer, wallet, Docker, or RISC
@@ -365,31 +378,35 @@ wallet account get --account-id Private/<private-account-id>
 The final `account get` reads local wallet storage. Other users cannot query the
 private account balance from the network.
 
-## Future CLI Flow
+## Current CLI Flow
 
-After the first implementation milestones, the intended CLI flow is:
+The current CLI exposes inspect, prove, verify, messaging, and Workable gate
+commands:
 
 ```sh
 cargo run -p attestation-cli -- inspect-private \
-  --account Private/<private-account-id>
+  --account Private/<private-account-id> \
+  --local-only
 
 cargo run -p attestation-cli -- prove \
-  --account Private/<private-account-id> \
-  --threshold 25 \
-  --context "local/governance/demo-vote-1" \
-  --presenter Public/<presenter-id> \
-  --out proof.json
+  --witness .demo-runs/<run>/witness.json \
+  --out .demo-runs/<run>/envelope.json
 
-cargo run -p attestation-cli -- verify-offchain \
-  --proof proof.json \
-  --context "local/governance/demo-vote-1" \
-  --threshold 25
+cargo run -p attestation-cli -- verify \
+  --envelope .demo-runs/<run>/envelope.json \
+  --gate .demo-runs/<run>/gate.json
+
+cargo run -p attestation-cli -- message-export \
+  --envelope .demo-runs/<run>/envelope.json \
+  --out .demo-runs/<run>/message.json \
+  --group demo-chat \
+  --sender presenter-local
 ```
 
 The current smoke demo can run with real proving over deterministic fixtures:
 
 ```sh
-RISC0_DEV_MODE=0 scripts/demo-end-to-end.sh
+./demo.sh --quick --real-prover
 ```
 
 The same real-prover mode has passed locally against a local sequencer, wallet
@@ -469,7 +486,7 @@ To compose the proof phase and gate phase in one command:
 cd "$BALANCE_ATTEST_REPO"
 PRIVATE_ACCOUNT=Private/<private-account-id> \
 RISC0_DEV_MODE=0 \
-  ./demo.sh
+  ./demo.sh --full --real-prover
 ```
 
 The script creates:

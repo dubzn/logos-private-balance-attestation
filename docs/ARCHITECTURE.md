@@ -41,7 +41,7 @@ flowchart LR
 | `methods/guest` | RISC Zero guest circuit that checks balance threshold, commitment reconstruction, Merkle membership, and context binding. |
 | `lez-verifier/program` | Deployable LEZ gate-ledger/nullifier program used after host-side envelope verification. |
 | `apps/basecamp` | Backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit. |
-| `examples` | Reference integrations required by the prize: governance gate, Messaging group gate, and a third app. |
+| `examples` | Reference integrations required by the prize: governance gate, Messaging group gate, and fee-tier gate. |
 
 ## Basecamp MVP
 

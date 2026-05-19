@@ -74,7 +74,9 @@ cargo run -p attestation-cli -- inspect-private --account Private/<id> --require
 PRIVATE_ACCOUNT=Private/<id> scripts/prepare-local-private-account.sh
 PRIVATE_ACCOUNT=Private/<id> scripts/demo-local-sequencer-e2e.sh
 RUN_DIR=.demo-runs/local-sequencer/<run> scripts/demo-local-gate-e2e.sh
-PRIVATE_ACCOUNT=Private/<id> ./demo.sh
+./demo.sh --quick
+./demo.sh --messaging
+PRIVATE_ACCOUNT=Private/<id> ./demo.sh --full
 scripts/clean-local-artifacts.sh
 cd apps/basecamp && nix build .#install
 ```
@@ -109,18 +111,13 @@ cd apps/basecamp && nix build .#install
    - Keep the UI limited to public/sanitized proof state.
 
 5. Add final submission support.
-   - Third reference integration and external partner.
+   - External partner/integrator for at least one reference integration.
    - Live LEZ testnet deployment and program id docs.
    - Devnet/testnet CU measurements for the operations already listed in
      `docs/BENCHMARKS.md`.
    - Narrated demo video with `RISC0_DEV_MODE=0`.
 
-6. Build the remaining reference integration.
-   - Governance/access gate.
-   - Messaging group gate.
-   - Third integration with external validation.
-
-7. Submission hardening.
+6. Submission hardening.
     - CI.
     - Clean local E2E.
     - `RISC0_DEV_MODE=0` final demo.

@@ -29,7 +29,7 @@ Implemented locally:
 - CLI for inspect/prove/verify and LEZ gate commands.
 - Deployable LEZ gate-state program for the current Workable path.
 - Backend-backed Basecamp GUI MVP that loads as a `ui_qml` plugin locally.
-- Two reference integrations: governance gate and chat gate.
+- Three reference integrations: governance gate, chat gate, and fee-tier gate.
 - IDL artifact, deterministic error codes, CI, local E2E scripts, and local
   benchmark documentation.
 
@@ -39,7 +39,7 @@ Still pending for final LP-0005 submission:
 - Basecamp UX polish and final package/install validation.
 - Logos Messaging-specific network adapter, if evaluators require the real
   transport instead of the current local JSON adapter.
-- Third reference integration, ideally with an external integrator.
+- External integrator validation for at least one reference integration.
 - LEZ devnet/testnet deployment and CU measurements.
 - Narrated demo video showing `RISC0_DEV_MODE=0`.
 
@@ -76,6 +76,7 @@ lez-verifier/program/        deployable LEZ gate-state program
 apps/basecamp/               backend-backed ui_qml Basecamp MVP
 examples/governance-gate/    reference governance integration
 examples/chat-gate/          reference chat/admission integration
+examples/fee-tier-gate/      reference fee/discount tier integration
 spikes/                      risk spikes and local LEZ probes
 scripts/                     reproducible local flows and setup helpers
 idl/                         LEZ verifier IDL artifact
@@ -108,7 +109,7 @@ for that checkout and rerun `scripts/check-wallet-preflight.sh`.
 Run the fast smoke demo with deterministic fixtures:
 
 ```sh
-scripts/demo-end-to-end.sh
+./demo.sh --quick
 ```
 
 This proves and verifies a synthetic witness. It is useful for checking the
@@ -144,11 +145,12 @@ Once that passes, run:
 PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
 THRESHOLD=1 \
 RISC0_DEV_MODE=0 \
-  ./demo.sh
+  ./demo.sh --full --real-prover
 ```
 
-`demo.sh` is the Lambda Prize root entrypoint and delegates to
-`scripts/demo-local-full-e2e.sh`. That script composes:
+`demo.sh` is the Lambda Prize root entrypoint. `--quick` runs the synthetic
+fixture smoke demo, `--messaging` runs the local off-chain transport demo, and
+`--full` delegates to `scripts/demo-local-full-e2e.sh`. The full mode composes:
 
 ```text
 real local wallet state
@@ -233,7 +235,7 @@ one flow.
 Simulate the off-chain Messaging path with local JSON transport:
 
 ```sh
-RISC0_DEV_MODE=1 scripts/demo-local-messaging.sh
+./demo.sh --messaging --dev-mode
 ```
 
 Or use the CLI pieces directly:
@@ -309,6 +311,7 @@ These are not devnet/testnet CU metrics. CU measurement is still pending.
 
 - [Architecture](docs/ARCHITECTURE.md): proof format, flow, and component boundaries.
 - [Local Setup](docs/LOCAL_SETUP.md): sequencer, wallet, private account, and demo commands.
+- [Evaluator Guide](docs/EVALUATOR_GUIDE.md): clean review path and known limitations.
 - [Security Model](docs/SECURITY_MODEL.md): privacy guarantees, replay, forwarding, nullifiers, and limits.
 - [On-Chain Path Decision](docs/ONCHAIN_PATH_DECISION.md): why the current on-chain path is Workable / host-preverified.
 - [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to current artifacts.
