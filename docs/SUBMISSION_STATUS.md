@@ -120,3 +120,24 @@ private holder account
 
 It passed locally with `RISC0_DEV_MODE=0`, but it does not verify the same
 portable proof envelope used off-chain. That is the open evaluator decision.
+
+## Open Evaluator Question
+
+The remaining architectural question for LP-0005 is deliberately narrow:
+
+```text
+Should the final on-chain path be the PPE-native LEZ gate, where private
+execution proves balance >= threshold and writes public gate/nullifier state,
+or must the on-chain path verify the same portable RISC Zero proof envelope
+that is used by the off-chain verifier?
+```
+
+The repo keeps both paths visible so reviewers can evaluate the tradeoff:
+
+- `docs/ONCHAIN_PATH_DECISION.md` explains why direct public LEZ
+  `env::verify(...)` over an externally supplied receipt currently fails
+  locally without an assumptions channel.
+- `./demo.sh --ppe-gate --real-prover` demonstrates the PPE-native candidate
+  with real proving, duplicate rejection, and insufficient-balance rejection.
+- `lez-verifier/program/` remains the Workable public gate ledger for the
+  host-preverified path.

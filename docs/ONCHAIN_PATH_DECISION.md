@@ -74,28 +74,34 @@ No such local path was found in the inspected LEZ checkout.
 
 ## Feedback Request
 
-Use this wording when asking Logos reviewers/builders for the missing on-chain
-path detail:
+Use this concise wording when asking Logos reviewers/builders for the missing
+on-chain path detail:
 
 ```text
-We found that direct public LEZ receipt verification with env::verify(...) fails
-locally because there is no receipt/assumption channel available in that public
-execution path.
+Quick LP-0005 implementation question.
 
-Looking at LEZ, the supported receipt-verification pattern seems to be inside
-the privacy-preserving execution circuit: nssa adds inner receipts via
-ExecutorEnv::add_assumption(...), and the PPE guest verifies chained program
-outputs with env::verify(...).
+We now have two local on-chain candidates implemented:
 
-For LP-0005, would a Logos-native private execution gate be considered the
-expected on-chain verification path? In that model, the reusable off-chain
-proof envelope remains locally verifiable, while the on-chain path uses LEZ
-private execution/PPE to verify the balance condition and gate a state
-update/nullifier on-chain.
+1. Workable public LEZ gate:
+   host verifies the RISC Zero proof envelope, then submits a gate admit tx.
+   This persists/dedupes the nullifier on-chain, but the public LEZ program
+   does not verify the receipt itself.
 
-If the expected path is instead a public LEZ program verifying an externally
-submitted RISC Zero receipt, could you point us to the supported way to pass
-the receipt/assumption into public LEZ execution?
+2. PPE-native LEZ gate:
+   LEZ private execution checks private balance >= threshold and writes the
+   public gate/nullifier state. This passed locally with RISC0_DEV_MODE=0,
+   including duplicate and insufficient-balance rejection.
+
+The open question is: for LP-0005, should the final on-chain path be the
+PPE-native LEZ flow, or do evaluators require the same portable off-chain
+proof envelope to be verified by a public LEZ program?
+
+Repo:
+https://github.com/dubzn/logos-private-balance-attestation
+
+Relevant docs:
+docs/ONCHAIN_PATH_DECISION.md
+docs/SUBMISSION_STATUS.md
 ```
 
 Spike 09 has now prototyped the Logos-native private execution/PPE gate. The

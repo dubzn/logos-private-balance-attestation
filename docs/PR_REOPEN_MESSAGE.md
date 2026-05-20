@@ -84,12 +84,28 @@ submission:
 ## Short Discord Follow-Up
 
 ```text
-I pushed the LP-0005 repo to a clearer submission-readiness state:
-root demo.sh, IDL JSON, Basecamp module metadata, clean-room runner, local
-Messaging adapter, Workable gate path, and PPE-native gate spike.
+Quick LP-0005 implementation question.
 
-The remaining question is still the on-chain verifier model: should the final
-LP-0005 on-chain path use LEZ PPE/private execution for the balance gate, or is
-there a supported public LEZ way to pass external RISC Zero receipt assumptions
-into env::verify(...)?
+We now have two local on-chain candidates implemented:
+
+1. Workable public LEZ gate:
+   host verifies the RISC Zero proof envelope, then submits a gate admit tx.
+   This persists/dedupes the nullifier on-chain, but the public LEZ program
+   does not verify the receipt itself.
+
+2. PPE-native LEZ gate:
+   LEZ private execution checks private balance >= threshold and writes the
+   public gate/nullifier state. This passed locally with RISC0_DEV_MODE=0,
+   including duplicate and insufficient-balance rejection.
+
+The open question is: for LP-0005, should the final on-chain path be the
+PPE-native LEZ flow, or do evaluators require the same portable off-chain proof
+envelope to be verified by a public LEZ program?
+
+Repo:
+https://github.com/dubzn/logos-private-balance-attestation
+
+Relevant docs:
+docs/ONCHAIN_PATH_DECISION.md
+docs/SUBMISSION_STATUS.md
 ```
