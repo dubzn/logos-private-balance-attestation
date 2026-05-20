@@ -23,7 +23,11 @@ REPORT="$CLEAN_ROOM_DIR/report.md"
 RUN_JSON="$CLEAN_ROOM_DIR/run.json"
 
 RISC0_MODE="${RISC0_DEV_MODE:-1}"
-DEMO_MODE_FLAG="--dev-mode"
+if [[ "$RISC0_MODE" == "0" ]]; then
+  DEMO_MODE_FLAG="--real-prover"
+else
+  DEMO_MODE_FLAG="--dev-mode"
+fi
 WITH_TESTS=0
 WITH_LEZ=0
 WITH_LIVE=0

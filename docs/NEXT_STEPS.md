@@ -72,6 +72,8 @@ Done locally:
 - clean-room evaluator runner: `scripts/demo-clean-room.sh` runs public
   hygiene, quick proof/verify, local Messaging, and optional live Workable/PPE
   paths with one consolidated report
+- submission-readiness docs: `docs/SUBMISSION_STATUS.md`,
+  `docs/PR_REOPEN_MESSAGE.md`, and `docs/DEMO_VIDEO_SCRIPT.md`
 - evaluator-visible root artifacts: `demo.sh`,
   `balance-attestation-verifier.idl.json`, and `apps/basecamp/module.json`
 
@@ -81,7 +83,7 @@ Current command set:
 source scripts/env.example
 cargo test
 scripts/check-public-clean-room.sh
-scripts/demo-clean-room.sh --real-prover
+./demo.sh --clean-room --real-prover
 ./demo.sh --ppe-gate --real-prover
 scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
@@ -101,7 +103,7 @@ cd apps/basecamp && nix build .#install
 1. Turn the successful `RISC0_DEV_MODE=0` run into final demo evidence.
    - Record a clean-room narrated run.
    - Run `scripts/check-wallet-preflight.sh` before recording.
-   - Run `scripts/demo-clean-room.sh --real-prover --with-tests --with-lez`
+   - Run `./demo.sh --clean-room --real-prover --with-tests --with-lez`
      before publishing demo artifacts.
    - Keep `witness.json` private and publish only envelope/report artifacts.
 

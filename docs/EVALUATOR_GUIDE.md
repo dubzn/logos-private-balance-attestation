@@ -12,15 +12,17 @@ execution checks `balance >= threshold` and writes public gate/nullifier state.
 ## What To Review First
 
 1. Read [README.md](../README.md) for status and limitations.
-2. Read [ARCHITECTURE.md](ARCHITECTURE.md) for the proof envelope, context
+2. Read [SUBMISSION_STATUS.md](SUBMISSION_STATUS.md) for the current
+   review-ready surfaces, exact commands, and pending final-submission items.
+3. Read [ARCHITECTURE.md](ARCHITECTURE.md) for the proof envelope, context
    binding, presenter binding, off-chain path, Workable public gate, and
    Spike 09 PPE-native candidate.
-3. Read [ONCHAIN_PATH_DECISION.md](ONCHAIN_PATH_DECISION.md) for why the current
+4. Read [ONCHAIN_PATH_DECISION.md](ONCHAIN_PATH_DECISION.md) for why the current
    public LEZ path is host-preverified and why Spike 09 is the current
    PPE-native candidate.
-4. Read [SECURITY_MODEL.md](SECURITY_MODEL.md) for privacy, replay, and
+5. Read [SECURITY_MODEL.md](SECURITY_MODEL.md) for privacy, replay, and
    forwarding assumptions.
-5. Check [PRIZE_CHECKLIST.md](PRIZE_CHECKLIST.md) for the exact requirement
+6. Check [PRIZE_CHECKLIST.md](PRIZE_CHECKLIST.md) for the exact requirement
    mapping.
 
 ## Quick Smoke Path
@@ -206,7 +208,7 @@ Use `--with-lez` only when `LOGOS_LEZ_REPO` points at the intended local
 For a single evaluator-style dry run that writes a consolidated report:
 
 ```sh
-scripts/demo-clean-room.sh --real-prover
+./demo.sh --clean-room --real-prover
 ```
 
 This default dry run does not require a wallet or sequencer. It runs public
@@ -215,7 +217,7 @@ include live LEZ paths:
 
 ```sh
 PRIVATE_ACCOUNT=Private/<private-account-id> \
-  scripts/demo-clean-room.sh --real-prover --with-lez --with-live --with-ppe
+  ./demo.sh --clean-room --real-prover --with-lez --with-live --with-ppe
 ```
 
 The live run writes private witness artifacts under `.demo-runs/clean-room/`;

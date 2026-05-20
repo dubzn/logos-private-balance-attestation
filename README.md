@@ -104,6 +104,7 @@ These files are intentionally easy to find from the repository root:
 | Demo entrypoint | `demo.sh` |
 | SPEL-style IDL | `balance-attestation-verifier.idl.json` |
 | Basecamp module metadata | `apps/basecamp/module.json` |
+| Submission status | `docs/SUBMISSION_STATUS.md` |
 | Requirement map | `docs/PRIZE_CHECKLIST.md` |
 | Clean-room guide | `docs/EVALUATOR_GUIDE.md` |
 | Benchmarks | `docs/BENCHMARKS.md` |
@@ -146,7 +147,13 @@ The current local fork baseline is synced with
 you update LEZ again and hit wallet storage errors, create a fresh wallet home
 for that checkout and rerun `scripts/check-wallet-preflight.sh`.
 
-Run the fast smoke demo with deterministic fixtures:
+Run the default clean-room demo. This does not require a wallet or sequencer:
+
+```sh
+./demo.sh --real-prover
+```
+
+Run only the fast smoke demo with deterministic fixtures:
 
 ```sh
 ./demo.sh --quick
@@ -188,9 +195,11 @@ RISC0_DEV_MODE=0 \
   ./demo.sh --full --real-prover
 ```
 
-`demo.sh` is the Lambda Prize root entrypoint. `--quick` runs the synthetic
-fixture smoke demo, `--messaging` runs the local off-chain transport demo, and
-`--full` delegates to `scripts/demo-local-full-e2e.sh`. The full mode composes:
+`demo.sh` is the Lambda Prize root entrypoint. The default mode is
+`--clean-room`, which runs public hygiene, quick proof/verify, and local
+Messaging. `--quick` runs only the synthetic fixture smoke demo, `--messaging`
+runs only the local off-chain transport demo, and `--full` delegates to
+`scripts/demo-local-full-e2e.sh`. The full mode composes:
 
 ```text
 real local wallet state
@@ -229,9 +238,12 @@ scripts/check-public-clean-room.sh
 Use `--with-tests` for workspace tests and `--with-lez` for checks that need
 the local LEZ fork.
 
-For an evaluator-style dry run, use the clean-room runner:
+For an evaluator-style dry run, use the root entrypoint or the underlying
+clean-room runner directly:
 
 ```sh
+./demo.sh --clean-room --real-prover
+# or:
 scripts/demo-clean-room.sh --real-prover
 ```
 
@@ -240,7 +252,7 @@ available:
 
 ```sh
 PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
-  scripts/demo-clean-room.sh --real-prover --with-lez --with-live --with-ppe
+  ./demo.sh --clean-room --real-prover --with-lez --with-live --with-ppe
 ```
 
 ## CLI Examples
@@ -389,6 +401,7 @@ Spike 09 PPE-native runs now write their own local benchmark reports via
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md): proof format, flow, and component boundaries.
+- [Submission Status](docs/SUBMISSION_STATUS.md): what is review-ready, what is pending, and exact evidence commands.
 - [Local Setup](docs/LOCAL_SETUP.md): sequencer, wallet, private account, and demo commands.
 - [Evaluator Guide](docs/EVALUATOR_GUIDE.md): clean review path and known limitations.
 - [Security Model](docs/SECURITY_MODEL.md): privacy guarantees, replay, forwarding, nullifiers, and limits.
@@ -399,6 +412,8 @@ Spike 09 PPE-native runs now write their own local benchmark reports via
 - [IDL Reference](docs/IDL_DRAFT.md): LEZ verifier interface.
 - [Basecamp MVP](apps/basecamp/README.md): local `ui_qml` proof and gate workflow.
 - [Next Steps](docs/NEXT_STEPS.md): ordered backlog to final submission.
+- [PR Reopen Message](docs/PR_REOPEN_MESSAGE.md): prepared text for the eventual Lambda Prize PR.
+- [Demo Video Script](docs/DEMO_VIDEO_SCRIPT.md): recording plan for the final narrated demo.
 - [Risk Spikes](docs/RISK_SPIKES.md): high-risk assumptions and validation plan.
 - [Reference Notes](docs/REFERENCE_NOTES.md): public research notes and compatibility findings.
 
