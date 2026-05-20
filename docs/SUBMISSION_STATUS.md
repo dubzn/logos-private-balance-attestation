@@ -18,7 +18,7 @@ external integration evidence, and narrated demo are complete.
 | Messaging path | ready as local/pluggable adapter | `crates/attestation-messaging`, `./demo.sh --messaging`, and `examples/chat-gate` export, receive, verify, admit, and reject duplicate nullifiers over local JSON transport. |
 | Workable LEZ gate | partial | `lez-verifier/program` records/deduplicates gate state after mandatory host-side proof verification. It does not verify the RISC Zero receipt inside public LEZ execution. |
 | PPE-native LEZ gate | local candidate | `./demo.sh --ppe-gate --real-prover` passed locally with private balance check, public nullifier write, duplicate rejection, and insufficient-balance rejection. Evaluator acceptance pending. |
-| Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin and wraps the local CLI/script flows. |
+| Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin and wraps the local CLI/script flows; `scripts/check-basecamp-package.sh` validates the package install tree. |
 | IDL | present | Root `balance-attestation-verifier.idl.json` points to `idl/balance-attestation-verifier.json`. |
 | Reference integrations | local only | Governance gate, chat gate, and fee-tier gate examples exist and have local tests. Testnet and outside-team evidence remain pending. |
 | Benchmarks | local timings only | `docs/BENCHMARKS.md` records local proof/gate/PPE timings. Devnet/testnet CU metrics remain pending. |
@@ -60,6 +60,7 @@ This adds the live wallet/sequencer E2E and PPE-native gate candidate.
 | Clean-room runner | `scripts/demo-clean-room.sh` |
 | SPEL-style IDL | `balance-attestation-verifier.idl.json` |
 | Basecamp metadata | `apps/basecamp/module.json` |
+| Basecamp QA | `docs/BASECAMP_QA.md` |
 | LP requirement map | `docs/PRIZE_CHECKLIST.md` |
 | Public evaluator guide | `docs/EVALUATOR_GUIDE.md` |
 | Local benchmark evidence | `docs/BENCHMARKS.md` |
@@ -74,6 +75,7 @@ This adds the live wallet/sequencer E2E and PPE-native gate candidate.
 - Presenter binding and nullifier behavior.
 - Off-chain verification and local Messaging-style admission.
 - Local Basecamp MVP wiring.
+- Basecamp package build/inspection through `scripts/check-basecamp-package.sh`.
 - Workable gate-ledger implementation and its documented trust boundary.
 - PPE-native LEZ private execution candidate and local benchmark evidence.
 

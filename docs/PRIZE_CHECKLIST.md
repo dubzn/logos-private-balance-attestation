@@ -29,7 +29,7 @@ Status legend:
 | Requirement | Status | Artifact |
 | --- | --- | --- |
 | SDK/module for Logos modules. | done | `crates/attestation-sdk/` umbrella; off-chain default + `on-chain` feature. |
-| Basecamp GUI with local build instructions. | done (MVP) | `apps/basecamp/`: backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit flow. The Nix install target builds a Qt plugin plus replica factory and has been smoke-tested with `ui-host READY`; final recorded walkthrough still pending. |
+| Basecamp GUI with local build instructions. | done (MVP) | `apps/basecamp/`: backend-backed `ui_qml` MVP that wraps preflight, proof generation, envelope verification, and Workable gate admit flow. The Nix install target builds a Qt plugin plus replica factory; `scripts/check-basecamp-package.sh` inspects the package tree and `docs/BASECAMP_QA.md` documents manual QA. Final recorded walkthrough still pending. |
 | SPEL IDL for LEZ program. | done (SPEL-style JSON) | `balance-attestation-verifier.idl.json` at the repository root points to `idl/balance-attestation-verifier.json`; `docs/IDL_DRAFT.md` is the prose companion. The local LEZ deployment path does not consume SPEL directly, so this remains a public contract artifact unless Logos requires regeneration with specific tooling. |
 
 ## Reliability

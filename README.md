@@ -108,6 +108,7 @@ These files are intentionally easy to find from the repository root:
 | Requirement map | `docs/PRIZE_CHECKLIST.md` |
 | Clean-room guide | `docs/EVALUATOR_GUIDE.md` |
 | Benchmarks | `docs/BENCHMARKS.md` |
+| Basecamp QA | `docs/BASECAMP_QA.md` |
 
 ## LP-0005 Requirement Snapshot
 
@@ -253,6 +254,12 @@ available:
 ```sh
 PRIVATE_ACCOUNT="Private/REPLACE_WITH_PRIVATE_ACCOUNT_ID" \
   ./demo.sh --clean-room --real-prover --with-lez --with-live --with-ppe
+```
+
+To include the Basecamp package build/inspection in the clean-room check:
+
+```sh
+./demo.sh --clean-room --real-prover --with-basecamp
 ```
 
 ## CLI Examples
@@ -404,6 +411,7 @@ Spike 09 PPE-native runs now write their own local benchmark reports via
 - [Submission Status](docs/SUBMISSION_STATUS.md): what is review-ready, what is pending, and exact evidence commands.
 - [Local Setup](docs/LOCAL_SETUP.md): sequencer, wallet, private account, and demo commands.
 - [Evaluator Guide](docs/EVALUATOR_GUIDE.md): clean review path and known limitations.
+- [Basecamp QA](docs/BASECAMP_QA.md): package inspection, manual UI checklist, and video notes.
 - [Security Model](docs/SECURITY_MODEL.md): privacy guarantees, replay, forwarding, nullifiers, and limits.
 - [On-Chain Path Decision](docs/ONCHAIN_PATH_DECISION.md): why the current on-chain path is Workable / host-preverified.
 - [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to current artifacts.

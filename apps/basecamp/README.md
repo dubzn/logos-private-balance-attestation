@@ -34,6 +34,12 @@ From this directory:
 nix build .#install
 ```
 
+From the repository root, the automated package inspection is:
+
+```sh
+scripts/check-basecamp-package.sh
+```
+
 The build output is a Basecamp install tree:
 
 ```text
@@ -72,6 +78,9 @@ QML/C++ files for public hygiene and shell flow compatibility:
 cd ../..
 scripts/check-public-clean-room.sh --with-lez
 ```
+
+For the full local QA checklist, see
+[`docs/BASECAMP_QA.md`](../../docs/BASECAMP_QA.md).
 
 ## Runtime Notes
 

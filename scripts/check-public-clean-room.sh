@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Public-repo hygiene and clean-room checks.
 #
-# Default mode is static and fast. Add --with-tests for workspace tests and
-# --with-lez for checks that need a local logos-execution-zone checkout.
+# Default mode is static and fast. Add --with-tests for workspace tests,
+# --with-lez for checks that need a local logos-execution-zone checkout, and
+# --with-basecamp for the Nix-built Basecamp ui_qml package.
 
 set -euo pipefail
 
@@ -11,12 +12,13 @@ source "$ROOT_DIR/scripts/common-env.sh"
 
 WITH_TESTS=0
 WITH_LEZ=0
+WITH_BASECAMP=0
 ALLOW_DIRTY="${ALLOW_DIRTY:-0}"
 
 usage() {
   cat >&2 <<'EOF'
 usage:
-  scripts/check-public-clean-room.sh [--with-tests] [--with-lez]
+  scripts/check-public-clean-room.sh [--with-tests] [--with-lez] [--with-basecamp]
 
 env:
   ALLOW_DIRTY=1       Do not fail when the worktree has local changes.
@@ -27,6 +29,7 @@ checks:
   --with-tests        cargo fmt --check + cargo test --workspace.
   --with-lez          Resolve LEZ checkout, sync ignored repo-local path dependency,
                       check RISC Zero version, and run LEZ compatibility tests.
+  --with-basecamp     Build and inspect the Basecamp ui_qml package.
 EOF
 }
 
@@ -38,6 +41,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-lez)
       WITH_LEZ=1
+      shift
+      ;;
+    --with-basecamp)
+      WITH_BASECAMP=1
       shift
       ;;
     -h|--help)
@@ -138,6 +145,14 @@ if [[ "$WITH_LEZ" == "1" ]]; then
 else
   echo
   echo "LEZ checks skipped. Re-run with --with-lez after setting LOGOS_LEZ_REPO."
+fi
+
+if [[ "$WITH_BASECAMP" == "1" ]]; then
+  step "Basecamp package"
+  scripts/check-basecamp-package.sh
+else
+  echo
+  echo "Basecamp package check skipped. Re-run with --with-basecamp to include nix build."
 fi
 
 echo

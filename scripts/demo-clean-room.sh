@@ -5,6 +5,7 @@
 #   - public hygiene checks
 #   - quick proof/verify demo
 #   - local Messaging/off-chain demo
+#   - optional Basecamp package check
 #
 # Optional live paths:
 #   --with-live   runs wallet preflight, private-account preparation, and
@@ -30,13 +31,14 @@ else
 fi
 WITH_TESTS=0
 WITH_LEZ=0
+WITH_BASECAMP=0
 WITH_LIVE=0
 WITH_PPE=0
 
 usage() {
   cat >&2 <<'EOF'
 usage:
-  scripts/demo-clean-room.sh [--dev-mode|--real-prover] [--with-tests] [--with-lez] [--with-live] [--with-ppe]
+  scripts/demo-clean-room.sh [--dev-mode|--real-prover] [--with-tests] [--with-lez] [--with-basecamp] [--with-live] [--with-ppe]
 
 default:
   Runs public hygiene, quick proof/verify, and local Messaging demo.
@@ -46,6 +48,7 @@ options:
   --real-prover   Set RISC0_DEV_MODE=0. Slower, cryptographic receipts.
   --with-tests    Include cargo fmt/test in the public hygiene check.
   --with-lez      Include LEZ compatibility checks.
+  --with-basecamp Include Nix Basecamp package build/inspection.
   --with-live     Also run prepare-local-private-account + full local E2E.
                   Requires PRIVATE_ACCOUNT=Private/<id>.
   --with-ppe      Also run Spike 09 PPE-native gate demo.
@@ -61,7 +64,7 @@ env:
 examples:
   scripts/demo-clean-room.sh
   scripts/demo-clean-room.sh --real-prover
-  PRIVATE_ACCOUNT=Private/<id> scripts/demo-clean-room.sh --real-prover --with-lez --with-live --with-ppe
+  PRIVATE_ACCOUNT=Private/<id> scripts/demo-clean-room.sh --real-prover --with-lez --with-basecamp --with-live --with-ppe
 EOF
 }
 
@@ -83,6 +86,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-lez)
       WITH_LEZ=1
+      shift
+      ;;
+    --with-basecamp)
+      WITH_BASECAMP=1
       shift
       ;;
     --with-live)
@@ -194,6 +201,9 @@ fi
 if [[ "$WITH_LEZ" == "1" ]]; then
   clean_room_flags+=(--with-lez)
 fi
+if [[ "$WITH_BASECAMP" == "1" ]]; then
+  clean_room_flags+=(--with-basecamp)
+fi
 clean_room_command="ALLOW_DIRTY=1 scripts/check-public-clean-room.sh"
 if [[ "${#clean_room_flags[@]}" -gt 0 ]]; then
   clean_room_command+=" ${clean_room_flags[*]}"
@@ -251,6 +261,7 @@ cat > "$RUN_JSON" <<EOF
   "clean_room_dir": "$CLEAN_ROOM_DIR",
   "with_tests": $WITH_TESTS,
   "with_lez": $WITH_LEZ,
+  "with_basecamp": $WITH_BASECAMP,
   "with_live": $WITH_LIVE,
   "with_ppe": $WITH_PPE,
   "report": "$REPORT",

@@ -118,6 +118,12 @@ does not expose an assumptions channel locally.
 
 Show Basecamp with the `balance_attestation` module loaded.
 
+Before recording this section, run:
+
+```sh
+scripts/check-basecamp-package.sh
+```
+
 Click through:
 
 - preflight

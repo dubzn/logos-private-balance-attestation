@@ -56,6 +56,7 @@ proving:
 clean-room options:
   --with-tests   Include cargo fmt/test in the clean-room hygiene check.
   --with-lez     Include LEZ compatibility checks.
+  --with-basecamp Include Nix Basecamp package build/inspection.
   --with-live    Include full local E2E. Requires PRIVATE_ACCOUNT=Private/<id>.
   --with-ppe     Include the Spike 09 PPE-native gate demo.
 
@@ -68,7 +69,7 @@ full-mode env:
 examples:
   ./demo.sh
   ./demo.sh --clean-room --real-prover
-  PRIVATE_ACCOUNT=Private/<id> ./demo.sh --clean-room --real-prover --with-lez --with-live --with-ppe
+  PRIVATE_ACCOUNT=Private/<id> ./demo.sh --clean-room --real-prover --with-lez --with-basecamp --with-live --with-ppe
   ./demo.sh --quick
   ./demo.sh --messaging --real-prover
   PRIVATE_ACCOUNT=Private/<id> ./demo.sh --full --real-prover
@@ -106,7 +107,7 @@ while [[ $# -gt 0 ]]; do
       RISC0_MODE="0"
       shift
       ;;
-    --with-tests|--with-lez|--with-live|--with-ppe)
+    --with-tests|--with-lez|--with-basecamp|--with-live|--with-ppe)
       CLEAN_ROOM_ARGS+=("$1")
       shift
       ;;
@@ -125,7 +126,7 @@ done
 export RISC0_DEV_MODE="$RISC0_MODE"
 
 if [[ "$MODE" != "clean-room" && "${#CLEAN_ROOM_ARGS[@]}" -gt 0 ]]; then
-  echo "--with-tests/--with-lez/--with-live/--with-ppe only apply to --clean-room" >&2
+  echo "--with-tests/--with-lez/--with-basecamp/--with-live/--with-ppe only apply to --clean-room" >&2
   exit 2
 fi
 

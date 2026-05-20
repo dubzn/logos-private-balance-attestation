@@ -144,6 +144,12 @@ local evidence for the on-chain-path discussion, not as devnet/testnet CU data.
 
 ## Basecamp MVP
 
+Automated package check:
+
+```sh
+scripts/check-basecamp-package.sh
+```
+
 Build the Basecamp plugin:
 
 ```sh
@@ -174,6 +180,9 @@ RISC0_DEV_MODE=0 \
 ```
 
 The app appears as `balance_attestation` under UI Modules.
+
+See [BASECAMP_QA.md](BASECAMP_QA.md) for the full manual UI checklist and video
+capture notes.
 
 ## Reference Integrations
 

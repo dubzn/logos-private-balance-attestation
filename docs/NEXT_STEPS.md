@@ -61,6 +61,8 @@ Done locally:
   after switching checkouts
 - the Basecamp MVP now builds through `mkLogosQmlModule` as a real Qt plugin
   plus replica factory; direct `ui-host` smoke test reached `READY`
+- `scripts/check-basecamp-package.sh` builds and inspects the Basecamp install
+  tree; `docs/BASECAMP_QA.md` captures the manual QA and video checklist
 - local/pluggable Messaging transport and token-gated admission flow:
   `attestation-messaging`, CLI `message-*` commands, `./demo.sh --messaging`,
   and `examples/chat-gate`
@@ -84,6 +86,7 @@ source scripts/env.example
 cargo test
 scripts/check-public-clean-room.sh
 ./demo.sh --clean-room --real-prover
+scripts/check-basecamp-package.sh
 ./demo.sh --ppe-gate --real-prover
 scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only
@@ -130,6 +133,7 @@ cd apps/basecamp && nix build .#install
 
 4. Harden Basecamp GUI.
    - Run a final manual end-to-end UX pass from inside Basecamp for recording.
+   - Run `scripts/check-basecamp-package.sh` before manual QA.
    - Keep the `nix build .#install` packaging path aligned with the active
      Basecamp build.
    - Keep the UI limited to public/sanitized proof state.
