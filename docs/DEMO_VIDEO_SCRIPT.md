@@ -124,6 +124,12 @@ Before recording this section, run:
 scripts/check-basecamp-package.sh
 ```
 
+To launch the app:
+
+```sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
 Click through:
 
 - preflight

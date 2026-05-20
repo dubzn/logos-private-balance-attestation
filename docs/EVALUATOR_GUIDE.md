@@ -150,6 +150,12 @@ Automated package check:
 scripts/check-basecamp-package.sh
 ```
 
+Build, install, and launch helper:
+
+```sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
 Build the Basecamp plugin:
 
 ```sh

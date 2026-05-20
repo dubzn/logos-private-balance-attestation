@@ -262,6 +262,12 @@ To include the Basecamp package build/inspection in the clean-room check:
 ./demo.sh --clean-room --real-prover --with-basecamp
 ```
 
+To build, install, and launch the local Basecamp MVP:
+
+```sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
 ## CLI Examples
 
 Generate and verify a deterministic fixture:

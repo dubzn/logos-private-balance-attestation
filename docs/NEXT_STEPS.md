@@ -62,7 +62,8 @@ Done locally:
 - the Basecamp MVP now builds through `mkLogosQmlModule` as a real Qt plugin
   plus replica factory; direct `ui-host` smoke test reached `READY`
 - `scripts/check-basecamp-package.sh` builds and inspects the Basecamp install
-  tree; `docs/BASECAMP_QA.md` captures the manual QA and video checklist
+  tree; `scripts/run-basecamp-local.sh` installs and launches the local app;
+  `docs/BASECAMP_QA.md` captures the manual QA and video checklist
 - local/pluggable Messaging transport and token-gated admission flow:
   `attestation-messaging`, CLI `message-*` commands, `./demo.sh --messaging`,
   and `examples/chat-gate`
@@ -87,6 +88,7 @@ cargo test
 scripts/check-public-clean-room.sh
 ./demo.sh --clean-room --real-prover
 scripts/check-basecamp-package.sh
+scripts/run-basecamp-local.sh --reset --real-prover
 ./demo.sh --ppe-gate --real-prover
 scripts/m2-check-lez-commitment-compat.sh
 cargo run -p attestation-cli -- inspect-private --account Private/<id> --local-only

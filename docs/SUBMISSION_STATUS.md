@@ -18,7 +18,7 @@ external integration evidence, and narrated demo are complete.
 | Messaging path | ready as local/pluggable adapter | `crates/attestation-messaging`, `./demo.sh --messaging`, and `examples/chat-gate` export, receive, verify, admit, and reject duplicate nullifiers over local JSON transport. |
 | Workable LEZ gate | partial | `lez-verifier/program` records/deduplicates gate state after mandatory host-side proof verification. It does not verify the RISC Zero receipt inside public LEZ execution. |
 | PPE-native LEZ gate | local candidate | `./demo.sh --ppe-gate --real-prover` passed locally with private balance check, public nullifier write, duplicate rejection, and insufficient-balance rejection. Evaluator acceptance pending. |
-| Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin and wraps the local CLI/script flows; `scripts/check-basecamp-package.sh` validates the package install tree. |
+| Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin and wraps the local CLI/script flows; `scripts/check-basecamp-package.sh` validates the package install tree and `scripts/run-basecamp-local.sh` launches the local app. |
 | IDL | present | Root `balance-attestation-verifier.idl.json` points to `idl/balance-attestation-verifier.json`. |
 | Reference integrations | local only | Governance gate, chat gate, and fee-tier gate examples exist and have local tests. Testnet and outside-team evidence remain pending. |
 | Benchmarks | local timings only | `docs/BENCHMARKS.md` records local proof/gate/PPE timings. Devnet/testnet CU metrics remain pending. |

@@ -40,6 +40,12 @@ From the repository root, the automated package inspection is:
 scripts/check-basecamp-package.sh
 ```
 
+The repository-level build/install/launch helper is:
+
+```sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
 The build output is a Basecamp install tree:
 
 ```text

@@ -36,6 +36,18 @@ Or through the root demo entrypoint:
 
 ## Manual Install
 
+The shortest local launch path is:
+
+```sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
+This builds and inspects the Basecamp package, copies it into the local
+Basecamp user plugin directory, and launches the Nix-built Basecamp dev app in
+the foreground. Keep that terminal open while using the UI.
+
+The manual equivalent is below.
+
 Build:
 
 ```sh
