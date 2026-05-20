@@ -117,6 +117,12 @@ Fresh private accounts created with `wallet account new private` are only local
 wallet keys at first. They must be initialized and funded before the app can
 build a membership proof from `getProofForCommitment`.
 
+If **Generate Proof** reports that the private account was not found, the app is
+protecting you from a common local setup mismatch: the `Private/<id>` in the UI
+does not belong to the selected wallet home. Either switch **Wallet home** to
+the directory that owns that account, or copy one of the private accounts listed
+in the status panel into the **Private account** field.
+
 The gate action uses the documented Workable path: host-side proof verification
 followed by a deployable LEZ gate-ledger/nullifier transaction. The deployed LEZ
 program does not yet verify the RISC Zero receipt inside public LEZ execution.

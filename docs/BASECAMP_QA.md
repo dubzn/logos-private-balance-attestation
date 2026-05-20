@@ -121,6 +121,10 @@ Then run:
    - Expected: Proof card becomes `ok`.
    - Expected: `Proof JSON` tab contains `status: ok`.
    - Evidence: copy the proof run dir shown in the Proof card.
+   - If the status says the private account was not found, keep the same wallet
+     home and copy one of the listed `Private/<id>` values into the Private
+     account field, or switch Wallet home to the directory that owns the
+     selected account.
 
 3. **Verify envelope**
    - Expected: Verify card becomes `ok`.

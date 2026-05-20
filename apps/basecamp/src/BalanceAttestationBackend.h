@@ -59,7 +59,8 @@ private:
         GateRun,
     };
 
-    bool validateCommonInputs(bool requireProofRun);
+    bool validateCommonInputs(bool requireProofRun, bool requireWalletAccount = false);
+    bool validatePrivateAccountInWallet();
     QString normalizedPrivateAccount() const;
     QString proofDemoDir() const;
     QString gateDemoDir() const;

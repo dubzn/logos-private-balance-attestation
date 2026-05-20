@@ -5,9 +5,14 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QMap>
 #include <QProcessEnvironment>
 #include <QRegularExpression>
+#include <QSet>
 
 #include <memory>
 
@@ -82,6 +87,86 @@ QString stripAnsiSequences(QString value)
     static const QRegularExpression ansiPattern(QStringLiteral("\\x1B\\[[0-?]*[ -/]*[@-~]"));
     value.remove(ansiPattern);
     return value;
+}
+
+QString barePrivateAccount(QString account)
+{
+    account = account.trimmed();
+    if (account.startsWith("Private/")) {
+        return account.mid(QString("Private/").size());
+    }
+    return account;
+}
+
+QString privateAccountDisplay(QString account)
+{
+    const auto bare = barePrivateAccount(account);
+    return bare.isEmpty() ? QString() : QString("Private/") + bare;
+}
+
+void addPrivateAccount(
+    const QString &label,
+    const QString &accountId,
+    QSet<QString> &seen,
+    QStringList &available
+)
+{
+    const auto bare = barePrivateAccount(accountId);
+    if (bare.isEmpty() || seen.contains(bare)) {
+        return;
+    }
+
+    seen.insert(bare);
+    if (label.isEmpty()) {
+        available << "- " + privateAccountDisplay(bare);
+    } else {
+        available << "- " + label + ": " + privateAccountDisplay(bare);
+    }
+}
+
+void collectLabeledPrivateAccounts(
+    const QJsonObject &root,
+    QSet<QString> &seen,
+    QStringList &available
+)
+{
+    const auto labels = root.value("labels").toObject();
+    for (auto it = labels.constBegin(); it != labels.constEnd(); ++it) {
+        const auto labelValue = it.value().toObject();
+        const auto accountId = labelValue.value("Private").toString();
+        addPrivateAccount(it.key(), accountId, seen, available);
+    }
+}
+
+void collectKeyChainPrivateAccounts(
+    const QJsonObject &root,
+    QSet<QString> &seen,
+    QStringList &available
+)
+{
+    const auto accounts = root.value("key_chain").toObject().value("accounts").toArray();
+    for (const auto &accountValue : accounts) {
+        const auto privateAccount = accountValue.toObject().value("Private").toObject();
+        addPrivateAccount({}, privateAccount.value("account_id").toString(), seen, available);
+    }
+}
+
+void collectLegacyPrivateAccounts(
+    const QJsonObject &root,
+    QSet<QString> &seen,
+    QStringList &available
+)
+{
+    const auto accounts = root.value("accounts").toArray();
+    for (const auto &accountValue : accounts) {
+        const auto account = accountValue.toObject();
+        if (account.contains("Private")) {
+            const auto privateAccount = account.value("Private").toObject();
+            addPrivateAccount({}, privateAccount.value("account_id").toString(), seen, available);
+        } else if (account.value("kind").toString() == "Private") {
+            addPrivateAccount({}, account.value("account_id").toString(), seen, available);
+        }
+    }
 }
 
 } // namespace
@@ -177,7 +262,7 @@ void BalanceAttestationBackend::runPreflight()
 
 void BalanceAttestationBackend::generateProof()
 {
-    if (!validateCommonInputs(false)) {
+    if (!validateCommonInputs(false, true)) {
         return;
     }
 
@@ -296,7 +381,7 @@ void BalanceAttestationBackend::setGateRunJson(QString value)
     BalanceAttestationSimpleSource::setGateRunJson(value);
 }
 
-bool BalanceAttestationBackend::validateCommonInputs(bool requireProofRun)
+bool BalanceAttestationBackend::validateCommonInputs(bool requireProofRun, bool requireWalletAccount)
 {
     if (repoDir().isEmpty() || !QFileInfo::exists(repoDir() + "/Cargo.toml")) {
         setStatus("Repository directory is invalid");
@@ -324,7 +409,79 @@ bool BalanceAttestationBackend::validateCommonInputs(bool requireProofRun)
         setStatus("Generate a proof before this action");
         return false;
     }
+    if (requireWalletAccount && !validatePrivateAccountInWallet()) {
+        return false;
+    }
     return true;
+}
+
+bool BalanceAttestationBackend::validatePrivateAccountInWallet()
+{
+    const auto selected = barePrivateAccount(privateAccount());
+    if (selected.isEmpty()) {
+        setStatus("Private account is required");
+        return false;
+    }
+
+    const auto storagePath = QDir::cleanPath(walletHomeDir() + "/storage.json");
+    QFile storageFile(storagePath);
+    if (!storageFile.exists()) {
+        setStatus(
+            "Wallet storage was not found.\n\n"
+            "Wallet home:\n" + walletHomeDir()
+            + "\n\nCreate or select a wallet home first, then run:\n"
+              "wallet account new private --label private-balance"
+        );
+        return false;
+    }
+
+    if (!storageFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        setStatus("Could not read wallet storage:\n" + storagePath);
+        return false;
+    }
+
+    QJsonParseError parseError;
+    const auto document = QJsonDocument::fromJson(storageFile.readAll(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        setStatus(
+            "Wallet storage is not valid JSON for this Basecamp check.\n\n"
+            "Path:\n" + storagePath
+            + "\n\nParse error:\n" + parseError.errorString()
+        );
+        return false;
+    }
+
+    const auto root = document.object();
+    QSet<QString> seen;
+    QStringList available;
+    collectLabeledPrivateAccounts(root, seen, available);
+    collectKeyChainPrivateAccounts(root, seen, available);
+    collectLegacyPrivateAccounts(root, seen, available);
+
+    if (seen.contains(selected)) {
+        return true;
+    }
+
+    QString message =
+        "Private account not found in the selected wallet home.\n\n"
+        "Selected account:\n" + privateAccountDisplay(selected)
+        + "\n\nWallet home:\n" + walletHomeDir();
+
+    if (available.isEmpty()) {
+        message +=
+            "\n\nNo private accounts were found in this wallet storage.\n\n"
+            "Create one from the matching LEZ checkout:\n"
+            "wallet account new private --label private-balance";
+    } else {
+        message += "\n\nAvailable private accounts:\n" + available.join("\n");
+    }
+
+    message +=
+        "\n\nUse one of those accounts in the Private account field, or switch "
+        "Wallet home to the directory that owns the selected account.";
+
+    setStatus(message);
+    return false;
 }
 
 QString BalanceAttestationBackend::normalizedPrivateAccount() const
