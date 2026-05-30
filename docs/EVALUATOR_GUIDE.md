@@ -2,9 +2,9 @@
 
 This repository is a technical LP-0005 implementation. It is not an award-ready
 submission yet because the evaluator-approved on-chain verification model,
-testnet deployment, CU measurements, external integration evidence, and final
+testnet deployment, CU measurements, and final
 video are still pending. The local proof, off-chain verification,
-Messaging-style transport, Basecamp MVP, three local reference integrations,
+Messaging-style transport, Basecamp MVP, standalone consumer integrations,
 and Workable host-preverified LEZ gate path are implemented.
 Spike 09 also demonstrates a PPE-native LEZ gate candidate where private
 execution checks `balance >= threshold` and writes public gate/nullifier state.
@@ -248,5 +248,5 @@ do not publish those artifacts without removing `witness.json`.
   envelope.
 - Real Logos Messaging network transport is not wired yet. The current adapter
   is local JSON and intentionally pluggable.
-- Testnet deployment, CU measurements, external integrator validation, and
-  narrated video artifacts are still pending.
+- Testnet deployment, CU measurements, and narrated video artifacts are still
+  pending.

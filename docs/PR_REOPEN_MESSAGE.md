@@ -28,8 +28,8 @@ What is implemented:
 - Local/pluggable Messaging adapter with token-gated admission and duplicate
   nullifier rejection.
 - Backend-backed Basecamp MVP.
-- Three local reference integrations: governance gate, chat gate, and fee-tier
-  gate.
+- Standalone consumer integration demos: governance gate, chat gate, and
+  fee-tier gate.
 - Root `demo.sh`, root SPEL-style IDL JSON, Basecamp `module.json`, CI, local
   benchmark docs, and clean-room runner.
 
@@ -76,7 +76,6 @@ submission:
 - CU/performance metrics on devnet/testnet
 - real Logos Messaging network adapter if local/pluggable transport is not
   sufficient
-- outside-team integration evidence
 - narrated demo video with `RISC0_DEV_MODE=0`
 ```
 ```

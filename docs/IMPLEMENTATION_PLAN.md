@@ -340,9 +340,10 @@ Planned integrations:
 
 Acceptance:
 
-- Three distinct apps consume the SDK/CLI/proof format.
-- At least one integration is built or validated by someone outside the
-  submitting team before final submission.
+- A standalone consumer integration demo consumes the SDK/CLI/proof format.
+- Local governance, chat, and fee-tier examples remain useful reference
+  integrations, but updated LP-0005 no longer requires an outside-team
+  integration.
 
 ## Milestone 9: Submission Hardening
 

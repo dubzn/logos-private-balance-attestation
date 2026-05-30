@@ -141,7 +141,6 @@ cd apps/basecamp && nix build .#install
    - Keep the UI limited to public/sanitized proof state.
 
 5. Add final submission support.
-   - External partner/integrator for at least one reference integration.
    - Live LEZ testnet deployment and program id docs.
    - Devnet/testnet CU measurements for the operations already listed in
      `docs/BENCHMARKS.md`.

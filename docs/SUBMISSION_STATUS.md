@@ -4,8 +4,8 @@ Last updated: 2026-05-20.
 
 This repository is a public technical implementation for LP-0005. It is close
 to a submission package, but it should not be represented as an award-ready
-solution until the on-chain verifier path, testnet deployment, CU metrics,
-external integration evidence, and narrated demo are complete.
+solution until the on-chain verifier path, testnet deployment, CU metrics, and
+narrated demo are complete.
 
 ## Current Readiness
 
@@ -20,7 +20,7 @@ external integration evidence, and narrated demo are complete.
 | PPE-native LEZ gate | local candidate | `./demo.sh --ppe-gate --real-prover` passed locally with private balance check, public nullifier write, duplicate rejection, and insufficient-balance rejection. Evaluator acceptance pending. |
 | Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin and wraps the local CLI/script flows; `scripts/check-basecamp-package.sh` validates the package install tree and `scripts/run-basecamp-local.sh` launches the local app. |
 | IDL | present | Root `balance-attestation-verifier.idl.json` points to `idl/balance-attestation-verifier.json`. |
-| Reference integrations | local only | Governance gate, chat gate, and fee-tier gate examples exist and have local tests. Testnet and outside-team evidence remain pending. |
+| Consumer integration demo | ready locally | Governance gate, chat gate, and fee-tier gate examples exist and have local tests. This matches the updated LP-0005 standalone consumer integration requirement; final submission should choose the clearest one to feature in the video. |
 | Benchmarks | local timings only | `docs/BENCHMARKS.md` records local proof/gate/PPE timings. Devnet/testnet CU metrics remain pending. |
 | CI | ready for current local scope | Workspace tests and deployable-program checks are covered by `.github/workflows/ci.yml`. |
 
@@ -90,9 +90,7 @@ This adds the live wallet/sequencer E2E and PPE-native gate candidate.
    operations.
 4. Add real Logos Messaging network transport if local/pluggable JSON transport
    is not accepted for the off-chain path.
-5. Produce at least one outside-team integration or explicit evaluator waiver
-   for that requirement.
-6. Record a narrated demo with `RISC0_DEV_MODE=0` that shows CLI, Basecamp, and
+5. Record a narrated demo with `RISC0_DEV_MODE=0` that shows CLI, Basecamp, and
    the accepted on-chain path.
 
 ## Current On-Chain Position

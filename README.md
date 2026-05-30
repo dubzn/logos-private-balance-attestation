@@ -42,8 +42,8 @@ Still pending for final LP-0005 submission:
 - Evaluator-approved on-chain verification model.
 - Logos Messaging-specific network adapter, if evaluators require the real
   transport instead of the current local JSON adapter.
-- Testnet deployment for the three reference integrations, including at least
-  one external integrator.
+- Final consumer-integration evidence, using the updated LP-0005 requirement
+  for a standalone runnable integration demo.
 - LEZ devnet/testnet deployment and CU measurements.
 - Narrated demo video showing the CLI and Basecamp flows with
   `RISC0_DEV_MODE=0`.
@@ -121,7 +121,7 @@ These files are intentionally easy to find from the repository root:
 | Off-chain Messaging path | Implemented with a local/pluggable transport; real Logos Messaging network adapter pending if required. |
 | LEZ gate path | Workable/host-preverified public gate plus Spike 09 PPE-native private execution candidate. Evaluator-approved in-LEZ proof verification model is still pending. |
 | Basecamp app | Backend-backed `ui_qml` MVP builds and loads locally. |
-| Reference integrations | Governance gate, chat gate, and fee-tier gate are implemented locally; testnet/external integration pending. |
+| Consumer integration demo | Governance gate, chat gate, and fee-tier gate are implemented locally; updated LP-0005 now asks for a standalone runnable consumer integration demo rather than an outside-team integration. |
 | Devnet/testnet CU metrics | Pending; local timings are documented. |
 | Narrated video | Pending. |
 
