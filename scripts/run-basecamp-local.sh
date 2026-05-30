@@ -84,9 +84,9 @@ fi
 require_logos_lez_repo "$ROOT_DIR" Cargo.toml wallet nssa/core
 export_default_wallet_home
 
-if [[ ! -x "$BASECAMP_REPO/run-dev.sh" ]]; then
+if [[ ! -f "$BASECAMP_REPO/run-dev.sh" ]]; then
   {
-    echo "Basecamp run-dev.sh not found or not executable:"
+    echo "Basecamp run-dev.sh not found:"
     echo "  $BASECAMP_REPO/run-dev.sh"
     echo
     echo "Set LOGOS_BASECAMP_REPO or pass --basecamp-repo <path>."
@@ -135,4 +135,4 @@ LOGOS_LEZ_REPO="$LOGOS_LEZ_REPO" \
 LEZ_REPO="$LOGOS_LEZ_REPO" \
 NSSA_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR" \
 RISC0_DEV_MODE="$RISC0_MODE" \
-exec ./run-dev.sh --user-dir "$BASECAMP_USER_DIR"
+exec bash ./run-dev.sh --user-dir "$BASECAMP_USER_DIR"
