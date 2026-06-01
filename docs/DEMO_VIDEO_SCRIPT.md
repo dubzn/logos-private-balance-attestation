@@ -164,7 +164,9 @@ sed -n '1,180p' docs/PRIZE_CHECKLIST.md
 
 ## What Not To Say
 
-- Do not claim testnet deployment until it exists.
+- Claim public testnet deployment only through the concrete evidence in
+  `docs/TESTNET_DEPLOYMENT.md`; do not imply the accepted on-chain model is
+  resolved.
 - Do not claim CU measurements until they are measured on devnet/testnet.
 - Do not claim the deployable public LEZ program verifies external RISC Zero
   receipts in-guest.

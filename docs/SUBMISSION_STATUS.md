@@ -1,11 +1,12 @@
 # Submission Status
 
-Last updated: 2026-05-20.
+Last updated: 2026-06-01.
 
 This repository is a public technical implementation for LP-0005. It is close
 to a submission package, but it should not be represented as an award-ready
-solution until the on-chain verifier path, testnet deployment, CU metrics, and
-narrated demo are complete.
+solution until the on-chain verifier path, CU metrics, and narrated demo are
+complete. Public testnet deployment evidence now exists for both implemented
+candidate paths.
 
 ## Current Readiness
 
@@ -16,12 +17,12 @@ narrated demo are complete.
 | Real wallet witness path | ready locally | `scripts/demo-local-sequencer-e2e.sh` builds a witness from local wallet private state and real `getProofForCommitment`. |
 | Off-chain verifier | ready locally | `crates/attestation-verifier` verifies the public proof envelope. |
 | Messaging path | ready as local/pluggable adapter | `crates/attestation-messaging`, `./demo.sh --messaging`, and `examples/chat-gate` export, receive, verify, admit, and reject duplicate nullifiers over local JSON transport. |
-| Workable LEZ gate | partial | `lez-verifier/program` records/deduplicates gate state after mandatory host-side proof verification. It does not verify the RISC Zero receipt inside public LEZ execution. |
-| PPE-native LEZ gate | local candidate | `./demo.sh --ppe-gate --real-prover` passed locally with private balance check, public nullifier write, duplicate rejection, and insufficient-balance rejection. Evaluator acceptance pending. |
+| Workable LEZ gate | testnet evidence / partial | `lez-verifier/program` records/deduplicates gate state after mandatory host-side proof verification. It was deployed and exercised on public LEZ testnet on 2026-06-01. It does not verify the RISC Zero receipt inside public LEZ execution. |
+| PPE-native LEZ gate | testnet evidence / evaluator decision | `./demo.sh --ppe-gate --real-prover` passed locally and the Spike 09 PPE-native flow passed on public LEZ testnet on 2026-06-01 with private balance check, public nullifier write, duplicate rejection, and insufficient-balance rejection. Evaluator acceptance pending because it is not the same portable proof envelope used off-chain. |
 | Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin and wraps the local CLI/script flows; `scripts/check-basecamp-package.sh` validates the package install tree and `scripts/run-basecamp-local.sh` launches the local app. |
 | IDL | present | Root `balance-attestation-verifier.idl.json` points to `idl/balance-attestation-verifier.json`. |
 | Consumer integration demo | ready locally | Governance gate, chat gate, and fee-tier gate examples exist and have local tests. This matches the updated LP-0005 standalone consumer integration requirement; final submission should choose the clearest one to feature in the video. |
-| Benchmarks | local timings only | `docs/BENCHMARKS.md` records local proof/gate/PPE timings. Devnet/testnet CU metrics remain pending. |
+| Benchmarks | wall-clock evidence recorded / CU pending | `docs/BENCHMARKS.md` records local proof/gate/PPE timings plus public testnet wall-clock evidence. Per-transaction CU metrics remain pending. |
 | CI | ready for current local scope | Workspace tests and deployable-program checks are covered by `.github/workflows/ci.yml`. |
 
 ## One-Command Review Paths
@@ -64,6 +65,7 @@ This adds the live wallet/sequencer E2E and PPE-native gate candidate.
 | LP requirement map | `docs/PRIZE_CHECKLIST.md` |
 | Public evaluator guide | `docs/EVALUATOR_GUIDE.md` |
 | Local benchmark evidence | `docs/BENCHMARKS.md` |
+| Public testnet deployment evidence | `docs/TESTNET_DEPLOYMENT.md` |
 | On-chain path analysis | `docs/ONCHAIN_PATH_DECISION.md` |
 | Security model | `docs/SECURITY_MODEL.md` |
 
@@ -78,14 +80,17 @@ This adds the live wallet/sequencer E2E and PPE-native gate candidate.
 - Basecamp package build/inspection through `scripts/check-basecamp-package.sh`.
 - Workable gate-ledger implementation and its documented trust boundary.
 - PPE-native LEZ private execution candidate and local benchmark evidence.
+- Public LEZ testnet deploy/admit evidence for both Workable and PPE-native
+  paths.
 
 ## What Must Be Completed Before Reopening A Final Prize PR
 
 1. Get evaluator confirmation on the accepted LP-0005 on-chain verifier model:
    PPE-native private execution, public receipt verification, or another Logos
    pattern.
-2. Deploy the accepted LEZ program path on Logos devnet/testnet and document
-   the program id.
+2. Select the accepted LEZ program path for final submission. Both current
+   candidate paths have public testnet evidence in
+   `docs/TESTNET_DEPLOYMENT.md`, but the accepted architecture is still open.
 3. Record CU or equivalent chain execution costs for the accepted on-chain
    operations.
 4. Add real Logos Messaging network transport if local/pluggable JSON transport
@@ -108,7 +113,7 @@ Spike 08 proved this path is not an in-guest receipt verifier because a
 fabricated but well-formed journal can be applied by the host. The
 cryptographic trust seat is therefore host-side.
 
-Spike 09 is the stronger local candidate:
+Spike 09 is the stronger current candidate:
 
 ```text
 private holder account

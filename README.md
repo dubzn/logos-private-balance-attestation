@@ -18,7 +18,7 @@ This is a technical implementation for review, not an award-ready submission
 yet. The remaining blocker is the evaluator-approved live on-chain proof
 verification model.
 
-Implemented locally:
+Implemented:
 
 - RISC Zero circuit proving `balance >= threshold` over the LEZ private account
   commitment format.
@@ -31,11 +31,12 @@ Implemented locally:
 - Deployable LEZ gate-state program for the current Workable path.
 - PPE-native LEZ balance-gate spike that checks private `balance >= threshold`
   inside a privacy-preserving transaction and writes public gate/nullifier
-  state locally.
+  state.
 - Backend-backed Basecamp GUI MVP that loads as a `ui_qml` plugin locally.
 - Three reference integrations: governance gate, chat gate, and fee-tier gate.
 - IDL artifact, deterministic error codes, CI, local E2E scripts, and local
   benchmark documentation.
+- Public LEZ testnet evidence for both current on-chain candidate paths.
 
 Still pending for final LP-0005 submission:
 
@@ -44,7 +45,7 @@ Still pending for final LP-0005 submission:
   transport instead of the current local JSON adapter.
 - Final consumer-integration evidence, using the updated LP-0005 requirement
   for a standalone runnable integration demo.
-- LEZ devnet/testnet deployment and CU measurements.
+- CU measurements for the accepted on-chain path.
 - Narrated demo video showing the CLI and Basecamp flows with
   `RISC0_DEV_MODE=0`.
 
@@ -66,9 +67,10 @@ receipt inside public LEZ execution. This is tracked explicitly in
 [docs/ONCHAIN_PATH_DECISION.md](docs/ONCHAIN_PATH_DECISION.md) and
 [docs/PRIZE_CHECKLIST.md](docs/PRIZE_CHECKLIST.md).
 
-There is also a stronger local candidate in `spikes/spike-09-ppe-gate/`: a
+There is also a stronger candidate in `spikes/spike-09-ppe-gate/`: a
 Logos privacy-preserving transaction checks the private balance condition and
-writes public `BAP1` gate/nullifier state. It passed locally with
+writes public `BAP1` gate/nullifier state. It passed locally and on public LEZ
+testnet with
 `RISC0_DEV_MODE=0`, including duplicate and insufficient-balance rejection.
 Evaluator confirmation is still required because this PPE-native path is not
 the same portable proof envelope used by the off-chain verifier.
@@ -107,6 +109,7 @@ These files are intentionally easy to find from the repository root:
 | Submission status | `docs/SUBMISSION_STATUS.md` |
 | Requirement map | `docs/PRIZE_CHECKLIST.md` |
 | Clean-room guide | `docs/EVALUATOR_GUIDE.md` |
+| Public testnet evidence | `docs/TESTNET_DEPLOYMENT.md` |
 | Benchmarks | `docs/BENCHMARKS.md` |
 | Basecamp QA | `docs/BASECAMP_QA.md` |
 
@@ -119,10 +122,10 @@ These files are intentionally easy to find from the repository root:
 | Off-chain verification | Implemented via `attestation-verifier`. |
 | Presenter binding and nullifier | Implemented with challenge-bound BIP-340 presentation signatures and context nullifiers. |
 | Off-chain Messaging path | Implemented with a local/pluggable transport; real Logos Messaging network adapter pending if required. |
-| LEZ gate path | Workable/host-preverified public gate plus Spike 09 PPE-native private execution candidate. Evaluator-approved in-LEZ proof verification model is still pending. |
+| LEZ gate path | Workable/host-preverified public gate plus Spike 09 PPE-native private execution candidate. Both have public testnet evidence; evaluator-approved in-LEZ proof verification model is still pending. |
 | Basecamp app | Backend-backed `ui_qml` MVP builds and loads locally. |
 | Consumer integration demo | Governance gate, chat gate, and fee-tier gate are implemented locally; updated LP-0005 now asks for a standalone runnable consumer integration demo rather than an outside-team integration. |
-| Devnet/testnet CU metrics | Pending; local timings are documented. |
+| CU metrics | Pending; local and public testnet wall-clock evidence is documented. |
 | Narrated video | Pending. |
 
 ## Quick Start
@@ -407,7 +410,9 @@ Latest Spike 09 PPE-native local run with `RISC0_DEV_MODE=0`:
 | Insufficient-balance rejection | 00:00:02 |
 | Total | 00:04:56 |
 
-These are not devnet/testnet CU metrics. CU measurement is still pending.
+Public testnet deploy/admit evidence is documented in
+[docs/TESTNET_DEPLOYMENT.md](docs/TESTNET_DEPLOYMENT.md). These are not CU
+metrics. CU measurement is still pending.
 Spike 09 PPE-native runs now write their own local benchmark reports via
 `./demo.sh --ppe-gate --real-prover`.
 
@@ -415,6 +420,7 @@ Spike 09 PPE-native runs now write their own local benchmark reports via
 
 - [Architecture](docs/ARCHITECTURE.md): proof format, flow, and component boundaries.
 - [Submission Status](docs/SUBMISSION_STATUS.md): what is review-ready, what is pending, and exact evidence commands.
+- [Testnet Deployment](docs/TESTNET_DEPLOYMENT.md): public testnet program ids, transaction hashes, readback, and remaining CU gap.
 - [Local Setup](docs/LOCAL_SETUP.md): sequencer, wallet, private account, and demo commands.
 - [Evaluator Guide](docs/EVALUATOR_GUIDE.md): clean review path and known limitations.
 - [Basecamp QA](docs/BASECAMP_QA.md): package inspection, manual UI checklist, and video notes.

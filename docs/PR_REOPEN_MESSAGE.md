@@ -30,6 +30,8 @@ What is implemented:
 - Backend-backed Basecamp MVP.
 - Standalone consumer integration demos: governance gate, chat gate, and
   fee-tier gate.
+- Public LEZ testnet deploy/admit evidence for both current on-chain candidate
+  paths, documented in `docs/TESTNET_DEPLOYMENT.md`.
 - Root `demo.sh`, root SPEL-style IDL JSON, Basecamp `module.json`, CI, local
   benchmark docs, and clean-room runner.
 
@@ -57,8 +59,8 @@ Current on-chain status:
   RISC Zero receipt.
 - Spike 09 implements a stronger Logos-native PPE path: private LEZ execution
   checks `balance >= threshold` and writes public `BAP1` gate/nullifier state.
-  This passed locally with `RISC0_DEV_MODE=0`, including duplicate and
-  insufficient-balance rejection.
+  This passed locally and on public testnet with `RISC0_DEV_MODE=0`, including
+  duplicate and insufficient-balance rejection.
 
 Open evaluator question:
 
@@ -72,8 +74,7 @@ Still pending before this should be treated as a complete award-ready
 submission:
 
 - evaluator-approved on-chain verifier model
-- devnet/testnet deployment and program id docs
-- CU/performance metrics on devnet/testnet
+- CU/performance metrics for the accepted on-chain path
 - real Logos Messaging network adapter if local/pluggable transport is not
   sufficient
 - narrated demo video with `RISC0_DEV_MODE=0`
@@ -85,7 +86,7 @@ submission:
 ```text
 Quick LP-0005 implementation question.
 
-We now have two local on-chain candidates implemented:
+We now have two on-chain candidates implemented and exercised on public testnet:
 
 1. Workable public LEZ gate:
    host verifies the RISC Zero proof envelope, then submits a gate admit tx.
@@ -94,8 +95,8 @@ We now have two local on-chain candidates implemented:
 
 2. PPE-native LEZ gate:
    LEZ private execution checks private balance >= threshold and writes the
-   public gate/nullifier state. This passed locally with RISC0_DEV_MODE=0,
-   including duplicate and insufficient-balance rejection.
+   public gate/nullifier state. This passed with RISC0_DEV_MODE=0, including
+   duplicate and insufficient-balance rejection.
 
 The open question is: for LP-0005, should the final on-chain path be the
 PPE-native LEZ flow, or do evaluators require the same portable off-chain proof
@@ -106,5 +107,6 @@ https://github.com/dubzn/logos-private-balance-attestation
 
 Relevant docs:
 docs/ONCHAIN_PATH_DECISION.md
+docs/TESTNET_DEPLOYMENT.md
 docs/SUBMISSION_STATUS.md
 ```

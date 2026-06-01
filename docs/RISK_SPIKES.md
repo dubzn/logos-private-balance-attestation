@@ -9,13 +9,13 @@ before the next layer depends on it.
 | --- | --- | --- |
 | 0A Direct receipt verification | failed/currently unsupported | Public LEZ execution can build `env::verify`, but runtime has no receipt assumption channel. |
 | 0B Recursive/native verifier path | inspected/no local public path found | RISC Zero recursion exists, but LEZ public execution exposes no assumption/native verifier injection point. |
-| 0C Logos-native private execution gate | passed locally | Useful fallback and learning path, but evaluator acceptance is still required for LP-0005. |
+| 0C Logos-native private execution gate | passed locally and on public testnet | Useful fallback and learning path, but evaluator acceptance is still required for LP-0005. |
 | 02 Wallet commitment to sequencer proof | passed locally | Real wallet commitment and `getProofForCommitment` path works. |
 | 03 Balance attestation circuit | passed locally | Standalone RISC Zero circuit consumes LEZ commitment and Merkle proof. |
 | 04 Binding circuit | passed locally | Context binding, presenter binding, and context nullifier work in the circuit shape. |
 | 05 Dev/prod proving baseline | passed locally | Dev-mode and prod-mode baselines completed with step-by-step timing tables. |
 | 06 On-chain path decision | passed locally | Use off-chain proof envelope plus Logos-native private execution fallback pending evaluator confirmation. |
-| 09 PPE-native balance gate | passed locally | A LEZ privacy-preserving transaction proved private `balance >= threshold`, wrote public `BAP1` gate/nullifier state, rejected duplicate admission with `BA206`, and rejected insufficient balance with `BA201`. Evaluator acceptance is still required. |
+| 09 PPE-native balance gate | passed locally and on public testnet | A LEZ privacy-preserving transaction proved private `balance >= threshold`, wrote public `BAP1` gate/nullifier state, rejected duplicate admission with `BA206`, and rejected insufficient balance with `BA201`. Evaluator acceptance is still required. |
 
 ## Blocker 0: On-Chain Proof Path
 

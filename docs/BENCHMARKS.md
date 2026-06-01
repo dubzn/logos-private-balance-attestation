@@ -1,11 +1,12 @@
 # Benchmarks
 
-Last updated: 2026-05-19
+Last updated: 2026-06-01
 
-This document records measured runs for LP-0005 without turning local numbers
-into testnet claims. The current benchmark source is a full local E2E run against
-a local LEZ sequencer, local wallet private state, and the real
-`getProofForCommitment` path.
+This document records measured runs for LP-0005 without turning wall-clock
+numbers into compute-unit claims. The local benchmark source is a full local E2E
+run against a local LEZ sequencer, local wallet private state, and the real
+`getProofForCommitment` path. Public testnet deployment/admission evidence is
+recorded separately in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
 
 ## Scope And Caveats
 
@@ -22,7 +23,7 @@ a local LEZ sequencer, local wallet private state, and the real
   `attestation-verifier`, followed by a LEZ gate-ledger transaction that records
   and deduplicates the context nullifier.
 - Spike 09 PPE-native gate timing is included below as separate local evidence.
-- These are local wall-clock timings, not LEZ devnet/testnet CU measurements.
+- These are wall-clock timings, not LEZ CU measurements.
 - Build steps are included where the scripts include them, so warmed-run timings
   may be lower.
 - `witness.json` is private and must not be published.
@@ -164,15 +165,47 @@ Phase timing:
 The generated report intentionally omits the private holder account id and
 wallet private material.
 
-## What Still Needs Testnet/CU Measurement
+## Public Testnet Wall-Clock Evidence
+
+Public LEZ testnet evidence was collected on 2026-06-01 against
+`logos-execution-zone` `v0.1.2`, which matched the public endpoint's built-in
+program IDs at the time of the run.
+
+Full evidence, public accounts, transaction hashes, and readback are in
+[TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
+
+### Workable Host-Preverified Gate
+
+| Operation | Transaction hash | Result |
+| --- | --- | --- |
+| Register presenter | `f9d9f157f192f4675f12c8fd4ae8d44d060dfa280f937b48704d6625bcabce5f` | Applied |
+| Init gate | `a56e70b9110d2aa710c7d943e8a69829101e0f6e224a9debbdcab131b9c63433` | Applied |
+| Admit | `ba1feb25a14aeff7a566f66ad647a4a21a337fca59f2dfead2d115d0bc4e6fdd` | Applied |
+| Duplicate admit | `c7c8d42d8dd42c2f04bf2b31a9dde4411ada8e5105886aa011da24eab1597dd8` | Submitted; gate state unchanged |
+
+The gate account readback showed the expected `BAT1` state and exactly one copy
+of the context nullifier after duplicate admit settlement.
+
+### PPE-Native Gate Candidate
+
+| Phase | Duration | Result |
+| --- | ---: | --- |
+| Wallet/sequencer health | 00:00:01 | Passed |
+| Deploy PPE program | 00:00:32 | Applied |
+| Fund private holder | 00:09:00 | Private balance `42` observed |
+| Positive PPE admit | 00:03:14 | Applied; nullifier recorded |
+| Duplicate admit | 00:00:24 | Rejected during proving with `BA206 DuplicateNullifier` |
+| Insufficient-balance rejection | 00:00:03 | Rejected during proving with `BA201 ThresholdMismatch` |
+| Total | 00:13:16 | Passed with `RISC0_DEV_MODE=0` |
+
+## What Still Needs CU Measurement
 
 The LP requires compute-unit documentation for on-chain operations. The current
-local run does not provide CU data, so these remain open:
+wallet/RPC path did not expose per-transaction CU data, so these remain open:
 
-- Deploy the verifier program on LEZ devnet/testnet and record the deployed
-  program id.
 - Measure CU cost for `register_presenter`, `init_gate`, `admit`, and rejected
   duplicate admit if the chain exposes per-transaction CU metrics.
+- Measure CU cost for the PPE-native positive admit if the chain exposes it.
 - Re-run Spike 09 without `SKIP_BUILD=1` when you want build timing included in
   the canonical evidence run.
 - Record inclusion/finality timing on devnet/testnet separately from local

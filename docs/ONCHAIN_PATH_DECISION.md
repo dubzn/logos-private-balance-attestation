@@ -2,6 +2,9 @@
 
 Date: 2026-05-02.
 
+Updated: 2026-06-01 with public LEZ testnet evidence for both implemented
+candidate paths. See [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
+
 Spike 06 closes the current on-chain verifier-path decision for the next
 implementation milestone.
 
@@ -104,10 +107,11 @@ docs/ONCHAIN_PATH_DECISION.md
 docs/SUBMISSION_STATUS.md
 ```
 
-Spike 09 has now prototyped the Logos-native private execution/PPE gate. The
-remaining question is whether Logos evaluators consider that PPE-native proof
-path the expected on-chain verifier model for LP-0005, or whether they require
-a public LEZ program to verify an externally submitted standalone receipt.
+Spike 09 has now prototyped the Logos-native private execution/PPE gate and the
+path has passed on public LEZ testnet with `RISC0_DEV_MODE=0`. The remaining
+question is whether Logos evaluators consider that PPE-native proof path the
+expected on-chain verifier model for LP-0005, or whether they require a public
+LEZ program to verify an externally submitted standalone receipt.
 
 ## Impact On LP-0005
 
@@ -124,12 +128,12 @@ Path A: private account -> host-verified proof -> public LEZ gate ledger/nullifi
 Path B: private account -> LEZ PPE balance check -> public gate/nullifier update
 ```
 
-Path A works locally as an application gate, but the deployed public program
-does not cryptographically verify the receipt; it records the host-verified
-journal. Path B now works locally as a Logos-native private execution gate, but
-it does not verify the same portable off-chain proof envelope. Both paths need
-evaluator confirmation against LP-0005's on-chain wording before final
-submission.
+Path A works locally and on public testnet as an application gate, but the
+deployed public program does not cryptographically verify the receipt; it
+records the host-verified journal. Path B works locally and on public testnet as
+a Logos-native private execution gate, but it does not verify the same portable
+off-chain proof envelope. Both paths need evaluator confirmation against
+LP-0005's on-chain wording before final submission.
 
 ## Next Implementation Consequence
 
@@ -218,3 +222,21 @@ balance condition is checked by LEZ private execution rather than by a host
 precheck. It is still a different artifact from the reusable off-chain proof
 envelope, so the final submission should ask Logos to confirm whether this is
 the intended LP-0005 on-chain verification path.
+
+## Public Testnet Evidence (2026-06-01)
+
+Both candidate paths were exercised on public LEZ testnet using
+`logos-execution-zone` `v0.1.2`, which matched the endpoint's built-in program
+IDs at the time of the run.
+
+Summary:
+
+| Path | Public testnet result |
+| --- | --- |
+| Workable host-preverified gate | Program deployed, presenter registered, gate initialized, admit applied, duplicate admit left gate state unchanged. |
+| PPE-native gate | Program deployed, private holder funded, positive admit applied, duplicate admit rejected with `BA206`, insufficient-balance admit rejected with `BA201`, all with `RISC0_DEV_MODE=0`. |
+
+Evidence lives in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md). This closes
+the "can it run on public testnet?" question for both candidates, but it does
+not close the LP-0005 architecture question about which on-chain verification
+model evaluators require.

@@ -72,6 +72,9 @@ Done locally:
   `./demo.sh --ppe-gate --real-prover`; it writes a local benchmark report for
   wallet health, build, deploy, funding, positive admit, duplicate rejection,
   and insufficient-balance rejection
+- public LEZ testnet evidence was recorded on 2026-06-01 for both the Workable
+  host-preverified gate and the Spike 09 PPE-native candidate; see
+  `docs/TESTNET_DEPLOYMENT.md`
 - clean-room evaluator runner: `scripts/demo-clean-room.sh` runs public
   hygiene, quick proof/verify, local Messaging, and optional live Workable/PPE
   paths with one consolidated report
@@ -119,9 +122,9 @@ cd apps/basecamp && nix build .#install
    - Keep the host-preverified Workable path documented unless evaluators
      request a different native LEZ pattern.
    - Spike 09 now validates the Logos-native private execution/PPE candidate
-     locally with `RISC0_DEV_MODE=0`: private balance check, public
-     gate/nullifier update, duplicate rejection, and insufficient-balance
-     rejection all work against the local sequencer.
+     locally and on public testnet with `RISC0_DEV_MODE=0`: private balance
+     check, public gate/nullifier update, duplicate rejection, and
+     insufficient-balance rejection all work.
    - Ask evaluators whether this PPE-native path satisfies LP-0005's on-chain
      verifier requirement, or whether the final submission must still use a
      public LEZ program that verifies an externally supplied receipt.
@@ -141,8 +144,7 @@ cd apps/basecamp && nix build .#install
    - Keep the UI limited to public/sanitized proof state.
 
 5. Add final submission support.
-   - Live LEZ testnet deployment and program id docs.
-   - Devnet/testnet CU measurements for the operations already listed in
+   - CU measurements for the operations already listed in
      `docs/BENCHMARKS.md`.
    - Narrated demo video with `RISC0_DEV_MODE=0`.
 

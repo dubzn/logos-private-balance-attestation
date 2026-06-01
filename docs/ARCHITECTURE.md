@@ -374,8 +374,9 @@ private holder account
 This route does not verify the portable off-chain proof envelope inside a
 public LEZ program. Instead, it uses the Logos privacy-preserving execution
 path itself as the proof system for the on-chain gate. A local
-`RISC0_DEV_MODE=0` run passed the positive admit path and validated both
-duplicate-nullifier (`BA206`) and insufficient-balance (`BA201`) rejection.
+`RISC0_DEV_MODE=0` runs passed locally and on public LEZ testnet. The flow
+validated the positive admit path and both duplicate-nullifier (`BA206`) and
+insufficient-balance (`BA201`) rejection.
 
 The open product question is whether LP-0005 evaluators consider this
 PPE-native gate the expected on-chain verification model, or whether the final
@@ -402,5 +403,6 @@ led here:
 1. Direct public `env::verify` of an external receipt — failed/unsupported.
 2. Recursive / native verifier — no local public LEZ path found.
 3. Logos-native gate ledger with host pre-verification — implemented locally.
-4. PPE-native private execution gate — implemented locally in Spike 09, still
-   pending evaluator acceptance for LP-0005's on-chain wording.
+4. PPE-native private execution gate — implemented locally and exercised on
+   public testnet in Spike 09, still pending evaluator acceptance for
+   LP-0005's on-chain wording.
