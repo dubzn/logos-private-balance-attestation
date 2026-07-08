@@ -377,6 +377,11 @@ scripts/check-basecamp-package.sh
 scripts/run-basecamp-local.sh --reset --real-prover
 ```
 
+The launcher installs both pieces into the local Basecamp user directory:
+
+- `plugins/balance_attestation`
+- `modules/delivery_module`
+
 See [docs/LOGOS_DELIVERY.md](docs/LOGOS_DELIVERY.md) and
 [docs/BASECAMP_QA.md](docs/BASECAMP_QA.md) for the manual two-instance
 Delivery QA flow.

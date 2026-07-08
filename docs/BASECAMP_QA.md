@@ -44,8 +44,20 @@ scripts/run-basecamp-local.sh --reset --real-prover
 ```
 
 This builds and inspects the Basecamp package, copies it into the local
-Basecamp user plugin directory, and launches the Nix-built Basecamp dev app in
+Basecamp user plugin directory, installs `delivery_module` into the local
+Basecamp user module directory, and launches the Nix-built Basecamp dev app in
 the foreground. Keep that terminal open while using the UI.
+
+Expected install paths:
+
+```text
+<user-dir>/plugins/balance_attestation/
+<user-dir>/modules/delivery_module/
+```
+
+If Basecamp shows **Missing Dependencies** for `delivery_module`, close
+Basecamp and rerun the launcher. That modal means the UI plugin was installed
+without its required module dependency.
 
 The manual equivalent is below.
 

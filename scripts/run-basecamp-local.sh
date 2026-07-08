@@ -9,8 +9,10 @@ source "$ROOT_DIR/scripts/common-env.sh"
 BASECAMP_REPO="${LOGOS_BASECAMP_REPO:-}"
 BASECAMP_USER_DIR="${BASECAMP_USER_DIR:-/Users/dub/Desktop/logos/basecamp-balance-attestation-user}"
 SKIP_BUILD=0
+SKIP_DELIVERY=0
 RESET=0
 RISC0_MODE="${RISC0_DEV_MODE:-0}"
+DELIVERY_MODULE_FLAKE="${DELIVERY_MODULE_FLAKE:-github:logos-co/logos-delivery-module/v0.1.3#install}"
 
 usage() {
   cat >&2 <<'EOF'
@@ -20,6 +22,8 @@ usage:
 
 options:
   --skip-build           Reuse apps/basecamp/result instead of running nix build.
+  --skip-delivery        Do not install the delivery_module dependency into
+                         the local Basecamp user dir.
   --reset                Kill existing local Basecamp/ui-host/logos_host_qt processes first.
   --dev-mode             Launch with RISC0_DEV_MODE=1.
   --real-prover          Launch with RISC0_DEV_MODE=0. Default.
@@ -30,6 +34,9 @@ options:
 
 notes:
   The app runs in the foreground. Keep this terminal open while using Basecamp.
+  The balance_attestation plugin depends on delivery_module for the Logos
+  Delivery panel. By default this script builds and installs that dependency
+  into <user-dir>/modules/delivery_module before launching Basecamp.
 EOF
 }
 
@@ -37,6 +44,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-build)
       SKIP_BUILD=1
+      shift
+      ;;
+    --skip-delivery)
+      SKIP_DELIVERY=1
       shift
       ;;
     --reset)
@@ -109,11 +120,29 @@ fi
 
 PLUGIN_SRC="$ROOT_DIR/apps/basecamp/result/plugins/balance_attestation"
 PLUGIN_DEST="$BASECAMP_USER_DIR/plugins/balance_attestation"
+DELIVERY_DEST="$BASECAMP_USER_DIR/modules/delivery_module"
 
 rm -rf "$PLUGIN_DEST"
 mkdir -p "$BASECAMP_USER_DIR/plugins"
 cp -R "$PLUGIN_SRC" "$BASECAMP_USER_DIR/plugins/"
 chmod -R u+w "$PLUGIN_DEST"
+
+if [[ "$SKIP_DELIVERY" != "1" ]]; then
+  command -v nix >/dev/null || {
+    echo "nix is required to install delivery_module; pass --skip-delivery to skip it" >&2
+    exit 2
+  }
+  DELIVERY_INSTALL="$(nix build --print-out-paths "$DELIVERY_MODULE_FLAKE")"
+  DELIVERY_SRC="$DELIVERY_INSTALL/modules/delivery_module"
+  if [[ ! -d "$DELIVERY_SRC" ]]; then
+    echo "delivery_module install tree not found at $DELIVERY_SRC" >&2
+    exit 1
+  fi
+  rm -rf "$DELIVERY_DEST"
+  mkdir -p "$BASECAMP_USER_DIR/modules"
+  cp -R "$DELIVERY_SRC" "$BASECAMP_USER_DIR/modules/"
+  chmod -R u+w "$DELIVERY_DEST"
+fi
 
 cat <<EOF
 
@@ -124,6 +153,7 @@ Basecamp local launch
   LOGOS_BASECAMP_REPO=$BASECAMP_REPO
   BASECAMP_USER_DIR=$BASECAMP_USER_DIR
   RISC0_DEV_MODE=$RISC0_MODE
+  DELIVERY_MODULE=$([[ "$SKIP_DELIVERY" == "1" ]] && echo "skipped" || echo "$DELIVERY_DEST")
 
 Keep this terminal open while using Basecamp.
 EOF

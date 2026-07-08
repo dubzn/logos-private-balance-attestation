@@ -37,6 +37,24 @@ scripts/check-basecamp-package.sh
 This verifies that the generated install tree contains the `delivery_module`
 dependency in both `manifest.json` and `metadata.json`.
 
+For local Basecamp launch, use the repository helper:
+
+```sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
+It installs the UI plugin and the Delivery module into the same user directory:
+
+```text
+<user-dir>/plugins/balance_attestation/
+<user-dir>/modules/delivery_module/
+```
+
+If Basecamp shows a **Missing Dependencies** dialog for `delivery_module`, the
+Delivery module was not installed into that user directory. Rerun the launcher
+or copy `github:logos-co/logos-delivery-module/v0.1.3#install` into
+`<user-dir>/modules/delivery_module`.
+
 ## Manual Two-Instance QA
 
 Use this when recording the off-chain Messaging portion of the final demo.

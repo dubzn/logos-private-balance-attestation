@@ -50,6 +50,14 @@ The repository-level build/install/launch helper is:
 scripts/run-basecamp-local.sh --reset --real-prover
 ```
 
+It installs both the UI plugin and its Delivery dependency into the selected
+Basecamp user directory:
+
+```text
+<user-dir>/plugins/balance_attestation/
+<user-dir>/modules/delivery_module/
+```
+
 The build output is a Basecamp install tree:
 
 ```text
@@ -70,6 +78,17 @@ chmod -R u+w "$BASECAMP_USER_DIR/plugins/balance_attestation"
 
 Then restart Basecamp with the same user dir. The app should appear in
 `Modules -> UI Modules` as `balance_attestation`.
+
+Install the Delivery dependency into the same user dir when using the manual
+copy path:
+
+```sh
+DELIVERY_INSTALL="$(nix build --print-out-paths github:logos-co/logos-delivery-module/v0.1.3#install)"
+rm -rf "$BASECAMP_USER_DIR/modules/delivery_module"
+mkdir -p "$BASECAMP_USER_DIR/modules"
+cp -R "$DELIVERY_INSTALL/modules/delivery_module" "$BASECAMP_USER_DIR/modules/"
+chmod -R u+w "$BASECAMP_USER_DIR/modules/delivery_module"
+```
 
 The install tree must contain both backend libraries:
 
