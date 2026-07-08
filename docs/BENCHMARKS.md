@@ -1,6 +1,6 @@
 # Benchmarks
 
-Last updated: 2026-06-01
+Last updated: 2026-07-01
 
 This document records measured runs for LP-0005 without turning wall-clock
 numbers into compute-unit claims. The local benchmark source is a full local E2E
@@ -24,6 +24,9 @@ recorded separately in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
   and deduplicates the context nullifier.
 - Spike 09 PPE-native gate timing is included below as separate local evidence.
 - These are wall-clock timings, not LEZ CU measurements.
+- A 2026-07-01 refresh of `logos-execution-zone` `upstream/main` found the
+  upstream `tools/cycle_bench` harness and `docs/benchmarks/cycle_bench.md`.
+  That is the best available model for future cycle/CU-style reporting.
 - Build steps are included where the scripts include them, so warmed-run timings
   may be lower.
 - `witness.json` is private and must not be published.
@@ -203,6 +206,10 @@ of the context nullifier after duplicate admit settlement.
 The LP requires compute-unit documentation for on-chain operations. The current
 wallet/RPC path did not expose per-transaction CU data, so these remain open:
 
+- Adapt or run upstream `tools/cycle_bench` for the accepted LP-0005 on-chain
+  path. It already reports RISC Zero `SessionInfo::cycles()`, executor
+  calibration, PPE proof metadata, and receipt verification timing for upstream
+  benchmark cases.
 - Measure CU cost for `register_presenter`, `init_gate`, `admit`, and rejected
   duplicate admit if the chain exposes per-transaction CU metrics.
 - Measure CU cost for the PPE-native positive admit if the chain exposes it.

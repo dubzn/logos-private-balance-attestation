@@ -1,6 +1,6 @@
 # Basecamp QA Checklist
 
-Last updated: 2026-05-20.
+Last updated: 2026-07-01.
 
 This checklist is for the local Basecamp MVP. It does not replace the terminal
 E2E scripts; it confirms that the `ui_qml` module packages, loads, and drives
@@ -21,6 +21,7 @@ This runs `nix build .#install` under `apps/basecamp/` and verifies:
 - `src/qml/BalanceAttestation.qml` is present
 - `balance_attestation_plugin.*` exists
 - `balance_attestation_replica_factory.*` exists
+- `delivery_module` is declared as a dependency
 
 The same check is available through the public clean-room command:
 
@@ -136,7 +137,24 @@ Then run:
    - Expected: `Gate JSON` shows nullifier count `1` and duplicate admission
      behavior as `not-applied`.
 
-5. **Clear**
+5. **Delivery send**
+   - Press **Create node** in the Delivery toolbar.
+   - Expected: Delivery card shows a peer id or node status.
+   - Press **Subscribe**.
+   - Expected: Delivery log records the subscribed topic.
+   - Press **Send proof**.
+   - Expected: Delivery log records a request id and `Delivery Msg` contains a
+     V1 proof message with an embedded public envelope.
+
+6. **Delivery receive / verify**
+   - In a second Basecamp instance using a different user directory, use the
+     same Delivery topic and gate/context fields.
+   - Press **Create node**, then **Subscribe**.
+   - Expected: `Delivery Msg` receives the proof message.
+   - Press **Verify received**.
+   - Expected: `Delivery Verify` reports `status: ok`.
+
+7. **Clear**
    - Expected: cards return to idle/empty public output state.
 
 ## What To Capture For The Video
@@ -147,6 +165,8 @@ Then run:
 - Proof generation output with `RISC0_DEV_MODE=0`.
 - Verify output with `status: ok`.
 - Gate output with a persisted context nullifier.
+- Delivery node creation, subscription, proof send, proof receive, and
+  `Verify received` output with `status: ok`.
 - A short terminal view of the generated report directory, without opening or
   publishing `witness.json`.
 
@@ -157,5 +177,8 @@ Then run:
 - It does not parse or display `witness.json`.
 - The current gate button uses the Workable host-preverified gate path.
 - The PPE-native gate candidate is currently terminal-only.
+- Delivery uses the real Basecamp `delivery_module`; the CLI `./demo.sh
+  --messaging` path remains a deterministic local JSON fallback for CI and
+  clean-room checks.
 - Public LEZ in-guest verification of an externally submitted RISC Zero receipt
   remains pending Logos/evaluator guidance.

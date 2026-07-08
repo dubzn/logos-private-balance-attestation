@@ -67,6 +67,9 @@ Done locally:
 - local/pluggable Messaging transport and token-gated admission flow:
   `attestation-messaging`, CLI `message-*` commands, `./demo.sh --messaging`,
   and `examples/chat-gate`
+- Basecamp Logos Delivery adapter: `apps/basecamp` declares `delivery_module`,
+  builds with the real module dependency, and wires create, start, subscribe,
+  send, receive, and verify for the same V1 proof-message bytes
 - third local reference integration: `examples/fee-tier-gate`
 - Spike 09 PPE-native gate is available from the root demo entrypoint via
   `./demo.sh --ppe-gate --real-prover`; it writes a local benchmark report for
@@ -129,12 +132,13 @@ cd apps/basecamp && nix build .#install
      verifier requirement, or whether the final submission must still use a
      public LEZ program that verifies an externally supplied receipt.
 
-3. Replace local Messaging transport with the accepted real adapter if required.
-   - Current local adapter: `attestation-messaging::LocalFileTransport`.
-   - Current CLI flow: `message-export`, `message-receive`, `message-verify`,
-     `message-admit`.
-   - Keep the proof message bytes stable when wiring the real Logos Messaging
-     transport.
+3. Record and harden the Logos Delivery path.
+   - Current deterministic adapter: `attestation-messaging::LocalFileTransport`.
+   - Current Basecamp adapter: `delivery_module` create, start, subscribe,
+     send, receive, and verify.
+   - Run a two-instance Basecamp Delivery pass and capture the received
+     `proof-message.json`, `message-verify` output, and UI notes.
+   - Keep the proof message bytes stable across local JSON and Delivery.
 
 4. Harden Basecamp GUI.
    - Run a final manual end-to-end UX pass from inside Basecamp for recording.
@@ -146,6 +150,8 @@ cd apps/basecamp && nix build .#install
 5. Add final submission support.
    - CU measurements for the operations already listed in
      `docs/BENCHMARKS.md`.
+   - Use upstream LEZ `tools/cycle_bench` as the model for cycle/CU-style
+     reporting where possible.
    - Narrated demo video with `RISC0_DEV_MODE=0`.
 
 6. Submission hardening.

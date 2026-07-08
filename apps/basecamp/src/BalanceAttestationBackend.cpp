@@ -1,5 +1,9 @@
 #include "BalanceAttestationBackend.h"
 
+#include "logos_api.h"
+#include "logos_sdk.h"
+#include "logos_types.h"
+
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
@@ -13,6 +17,7 @@
 #include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QSet>
+#include <QTimer>
 
 #include <memory>
 
@@ -184,7 +189,36 @@ BalanceAttestationBackend::BalanceAttestationBackend(QObject *parent)
     setGateIdHex(repeatByte("30"));
     setPresentationChallengeHex(repeatByte("44"));
     setRealProving(true);
+    setDeliveryPreset("logos.test");
+    setDeliveryMode("Core");
+    setDeliveryTopic("/lp0005-balance-attestation/1/proof-envelope/json");
+    setDeliveryGroupId("lp0005-balance-gated-chat");
+    setDeliverySender("basecamp-presenter");
+    setDeliveryRecipient({});
+    setDeliveryStatus("Delivery backend waiting for Logos API");
     setStatus("Ready");
+}
+
+BalanceAttestationBackend::~BalanceAttestationBackend()
+{
+    delete m_logos;
+}
+
+void BalanceAttestationBackend::initializeLogos(LogosAPI *api)
+{
+    if (m_logos) {
+        return;
+    }
+    if (!api) {
+        setDeliveryStatus("Delivery unavailable: Logos API was not provided");
+        appendDeliveryLog("Delivery unavailable: Logos API was not provided");
+        return;
+    }
+
+    m_logos = new LogosModules(api);
+    wireDeliveryEvents();
+    setDeliveryStatus("Delivery backend ready");
+    appendDeliveryLog("Delivery backend ready");
 }
 
 void BalanceAttestationBackend::setRepoDir(QString value)
@@ -244,6 +278,36 @@ void BalanceAttestationBackend::setRealProving(bool value)
     BalanceAttestationSimpleSource::setRealProving(value);
 }
 
+void BalanceAttestationBackend::setDeliveryPreset(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryPreset(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliveryMode(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryMode(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliveryTopic(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryTopic(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliveryGroupId(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryGroupId(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliverySender(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliverySender(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliveryRecipient(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryRecipient(value.trimmed());
+}
+
 void BalanceAttestationBackend::configureRepoDir(QString value) { setRepoDir(value); }
 void BalanceAttestationBackend::configureLezRepoDir(QString value) { setLezRepoDir(value); }
 void BalanceAttestationBackend::configureWalletHomeDir(QString value) { setWalletHomeDir(value); }
@@ -254,6 +318,12 @@ void BalanceAttestationBackend::configureVerifierIdHex(QString value) { setVerif
 void BalanceAttestationBackend::configureGateIdHex(QString value) { setGateIdHex(value); }
 void BalanceAttestationBackend::configurePresentationChallengeHex(QString value) { setPresentationChallengeHex(value); }
 void BalanceAttestationBackend::configureRealProving(bool value) { setRealProving(value); }
+void BalanceAttestationBackend::configureDeliveryPreset(QString value) { setDeliveryPreset(value); }
+void BalanceAttestationBackend::configureDeliveryMode(QString value) { setDeliveryMode(value); }
+void BalanceAttestationBackend::configureDeliveryTopic(QString value) { setDeliveryTopic(value); }
+void BalanceAttestationBackend::configureDeliveryGroupId(QString value) { setDeliveryGroupId(value); }
+void BalanceAttestationBackend::configureDeliverySender(QString value) { setDeliverySender(value); }
+void BalanceAttestationBackend::configureDeliveryRecipient(QString value) { setDeliveryRecipient(value); }
 
 void BalanceAttestationBackend::runPreflight()
 {
@@ -335,6 +405,147 @@ void BalanceAttestationBackend::executeGateAdmit()
     );
 }
 
+void BalanceAttestationBackend::deliveryCreateNode()
+{
+    if (!ensureDeliveryReady(false)) {
+        return;
+    }
+    if (m_deliveryNodeStarted) {
+        setDeliveryStatus("Delivery node already started");
+        appendDeliveryLog("Delivery node already started");
+        return;
+    }
+
+    QJsonObject cfg{
+        {"logLevel", "INFO"},
+        {"mode", deliveryMode().isEmpty() ? QString("Core") : deliveryMode()},
+        {"preset", deliveryPreset().isEmpty() ? QString("logos.test") : deliveryPreset()},
+    };
+    const auto cfgJson = QString::fromUtf8(QJsonDocument(cfg).toJson(QJsonDocument::Compact));
+    appendDeliveryLog("createNode " + cfgJson);
+
+    LogosResult created = m_logos->delivery_module.createNode(cfgJson);
+    if (!created.success) {
+        const auto error = "createNode failed: " + created.getError();
+        setDeliveryStatus(error);
+        appendDeliveryLog(error);
+        return;
+    }
+
+    LogosResult started = m_logos->delivery_module.start();
+    if (!started.success) {
+        const auto error = "start failed: " + started.getError();
+        setDeliveryStatus(error);
+        appendDeliveryLog(error);
+        return;
+    }
+
+    setDeliveryStatus("Delivery node started");
+    appendDeliveryLog("Delivery node started");
+    m_deliveryNodeStarted = true;
+
+    LogosResult version = m_logos->delivery_module.getNodeInfo(QStringLiteral("Version"));
+    if (version.success) {
+        setDeliveryVersion(version.getString());
+    }
+
+    if (!m_deliveryPollTimer) {
+        m_deliveryPollTimer = new QTimer(this);
+        m_deliveryPollTimer->setInterval(3000);
+        connect(m_deliveryPollTimer, &QTimer::timeout, this, &BalanceAttestationBackend::refreshDeliveryPeerId);
+    }
+    refreshDeliveryPeerId();
+    m_deliveryPollTimer->start();
+}
+
+void BalanceAttestationBackend::deliverySubscribe()
+{
+    if (!ensureDeliveryReady(false)) {
+        return;
+    }
+    if (deliveryTopic().isEmpty()) {
+        setDeliveryStatus("Delivery topic is required");
+        return;
+    }
+
+    LogosResult result = m_logos->delivery_module.subscribe(deliveryTopic());
+    if (!result.success) {
+        const auto error = "subscribe failed: " + result.getError();
+        setDeliveryStatus(error);
+        appendDeliveryLog(error);
+        return;
+    }
+    setDeliveryStatus("Subscribed to " + deliveryTopic());
+    appendDeliveryLog("Subscribed to " + deliveryTopic());
+}
+
+void BalanceAttestationBackend::deliverySendProofMessage()
+{
+    if (!ensureDeliveryReady(true)) {
+        return;
+    }
+    if (deliveryTopic().isEmpty() || deliveryGroupId().isEmpty() || deliverySender().isEmpty()) {
+        setDeliveryStatus("Delivery topic, group id, and sender are required");
+        return;
+    }
+
+    const auto dir = deliveryRunDir().isEmpty() ? deliveryDemoDir() : deliveryRunDir();
+    setDeliveryRunDir(dir);
+
+    QString messageJson;
+    const auto path = deliveryMessagePath();
+    if (!writeDeliveryMessageFile(path, &messageJson)) {
+        return;
+    }
+
+    LogosResult result = m_logos->delivery_module.send(deliveryTopic(), messageJson.toUtf8());
+    if (!result.success) {
+        const auto error = "send failed: " + result.getError();
+        setDeliveryStatus(error);
+        appendDeliveryLog(error);
+        return;
+    }
+
+    const auto requestId = result.getString();
+    setDeliveryStatus("Sent proof message: " + requestId);
+    appendDeliveryLog("Sent proof message request_id=" + requestId);
+}
+
+void BalanceAttestationBackend::deliveryVerifyReceivedMessage()
+{
+    if (!validateCommonInputs(false)) {
+        return;
+    }
+    const auto dir = deliveryRunDir().isEmpty() ? deliveryDemoDir() : deliveryRunDir();
+    setDeliveryRunDir(dir);
+
+    const auto messagePath = deliveryMessagePath();
+    if (!QFileInfo::exists(messagePath)) {
+        setDeliveryStatus("No received Delivery proof message is available");
+        return;
+    }
+    if (!writeDeliveryGateFile(deliveryGatePath())) {
+        return;
+    }
+
+    runProcess(
+        "cargo",
+        {
+            "run",
+            "-p",
+            "attestation-cli",
+            "--",
+            "message-verify",
+            "--message",
+            messagePath,
+            "--gate",
+            deliveryGatePath(),
+        },
+        {},
+        OutputTarget::DeliveryVerify
+    );
+}
+
 void BalanceAttestationBackend::clearOutputs()
 {
     setProofRunDir({});
@@ -343,6 +554,15 @@ void BalanceAttestationBackend::clearOutputs()
     setVerifyJson({});
     setGateRunJson({});
     setStatus("Ready");
+}
+
+void BalanceAttestationBackend::clearDelivery()
+{
+    setDeliveryRunDir({});
+    setDeliveryMessageJson({});
+    setDeliveryVerifyJson({});
+    setDeliveryLog({});
+    setDeliveryStatus(m_logos ? QString("Delivery backend ready") : QString("Delivery backend waiting for Logos API"));
 }
 
 void BalanceAttestationBackend::setBusy(bool value)
@@ -379,6 +599,41 @@ void BalanceAttestationBackend::setVerifyJson(QString value)
 void BalanceAttestationBackend::setGateRunJson(QString value)
 {
     BalanceAttestationSimpleSource::setGateRunJson(value);
+}
+
+void BalanceAttestationBackend::setDeliveryStatus(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryStatus(tailText(value.trimmed(), 2000));
+}
+
+void BalanceAttestationBackend::setDeliveryPeerId(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryPeerId(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliveryVersion(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryVersion(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliveryRunDir(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryRunDir(QDir::cleanPath(value.trimmed()));
+}
+
+void BalanceAttestationBackend::setDeliveryMessageJson(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryMessageJson(tailText(value.trimmed(), 24000));
+}
+
+void BalanceAttestationBackend::setDeliveryVerifyJson(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryVerifyJson(tailText(value.trimmed(), 12000));
+}
+
+void BalanceAttestationBackend::setDeliveryLog(QString value)
+{
+    BalanceAttestationSimpleSource::setDeliveryLog(tailText(value.trimmed(), 12000));
 }
 
 bool BalanceAttestationBackend::validateCommonInputs(bool requireProofRun, bool requireWalletAccount)
@@ -507,6 +762,15 @@ QString BalanceAttestationBackend::gateDemoDir() const
     return QDir::cleanPath(repoDir() + "/.demo-runs/basecamp/" + timestamp() + "/gate");
 }
 
+QString BalanceAttestationBackend::deliveryDemoDir() const
+{
+    const auto base = proofRunDir();
+    if (base.endsWith("/proof")) {
+        return QDir::cleanPath(base.left(base.size() - QString("/proof").size()) + "/delivery");
+    }
+    return QDir::cleanPath(repoDir() + "/.demo-runs/basecamp-delivery/" + timestamp());
+}
+
 QString BalanceAttestationBackend::scriptPath(const QString &name) const
 {
     return QDir::cleanPath(repoDir() + "/scripts/" + name);
@@ -524,6 +788,182 @@ QString BalanceAttestationBackend::readTextFile(const QString &path) const
 QString BalanceAttestationBackend::timestamp() const
 {
     return QDateTime::currentDateTimeUtc().toString("yyyyMMdd'T'hhmmss'Z'");
+}
+
+QString BalanceAttestationBackend::deliveryMessagePath() const
+{
+    return QDir::cleanPath(deliveryRunDir() + "/proof-message.json");
+}
+
+QString BalanceAttestationBackend::deliveryGatePath() const
+{
+    return QDir::cleanPath(deliveryRunDir() + "/gate.json");
+}
+
+bool BalanceAttestationBackend::writeDeliveryGateFile(const QString &path)
+{
+    QJsonObject gate{
+        {"chain_id", chainIdHex()},
+        {"verifier_id", verifierIdHex()},
+        {"gate_id", gateIdHex()},
+        {"presentation_challenge", presentationChallengeHex()},
+        {"threshold", threshold()},
+    };
+
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setDeliveryStatus("Could not write Delivery gate file:\n" + path);
+        return false;
+    }
+    file.write(QJsonDocument(gate).toJson(QJsonDocument::Indented));
+    return true;
+}
+
+bool BalanceAttestationBackend::writeDeliveryMessageFile(const QString &path, QString *messageJson)
+{
+    const auto envelopePath = proofRunDir() + "/envelope.json";
+    QFile envelopeFile(envelopePath);
+    if (!envelopeFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        setDeliveryStatus("Could not read proof envelope:\n" + envelopePath);
+        return false;
+    }
+
+    QJsonParseError parseError;
+    const auto envelopeDoc = QJsonDocument::fromJson(envelopeFile.readAll(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !envelopeDoc.isObject()) {
+        setDeliveryStatus("Proof envelope is not valid JSON:\n" + parseError.errorString());
+        return false;
+    }
+
+    QJsonValue recipientValue(QJsonValue::Null);
+    if (!deliveryRecipient().isEmpty()) {
+        recipientValue = deliveryRecipient();
+    }
+
+    QJsonObject message{
+        {"version", 1},
+        {"transport", "logos-messaging"},
+        {"message_id", "basecamp-delivery-" + timestamp()},
+        {"group_id", deliveryGroupId()},
+        {"sender", deliverySender()},
+        {"recipient", recipientValue},
+        {"created_at_unix", QDateTime::currentSecsSinceEpoch()},
+        {"envelope", envelopeDoc.object()},
+    };
+
+    const auto json = QString::fromUtf8(QJsonDocument(message).toJson(QJsonDocument::Indented));
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setDeliveryStatus("Could not write Delivery proof message:\n" + path);
+        return false;
+    }
+    file.write(json.toUtf8());
+    setDeliveryMessageJson(json);
+    if (messageJson) {
+        *messageJson = json;
+    }
+    appendDeliveryLog("Prepared proof message " + path);
+    return true;
+}
+
+bool BalanceAttestationBackend::ensureDeliveryReady(bool requireProofRun)
+{
+    if (!m_logos) {
+        setDeliveryStatus("Delivery unavailable: Basecamp did not provide Logos API");
+        return false;
+    }
+    if (requireProofRun && (proofRunDir().isEmpty() || !QFileInfo::exists(proofRunDir() + "/envelope.json"))) {
+        setDeliveryStatus("Generate a proof before sending a Delivery proof message");
+        return false;
+    }
+    return true;
+}
+
+void BalanceAttestationBackend::appendDeliveryLog(const QString &line)
+{
+    const auto stamp = QDateTime::currentDateTime().toString("hh:mm:ss");
+    const auto next = (deliveryLog().isEmpty() ? QString() : deliveryLog() + "\n")
+        + "[" + stamp + "] " + line;
+    setDeliveryLog(next);
+}
+
+void BalanceAttestationBackend::wireDeliveryEvents()
+{
+    if (!m_logos) {
+        return;
+    }
+
+    m_logos->delivery_module.on("connectionStateChanged", [this](const QVariantList &data) {
+        if (data.isEmpty()) {
+            return;
+        }
+        const auto state = data.at(0).toString();
+        setDeliveryStatus(state);
+        appendDeliveryLog("connectionStateChanged " + state);
+    });
+
+    m_logos->delivery_module.on("messageReceived", [this](const QVariantList &data) {
+        if (data.size() < 4) {
+            return;
+        }
+        const auto topic = data.at(1).toString();
+        const QByteArray payload = data.at(2).toByteArray();
+        const auto hash = data.at(0).toString();
+        const auto timestampNs = data.at(3).toLongLong();
+
+        const auto dir = deliveryRunDir().isEmpty() ? deliveryDemoDir() : deliveryRunDir();
+        setDeliveryRunDir(dir);
+        QDir().mkpath(dir);
+
+        const auto path = deliveryMessagePath();
+        QFile file(path);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            file.write(payload);
+        }
+        setDeliveryMessageJson(QString::fromUtf8(payload));
+        setDeliveryStatus("Received proof message on " + topic);
+        appendDeliveryLog("messageReceived topic=" + topic + " hash=" + hash);
+        emit deliveryMessageReceived(topic, hash, timestampNs);
+    });
+
+    m_logos->delivery_module.on("messageSent", [this](const QVariantList &data) {
+        if (data.size() < 3) {
+            return;
+        }
+        appendDeliveryLog("messageSent request_id=" + data.at(0).toString() + " hash=" + data.at(1).toString());
+        emit deliveryMessageSent(data.at(0).toString(), data.at(1).toString(), data.at(2).toLongLong());
+    });
+
+    m_logos->delivery_module.on("messagePropagated", [this](const QVariantList &data) {
+        if (data.size() < 3) {
+            return;
+        }
+        appendDeliveryLog("messagePropagated request_id=" + data.at(0).toString() + " hash=" + data.at(1).toString());
+        emit deliveryMessagePropagated(data.at(0).toString(), data.at(1).toString(), data.at(2).toLongLong());
+    });
+
+    m_logos->delivery_module.on("messageError", [this](const QVariantList &data) {
+        if (data.size() < 4) {
+            return;
+        }
+        const auto error = data.at(2).toString();
+        setDeliveryStatus("Delivery message error: " + error);
+        appendDeliveryLog("messageError request_id=" + data.at(0).toString() + " error=" + error);
+        emit deliveryMessageError(data.at(0).toString(), data.at(1).toString(), error, data.at(3).toLongLong());
+    });
+}
+
+void BalanceAttestationBackend::refreshDeliveryPeerId()
+{
+    if (!m_logos) {
+        return;
+    }
+    LogosResult peer = m_logos->delivery_module.getNodeInfo(QStringLiteral("MyPeerId"));
+    if (peer.success) {
+        setDeliveryPeerId(peer.getString());
+    }
 }
 
 QProcessEnvironment BalanceAttestationBackend::processEnvironment(const QMap<QString, QString> &overrides) const
@@ -601,10 +1041,19 @@ void BalanceAttestationBackend::runProcess(
                 setVerifyJson(stdoutBuffer->trimmed());
             } else if (outputTarget == OutputTarget::GateRun) {
                 setGateRunJson(readTextFile(gateRunDir() + "/run.json"));
+            } else if (outputTarget == OutputTarget::DeliveryVerify) {
+                setDeliveryVerifyJson(stdoutBuffer->trimmed());
+                setDeliveryStatus("Received Delivery proof message verified");
+                appendDeliveryLog("message-verify ok");
             }
             setStatus(combined.isEmpty() ? QString("Done") : combined);
         } else {
             setStatus(combined.isEmpty() ? QString("Command failed") : combined);
+            if (outputTarget == OutputTarget::DeliveryVerify) {
+                setDeliveryVerifyJson(combined);
+                setDeliveryStatus("Received Delivery proof message rejected");
+                appendDeliveryLog("message-verify failed");
+            }
         }
 
         setBusy(false);

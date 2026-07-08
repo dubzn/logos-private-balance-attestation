@@ -285,9 +285,15 @@ to disk. `message-verify` runs the same `attestation-verifier` checks as the
 regular off-chain path. `message-admit` verifies the message and persists the
 context nullifier in a local admission book, rejecting duplicate admission.
 
-This is intentionally a local JSON adapter. A future Logos Messaging adapter
-should implement the same `ProofMessageTransport` trait and carry the same
-message bytes over the real network.
+The CLI path is intentionally a local JSON adapter so it can run in CI and
+clean-room smoke tests. The Basecamp app now provides the real Logos Delivery
+adapter: it depends on `delivery_module`, creates/starts a Delivery node,
+subscribes to the LP-0005 proof-message topic, sends the same V1 message bytes,
+stores received messages, and verifies them locally through `message-verify`.
+
+The important boundary is that transport is not part of the proof system. Both
+the local JSON transport and the Basecamp Delivery transport carry the same
+public proof message bytes.
 
 ## On-Chain Path
 

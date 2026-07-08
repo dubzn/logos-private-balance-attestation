@@ -5,7 +5,7 @@
   "type": "ui_qml",
   "main": "balance_attestation_plugin",
   "view": "src/qml/BalanceAttestation.qml",
-  "dependencies": [],
+  "dependencies": ["delivery_module"],
   "category": "blockchain",
   "icon": "assets/icon.svg",
   "nix": {

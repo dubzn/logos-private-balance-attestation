@@ -25,6 +25,10 @@ public run summaries and verifier/gate outputs.
 - generate a proof from real wallet private state and `getProofForCommitment`
 - verify the public envelope locally
 - submit the current Workable gate admit flow
+- create/start a Logos Delivery node through `delivery_module`
+- subscribe to the LP-0005 proof-message topic
+- send the generated proof envelope as a Delivery proof message
+- receive and verify a Delivery proof message locally
 
 ## Build Check
 
@@ -72,6 +76,12 @@ The install tree must contain both backend libraries:
 ```text
 balance_attestation_plugin.dylib
 balance_attestation_replica_factory.dylib
+```
+
+The generated metadata must also declare:
+
+```json
+"dependencies": ["delivery_module"]
 ```
 
 A direct `ui-host` smoke test should reach `READY`; otherwise Basecamp will
@@ -126,3 +136,36 @@ in the status panel into the **Private account** field.
 The gate action uses the documented Workable path: host-side proof verification
 followed by a deployable LEZ gate-ledger/nullifier transaction. The deployed LEZ
 program does not yet verify the RISC Zero receipt inside public LEZ execution.
+
+## Logos Delivery Flow
+
+The Delivery panel is the real Logos Messaging/Delivery adapter for this MVP.
+It uses the Basecamp-provided `delivery_module`, not the local JSON transport.
+
+Typical sender flow:
+
+1. Run **Preflight**.
+2. Run **Generate proof**.
+3. Run **Verify envelope**.
+4. In **Logos Delivery**, press **Create node**.
+5. Press **Subscribe**.
+6. Press **Send proof**.
+
+Typical receiver flow in another Basecamp instance/user dir:
+
+1. Use the same Delivery topic and gate/context fields.
+2. Press **Create node**.
+3. Press **Subscribe**.
+4. Wait for **Delivery Msg** to show the received proof message.
+5. Press **Verify received**.
+
+`Verify received` delegates to:
+
+```sh
+cargo run -p attestation-cli -- message-verify \
+  --message <delivery-run>/proof-message.json \
+  --gate <delivery-run>/gate.json
+```
+
+The received message contains only the public proof envelope. It never contains
+`witness.json`.

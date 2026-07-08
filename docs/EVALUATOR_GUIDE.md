@@ -2,10 +2,11 @@
 
 This repository is a technical LP-0005 implementation. It is not an award-ready
 submission yet because the evaluator-approved on-chain verification model,
-CU measurements, and final video are still pending. Public testnet evidence now
-exists for both current on-chain candidate paths. The local proof, off-chain verification,
-Messaging-style transport, Basecamp MVP, standalone consumer integrations,
-and Workable host-preverified LEZ gate path are implemented.
+CU measurements, final Delivery walkthrough, and final video are still pending.
+Public testnet evidence now exists for both current on-chain candidate paths.
+The local proof, off-chain verification, Messaging-style CLI transport,
+Basecamp Delivery wiring, standalone consumer integrations, and Workable
+host-preverified LEZ gate path are implemented.
 Spike 09 also demonstrates a PPE-native LEZ gate candidate where private
 execution checks `balance >= threshold` and writes public gate/nullifier state.
 
@@ -47,7 +48,8 @@ wallet private state or `getProofForCommitment`.
 
 ## Off-Chain Messaging Path
 
-This path demonstrates the LP-0005 off-chain shape with a local JSON transport:
+This path demonstrates the LP-0005 off-chain proof-message shape with a local
+JSON transport:
 
 ```sh
 ./demo.sh --messaging --real-prover
@@ -64,9 +66,21 @@ proof envelope
   -> duplicate nullifier rejection
 ```
 
-The transport is intentionally local and replaceable. A future Logos Messaging
-adapter should implement the same `ProofMessageTransport` trait and carry the
-same message bytes.
+The CLI transport is intentionally local and replaceable. It is useful for CI
+and deterministic smoke tests.
+
+For the real Logos Messaging/Delivery path, use the Basecamp module. It declares
+`delivery_module`, creates and starts a Delivery node, subscribes to the LP-0005
+proof-message topic, sends the same proof message bytes, stores received
+messages, and verifies them locally with `message-verify`.
+
+```sh
+scripts/check-basecamp-package.sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
+See [LOGOS_DELIVERY.md](LOGOS_DELIVERY.md) for the two-instance Delivery QA
+flow.
 
 ## Real Local Sequencer Path
 
@@ -189,7 +203,9 @@ RISC0_DEV_MODE=0 \
 
 The app appears as `balance_attestation` under UI Modules.
 
-See [BASECAMP_QA.md](BASECAMP_QA.md) for the full manual UI checklist and video
+The Delivery panel in the app is backed by the real `delivery_module`
+dependency. See [LOGOS_DELIVERY.md](LOGOS_DELIVERY.md) and
+[BASECAMP_QA.md](BASECAMP_QA.md) for the full manual UI checklist and video
 capture notes.
 
 ## Reference Integrations
@@ -248,7 +264,8 @@ do not publish those artifacts without removing `witness.json`.
 - Spike 09 demonstrates a stronger PPE-native LEZ gate candidate, but it is
   still a spike and does not consume the same portable off-chain proof
   envelope.
-- Real Logos Messaging network transport is not wired yet. The current adapter
-  is local JSON and intentionally pluggable.
+- The CLI Messaging path is local JSON by design, but the Basecamp MVP now wires
+  the real `delivery_module`. Final submission still needs a recorded
+  two-instance Delivery walkthrough.
 - Public testnet deployment evidence exists, but CU measurements and narrated
   video artifacts are still pending.

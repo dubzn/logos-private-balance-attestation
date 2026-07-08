@@ -27,6 +27,8 @@ Implemented:
 - Off-chain verifier crate for the public proof envelope.
 - Local/pluggable Messaging adapter for transporting proof envelopes and
   simulating token-gated group admission.
+- Basecamp Logos Delivery adapter that sends and receives the same proof message
+  bytes through the real `delivery_module` dependency.
 - CLI for inspect/prove/verify and LEZ gate commands.
 - Deployable LEZ gate-state program for the current Workable path.
 - PPE-native LEZ balance-gate spike that checks private `balance >= threshold`
@@ -41,8 +43,8 @@ Implemented:
 Still pending for final LP-0005 submission:
 
 - Evaluator-approved on-chain verification model.
-- Logos Messaging-specific network adapter, if evaluators require the real
-  transport instead of the current local JSON adapter.
+- Recorded two-instance Logos Delivery walkthrough for the off-chain Messaging
+  path.
 - Final consumer-integration evidence, using the updated LP-0005 requirement
   for a standalone runnable integration demo.
 - CU measurements for the accepted on-chain path.
@@ -112,6 +114,7 @@ These files are intentionally easy to find from the repository root:
 | Public testnet evidence | `docs/TESTNET_DEPLOYMENT.md` |
 | Benchmarks | `docs/BENCHMARKS.md` |
 | Basecamp QA | `docs/BASECAMP_QA.md` |
+| Logos Delivery QA | `docs/LOGOS_DELIVERY.md` |
 
 ## LP-0005 Requirement Snapshot
 
@@ -121,7 +124,7 @@ These files are intentionally easy to find from the repository root:
 | Real wallet + `getProofForCommitment` witness path | Implemented in the full local E2E. |
 | Off-chain verification | Implemented via `attestation-verifier`. |
 | Presenter binding and nullifier | Implemented with challenge-bound BIP-340 presentation signatures and context nullifiers. |
-| Off-chain Messaging path | Implemented with a local/pluggable transport; real Logos Messaging network adapter pending if required. |
+| Off-chain Messaging path | Implemented with a local/pluggable CLI transport and a Basecamp adapter wired to the real `delivery_module`; final two-instance recording pending. |
 | LEZ gate path | Workable/host-preverified public gate plus Spike 09 PPE-native private execution candidate. Both have public testnet evidence; evaluator-approved in-LEZ proof verification model is still pending. |
 | Basecamp app | Backend-backed `ui_qml` MVP builds and loads locally. |
 | Consumer integration demo | Governance gate, chat gate, and fee-tier gate are implemented locally; updated LP-0005 now asks for a standalone runnable consumer integration demo rather than an outside-team integration. |
@@ -363,6 +366,21 @@ nullifier in `admissions.json`, and rejects duplicate admission attempts. This
 is the same admission model expected from a future Logos Messaging transport;
 only the transport is local JSON for now.
 
+The Basecamp MVP also exposes a real Logos Delivery path. It declares
+`delivery_module` as a module dependency, creates and starts a Delivery node
+from the UI, subscribes to the LP-0005 proof-message topic, sends the same V1
+proof message bytes over Delivery, stores received messages as
+`proof-message.json`, and verifies them through `message-verify`.
+
+```sh
+scripts/check-basecamp-package.sh
+scripts/run-basecamp-local.sh --reset --real-prover
+```
+
+See [docs/LOGOS_DELIVERY.md](docs/LOGOS_DELIVERY.md) and
+[docs/BASECAMP_QA.md](docs/BASECAMP_QA.md) for the manual two-instance
+Delivery QA flow.
+
 ## Testing
 
 Core workspace tests:
@@ -428,6 +446,8 @@ Spike 09 PPE-native runs now write their own local benchmark reports via
 - [On-Chain Path Decision](docs/ONCHAIN_PATH_DECISION.md): why the current on-chain path is Workable / host-preverified.
 - [Prize Checklist](docs/PRIZE_CHECKLIST.md): LP-0005 requirements mapped to current artifacts.
 - [Benchmarks](docs/BENCHMARKS.md): local proof/gate timings and remaining CU work.
+- [Logos Delivery](docs/LOGOS_DELIVERY.md): Basecamp `delivery_module`
+  send/receive QA for the off-chain Messaging requirement.
 - [Error Codes](docs/ERROR_CODES.md): deterministic BAxxx errors.
 - [IDL Reference](docs/IDL_DRAFT.md): LEZ verifier interface.
 - [Basecamp MVP](apps/basecamp/README.md): local `ui_qml` proof and gate workflow.

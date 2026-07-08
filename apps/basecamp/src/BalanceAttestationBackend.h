@@ -7,11 +7,18 @@
 
 #include "rep_balance_attestation_source.h"
 
+class LogosAPI;
+class LogosModules;
+class QTimer;
+
 class BalanceAttestationBackend : public BalanceAttestationSimpleSource {
     Q_OBJECT
 
 public:
     explicit BalanceAttestationBackend(QObject *parent = nullptr);
+    ~BalanceAttestationBackend() override;
+
+    void initializeLogos(LogosAPI *api);
 
     void setRepoDir(QString repoDir) override;
     void setLezRepoDir(QString lezRepoDir) override;
@@ -23,6 +30,12 @@ public:
     void setGateIdHex(QString gateIdHex) override;
     void setPresentationChallengeHex(QString presentationChallengeHex) override;
     void setRealProving(bool realProving) override;
+    void setDeliveryPreset(QString deliveryPreset) override;
+    void setDeliveryMode(QString deliveryMode) override;
+    void setDeliveryTopic(QString deliveryTopic) override;
+    void setDeliveryGroupId(QString deliveryGroupId) override;
+    void setDeliverySender(QString deliverySender) override;
+    void setDeliveryRecipient(QString deliveryRecipient) override;
 
 public slots:
     void configureRepoDir(QString value) override;
@@ -35,12 +48,23 @@ public slots:
     void configureGateIdHex(QString value) override;
     void configurePresentationChallengeHex(QString value) override;
     void configureRealProving(bool value) override;
+    void configureDeliveryPreset(QString value) override;
+    void configureDeliveryMode(QString value) override;
+    void configureDeliveryTopic(QString value) override;
+    void configureDeliveryGroupId(QString value) override;
+    void configureDeliverySender(QString value) override;
+    void configureDeliveryRecipient(QString value) override;
 
     void runPreflight() override;
     void generateProof() override;
     void verifyEnvelope() override;
     void executeGateAdmit() override;
+    void deliveryCreateNode() override;
+    void deliverySubscribe() override;
+    void deliverySendProofMessage() override;
+    void deliveryVerifyReceivedMessage() override;
     void clearOutputs() override;
+    void clearDelivery() override;
 
 protected:
     void setBusy(bool value) override;
@@ -50,6 +74,13 @@ protected:
     void setProofRunJson(QString value) override;
     void setVerifyJson(QString value) override;
     void setGateRunJson(QString value) override;
+    void setDeliveryStatus(QString value) override;
+    void setDeliveryPeerId(QString value) override;
+    void setDeliveryVersion(QString value) override;
+    void setDeliveryRunDir(QString value) override;
+    void setDeliveryMessageJson(QString value) override;
+    void setDeliveryVerifyJson(QString value) override;
+    void setDeliveryLog(QString value) override;
 
 private:
     enum class OutputTarget {
@@ -57,6 +88,7 @@ private:
         ProofRun,
         Verify,
         GateRun,
+        DeliveryVerify,
     };
 
     bool validateCommonInputs(bool requireProofRun, bool requireWalletAccount = false);
@@ -64,9 +96,18 @@ private:
     QString normalizedPrivateAccount() const;
     QString proofDemoDir() const;
     QString gateDemoDir() const;
+    QString deliveryDemoDir() const;
     QString scriptPath(const QString &name) const;
     QString readTextFile(const QString &path) const;
     QString timestamp() const;
+    QString deliveryMessagePath() const;
+    QString deliveryGatePath() const;
+    bool writeDeliveryGateFile(const QString &path);
+    bool writeDeliveryMessageFile(const QString &path, QString *messageJson);
+    bool ensureDeliveryReady(bool requireProofRun = false);
+    void appendDeliveryLog(const QString &line);
+    void wireDeliveryEvents();
+    void refreshDeliveryPeerId();
 
     QProcessEnvironment processEnvironment(const QMap<QString, QString> &overrides = {}) const;
     void runProcess(
@@ -75,4 +116,8 @@ private:
         const QMap<QString, QString> &envOverrides,
         OutputTarget outputTarget
     );
+
+    LogosModules *m_logos = nullptr;
+    QTimer *m_deliveryPollTimer = nullptr;
+    bool m_deliveryNodeStarted = false;
 };

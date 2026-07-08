@@ -240,3 +240,27 @@ Evidence lives in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md). This closes
 the "can it run on public testnet?" question for both candidates, but it does
 not close the LP-0005 architecture question about which on-chain verification
 model evaluators require.
+
+## Protocol Refresh (2026-07-01)
+
+The local clean worktree
+`/Users/dub/Desktop/logos/logos-execution-zone-upstream-main` was refreshed to
+`logos-blockchain/logos-execution-zone` `upstream/main` at `d1637b65`.
+
+Relevant observations:
+
+| Check | Current upstream result |
+| --- | --- |
+| Public LEZ execution | `lee/state_machine/src/program.rs` still builds a fresh `ExecutorEnv` and executes the public program ELF without adding external receipt assumptions. |
+| `env::verify` usage | Still present in `lee/privacy_preserving_circuit/src/execution_state.rs`, i.e. inside the PPE/chained-call circuit path. |
+| Receipt assumptions | `env_builder.add_assumption(inner_receipt)` is still in `lee/state_machine/src/privacy_preserving_transaction/circuit.rs`, not in the public-program path. |
+| Benchmark tooling | `tools/cycle_bench` and `docs/benchmarks/cycle_bench.md` are now available upstream and should be used as the model for future cycle/CU-style reporting. |
+
+No merged upstream support was found for a public LEZ program that accepts an
+externally supplied RISC Zero receipt and verifies it with `env::verify`.
+Therefore the repository keeps the same two candidate paths:
+
+1. Workable public gate ledger with mandatory host-side proof verification.
+2. PPE-native private execution gate, where LEZ's own privacy-preserving proof
+   system verifies the private balance condition before public gate state is
+   written.

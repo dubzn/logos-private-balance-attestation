@@ -21,6 +21,7 @@ checks:
   - manifest/metadata identify a ui_qml module
   - QML view exists
   - plugin and replica factory shared libraries exist
+  - delivery_module dependency is declared
 EOF
 }
 
@@ -93,9 +94,11 @@ step "3/3 Validate metadata"
 require_grep '"name"[[:space:]]*:[[:space:]]*"balance_attestation"' "$MANIFEST"
 require_grep '"type"[[:space:]]*:[[:space:]]*"ui_qml"' "$MANIFEST"
 require_grep '"view"[[:space:]]*:[[:space:]]*"src/qml/BalanceAttestation.qml"' "$MANIFEST"
+require_grep '"delivery_module"' "$MANIFEST"
 require_grep '"name"[[:space:]]*:[[:space:]]*"balance_attestation"' "$METADATA"
 require_grep '"type"[[:space:]]*:[[:space:]]*"ui_qml"' "$METADATA"
 require_grep '"view"[[:space:]]*:[[:space:]]*"src/qml/BalanceAttestation.qml"' "$METADATA"
+require_grep '"delivery_module"' "$METADATA"
 
 printf '\nBasecamp package check passed.\n'
 printf 'Plugin dir: %s\n' "$PLUGIN_DIR"

@@ -32,6 +32,7 @@ Item {
     property var proofRun: parseJson(d.backend ? d.backend.proofRunJson : "")
     property var verifyResult: parseJson(d.backend ? d.backend.verifyJson : "")
     property var gateRun: parseJson(d.backend ? d.backend.gateRunJson : "")
+    property var deliveryVerifyResult: parseJson(d.backend ? d.backend.deliveryVerifyJson : "")
 
     function parseJson(value) {
         if (!value || value.length === 0) {
@@ -231,6 +232,49 @@ Item {
                         }
                     }
                 }
+
+                SectionPanel {
+                    title: "Logos Delivery"
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 360
+
+                    FormGrid {
+                        FieldLabel { text: "Preset" }
+                        FormTextField {
+                            text: d.backend ? d.backend.deliveryPreset : "logos.test"
+                            enabled: d.backend && !d.backend.busy
+                            onEditingFinished: if (d.backend) d.backend.configureDeliveryPreset(text)
+                        }
+
+                        FieldLabel { text: "Mode" }
+                        FormTextField {
+                            text: d.backend ? d.backend.deliveryMode : "Core"
+                            enabled: d.backend && !d.backend.busy
+                            onEditingFinished: if (d.backend) d.backend.configureDeliveryMode(text)
+                        }
+
+                        FieldLabel { text: "Topic" }
+                        FormTextField {
+                            text: d.backend ? d.backend.deliveryTopic : ""
+                            enabled: d.backend && !d.backend.busy
+                            onEditingFinished: if (d.backend) d.backend.configureDeliveryTopic(text)
+                        }
+
+                        FieldLabel { text: "Group" }
+                        FormTextField {
+                            text: d.backend ? d.backend.deliveryGroupId : ""
+                            enabled: d.backend && !d.backend.busy
+                            onEditingFinished: if (d.backend) d.backend.configureDeliveryGroupId(text)
+                        }
+
+                        FieldLabel { text: "Sender" }
+                        FormTextField {
+                            text: d.backend ? d.backend.deliverySender : ""
+                            enabled: d.backend && !d.backend.busy
+                            onEditingFinished: if (d.backend) d.backend.configureDeliverySender(text)
+                        }
+                    }
+                }
             }
 
             Rectangle {
@@ -294,9 +338,72 @@ Item {
                 }
             }
 
+            Rectangle {
+                Layout.fillWidth: true
+                radius: 8
+                color: theme.surface
+                border.color: theme.border
+                implicitHeight: deliveryToolbar.implicitHeight + 18
+
+                RowLayout {
+                    id: deliveryToolbar
+                    anchors.fill: parent
+                    anchors.margins: 9
+                    spacing: 8
+
+                    Label {
+                        text: "Delivery"
+                        color: theme.text
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
+
+                    ActionButton {
+                        text: "Create node"
+                        enabled: d.backend && !d.backend.busy
+                        onClicked: d.backend.deliveryCreateNode()
+                    }
+
+                    ActionButton {
+                        text: "Subscribe"
+                        enabled: d.backend && !d.backend.busy
+                        onClicked: d.backend.deliverySubscribe()
+                    }
+
+                    ActionButton {
+                        text: "Send proof"
+                        primary: true
+                        enabled: d.backend && !d.backend.busy && d.backend.proofRunDir.length > 0
+                        onClicked: d.backend.deliverySendProofMessage()
+                    }
+
+                    ActionButton {
+                        text: "Verify received"
+                        enabled: d.backend && !d.backend.busy && d.backend.deliveryMessageJson.length > 0
+                        onClicked: d.backend.deliveryVerifyReceivedMessage()
+                    }
+
+                    ActionButton {
+                        text: "Clear delivery"
+                        enabled: d.backend && !d.backend.busy
+                        onClicked: d.backend.clearDelivery()
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Label {
+                        text: d.backend ? root.shortValue(d.backend.deliveryStatus) : "Delivery unavailable"
+                        color: theme.muted
+                        font.pixelSize: 12
+                        elide: Text.ElideMiddle
+                        Layout.maximumWidth: 420
+                    }
+                }
+            }
+
             GridLayout {
                 Layout.fillWidth: true
-                columns: width > 780 ? 3 : 1
+                columns: width > 1040 ? 4 : (width > 700 ? 2 : 1)
                 columnSpacing: 12
                 rowSpacing: 12
 
@@ -319,6 +426,17 @@ Item {
                     status: root.fieldValue(root.gateRun.status, "idle")
                     main: root.shortValue(root.gateRun.accounts ? root.gateRun.accounts.gate : root.gateRun.gate_account)
                     detail: "duplicate " + root.fieldValue(root.gateRun.duplicate_status, "-")
+                }
+
+                SummaryCard {
+                    title: "Delivery"
+                    status: d.backend && d.backend.deliveryVerifyJson.length > 0
+                            ? root.fieldValue(root.deliveryVerifyResult.status, "checked")
+                            : root.fieldValue(d.backend ? d.backend.deliveryStatus : "", "idle")
+                    main: d.backend ? root.shortValue(d.backend.deliveryPeerId) : "-"
+                    detail: d.backend && d.backend.deliveryVersion.length > 0
+                            ? "delivery " + d.backend.deliveryVersion
+                            : root.shortValue(d.backend ? d.backend.deliveryTopic : "")
                 }
             }
 
@@ -347,6 +465,9 @@ Item {
                         OutputTabButton { text: "Proof JSON" }
                         OutputTabButton { text: "Verify JSON" }
                         OutputTabButton { text: "Gate JSON" }
+                        OutputTabButton { text: "Delivery Log" }
+                        OutputTabButton { text: "Delivery Msg" }
+                        OutputTabButton { text: "Delivery Verify" }
                     }
 
                     StackLayout {
@@ -369,6 +490,19 @@ Item {
 
                         OutputPane {
                             textContent: d.backend ? d.backend.gateRunJson : ""
+                        }
+
+                        OutputPane {
+                            autoScroll: true
+                            textContent: d.backend ? d.backend.deliveryLog : ""
+                        }
+
+                        OutputPane {
+                            textContent: d.backend ? d.backend.deliveryMessageJson : ""
+                        }
+
+                        OutputPane {
+                            textContent: d.backend ? d.backend.deliveryVerifyJson : ""
                         }
                     }
                 }
