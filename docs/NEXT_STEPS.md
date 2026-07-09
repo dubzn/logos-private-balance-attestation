@@ -126,6 +126,38 @@ Track them here as the submission checklist of record:
 | E2E-vs-sequencer in CI is missing. | Partial. Live sequencer E2E scripts pass locally, but CI only runs workspace/deployable checks. | Add a CI job that starts standalone LEZ, initializes a fresh wallet/private account, runs a bounded `RISC0_DEV_MODE=1` local sequencer E2E, and uploads sanitized reports. Keep `RISC0_DEV_MODE=0` for manual/video evidence if CI runtime is too expensive. |
 | YouTube video is missing. | Open. `docs/DEMO_VIDEO_SCRIPT.md` exists. | Record the final narrated video after on-chain-path wording is settled enough to avoid overstating the solution. Must show `RISC0_DEV_MODE=0`, CLI proof generation, Basecamp Delivery, and accepted on-chain path evidence. |
 
+## Latest Upstream Refresh
+
+Checked on 2026-07-09 with non-destructive `git fetch` only:
+
+- `lambda-prize upstream/master`: LP-0005 is still open and still requires
+  on-chain LEZ proof verification, off-chain proof transmission over Logos
+  Messaging, CU documentation, sequencer E2E in CI, and a narrated video. The
+  integration requirement is now easier for this repo: it asks for a
+  standalone consumer integration demo, not three integrations with an external
+  party. The repo already has `examples/governance-gate`, `examples/chat-gate`,
+  and `examples/fee-tier-gate`; feature one clearly in the video.
+- `logos-docs origin/main`: official docs now frame Messaging transport through
+  Logos Delivery. The documented C++ module path uses `delivery_module`
+  pinned to `github:logos-co/logos-delivery-module/v0.1.3`, declares the
+  dependency in metadata, registers events before `start()`, subscribes before
+  sending, and uses a LIP-23 content topic. This matches the current Basecamp
+  adapter shape; the missing evidence is a two-instance Delivery recording.
+- `logos-basecamp origin/master` / release `0.2.1`: Basecamp changed
+  substantially, but the important `ui_qml` contract remains compatible with
+  this repo: `view` is the QML entry point and core dependencies are loaded
+  before the UI plugin. Before final video, re-test the module against the
+  latest local Basecamp checkout rather than relying only on the older dev app.
+- `logos-execution-zone upstream/main`: do not blindly pull into the current
+  working checkout. It is dirty with wallet/RocksDB state and local spike
+  sources, and upstream has breaking layout/naming changes, including
+  `nssa` -> `lee`. The current commitment formula still uses the
+  `/LEE/v0.3/Commitment/` domain separator and private `account_id`, which
+  matches this repo's production circuit. No direct public LEZ external receipt
+  verification support was found in the fetched upstream tree. Upstream does
+  include `tools/cycle_bench` and `docs/benchmarks/cycle_bench.md`, which
+  should be the model for LP-0005 CU/cycle reporting.
+
 ## Ordered Backlog
 
 1. Resolve the evaluator-approved live on-chain path.
