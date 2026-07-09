@@ -85,6 +85,10 @@ Done locally:
   `docs/PR_REOPEN_MESSAGE.md`, and `docs/DEMO_VIDEO_SCRIPT.md`
 - evaluator-visible root artifacts: `demo.sh`,
   `balance-attestation-verifier.idl.json`, and `apps/basecamp/module.json`
+- Basecamp guided-flow polish: stepper-only workflow, contextual Delivery
+  actions, clearer `Real proving` / `Dev proving` labeling, visible in-progress
+  node pulse, and local RISC Zero recursion artifact cache support for proof
+  generation from the UI
 
 Current command set:
 
@@ -109,17 +113,24 @@ scripts/clean-local-artifacts.sh
 cd apps/basecamp && nix build .#install
 ```
 
+## Latest PR Feedback Triage
+
+The Lambda Prize PR feedback called out five required gaps before resubmission.
+Track them here as the submission checklist of record:
+
+| Feedback item | Current state | Next action |
+| --- | --- | --- |
+| On-chain LEZ proof verification is missing. | Not closed. The repo has two candidate paths: Workable host-preverified gate and Spike 09 PPE-native gate. Public external receipt verification remains unsupported in the tested LEZ runtime. | Get evaluator confirmation that the PPE-native path satisfies LP-0005, or implement the supported public receipt-verifier path if Logos provides one. Keep the Workable path framed as evidence, not final proof verification. |
+| Off-chain transmission over Logos Messaging does not seem to work. | Improved. CLI local JSON transport works; Basecamp now uses the real `delivery_module` dependency and manual single-instance send/receive/verify has passed locally. | Record a two-instance Basecamp Delivery walkthrough with sender/receiver evidence and keep `docs/LOGOS_DELIVERY.md` updated with exact commands and screenshots/log notes. |
+| CU cost documentation is missing. | Still open. `docs/BENCHMARKS.md` has wall-clock local/testnet timings, not chain CU. | Use upstream LEZ `tools/cycle_bench` or any exposed testnet/devnet CU source to measure the accepted path. Document `register_presenter`, `init_gate`, `admit`, duplicate rejection, and PPE-native positive/rejection costs if applicable. |
+| E2E-vs-sequencer in CI is missing. | Partial. Live sequencer E2E scripts pass locally, but CI only runs workspace/deployable checks. | Add a CI job that starts standalone LEZ, initializes a fresh wallet/private account, runs a bounded `RISC0_DEV_MODE=1` local sequencer E2E, and uploads sanitized reports. Keep `RISC0_DEV_MODE=0` for manual/video evidence if CI runtime is too expensive. |
+| YouTube video is missing. | Open. `docs/DEMO_VIDEO_SCRIPT.md` exists. | Record the final narrated video after on-chain-path wording is settled enough to avoid overstating the solution. Must show `RISC0_DEV_MODE=0`, CLI proof generation, Basecamp Delivery, and accepted on-chain path evidence. |
+
 ## Ordered Backlog
 
-1. Turn the successful `RISC0_DEV_MODE=0` run into final demo evidence.
-   - Record a clean-room narrated run.
-   - Run `scripts/check-wallet-preflight.sh` before recording.
-   - Run `./demo.sh --clean-room --real-prover --with-tests --with-lez`
-     before publishing demo artifacts.
-   - Keep `witness.json` private and publish only envelope/report artifacts.
-
-2. Resolve the evaluator-approved live on-chain path.
-   - Wait for evaluator/Discord answer if possible.
+1. Resolve the evaluator-approved live on-chain path.
+   - Wait for evaluator/Discord answer if possible, but do not block unrelated
+     polish or evidence gathering.
    - Keep direct public receipt verification marked unsupported for this LEZ
      version.
    - Keep the host-preverified Workable path documented unless evaluators
@@ -132,7 +143,7 @@ cd apps/basecamp && nix build .#install
      verifier requirement, or whether the final submission must still use a
      public LEZ program that verifies an externally supplied receipt.
 
-3. Record and harden the Logos Delivery path.
+2. Record and harden the Logos Delivery path.
    - Current deterministic adapter: `attestation-messaging::LocalFileTransport`.
    - Current Basecamp adapter: `delivery_module` create, start, subscribe,
      send, receive, and verify.
@@ -140,21 +151,35 @@ cd apps/basecamp && nix build .#install
      `proof-message.json`, `message-verify` output, and UI notes.
    - Keep the proof message bytes stable across local JSON and Delivery.
 
-4. Harden Basecamp GUI.
-   - Run a final manual end-to-end UX pass from inside Basecamp for recording.
-   - Run `scripts/check-basecamp-package.sh` before manual QA.
-   - Keep the `nix build .#install` packaging path aligned with the active
-     Basecamp build.
-   - Keep the UI limited to public/sanitized proof state.
-
-5. Add final submission support.
+3. Add CU / cycle measurements for the accepted path.
    - CU measurements for the operations already listed in
      `docs/BENCHMARKS.md`.
    - Use upstream LEZ `tools/cycle_bench` as the model for cycle/CU-style
      reporting where possible.
-   - Narrated demo video with `RISC0_DEV_MODE=0`.
+   - If true chain CU is not exposed, document the exact limitation and include
+     the closest available cycle/executor metrics without relabeling them as CU.
 
-6. Submission hardening.
+4. Add live local-sequencer E2E to CI if practical.
+   - Prefer a fast `RISC0_DEV_MODE=1` CI job for wallet/sequencer/API drift.
+   - Upload sanitized `.demo-runs/.../report.md` artifacts.
+   - Keep real-prover `RISC0_DEV_MODE=0` in manual evidence and video unless
+     CI runtime is acceptable.
+
+5. Turn the successful `RISC0_DEV_MODE=0` run into final demo evidence.
+   - Record a clean-room narrated run.
+   - Run `scripts/check-wallet-preflight.sh` before recording.
+   - Run `./demo.sh --clean-room --real-prover --with-tests --with-lez`
+     before publishing demo artifacts.
+   - Keep `witness.json` private and publish only envelope/report artifacts.
+
+6. Harden Basecamp GUI.
+   - Run a final manual end-to-end UX pass from inside Basecamp for recording.
+   - Run `scripts/check-basecamp-package.sh` before manual QA.
+   - Keep the `nix build .#install` packaging path aligned with the active
+   Basecamp build.
+   - Keep the UI limited to public/sanitized proof state.
+
+7. Submission hardening.
    - Keep the Lambda Prize PR title exactly
      `Solution: LP-0005 — Private Token Balance Attestation`.
    - Do not reopen as a draft submission; use Discord or a separate discussion

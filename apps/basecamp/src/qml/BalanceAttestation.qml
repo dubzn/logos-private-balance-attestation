@@ -282,6 +282,10 @@ Item {
                         }
                     }
 
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
                     StatusPill {
                         value: d.backend && d.backend.realProving ? "Real proving" : "Dev proving"
                         tone: d.backend && d.backend.realProving ? "green" : "amber"
@@ -304,7 +308,7 @@ Item {
                     interactive: contentWidth > width
                     contentWidth: Math.max(width, stepperRow.implicitWidth)
                     contentHeight: stepperRow.implicitHeight
-                    implicitHeight: 112
+                    implicitHeight: 126
 
                     RowLayout {
                         id: stepperRow
@@ -860,7 +864,7 @@ Item {
         readonly property string state: root.stepState(index)
         readonly property bool selected: root.selectedStep === index
         Layout.preferredWidth: 92
-        Layout.preferredHeight: 108
+        Layout.preferredHeight: 120
 
         Rectangle {
             anchors.fill: parent
@@ -931,9 +935,11 @@ Item {
 
             Label {
                 Layout.fillWidth: true
+                Layout.minimumHeight: 18
                 text: root.stepStatusText(node.index)
                 color: root.stepStatusColor(node.index)
                 horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 font.pixelSize: 11
                 font.weight: Font.Medium
             }
@@ -971,16 +977,16 @@ Item {
             spacing: 14
 
             Item {
-                Layout.preferredWidth: 58
-                Layout.preferredHeight: 54
+                Layout.preferredWidth: 52
+                Layout.preferredHeight: 52
                 Layout.alignment: Qt.AlignTop
 
                 Heartbeat {
                     anchors.centerIn: parent
                     running: card.state === "running"
                     pulseColor: root.stepAccent(card.stepIndex)
-                    width: 58
-                    height: 58
+                    width: 52
+                    height: 52
                 }
 
                 Rectangle {
@@ -1197,27 +1203,27 @@ Item {
 
         Rectangle {
             anchors.centerIn: parent
-            width: Math.max(42, parent.width * 0.92)
+            width: Math.max(38, parent.width * 0.82)
             height: width
             radius: width / 2
             color: "transparent"
             border.color: heartbeat.pulseColor
-            border.width: 4
-            opacity: heartbeat.running ? 0.58 : 0
+            border.width: 3
+            opacity: heartbeat.running ? 0.48 : 0
             scale: 1
 
             SequentialAnimation on scale {
                 running: heartbeat.running
                 loops: Animation.Infinite
-                NumberAnimation { from: 0.86; to: 1.18; duration: 620; easing.type: Easing.OutQuad }
-                NumberAnimation { from: 1.18; to: 0.86; duration: 360; easing.type: Easing.InQuad }
+                NumberAnimation { from: 0.88; to: 1.13; duration: 620; easing.type: Easing.OutQuad }
+                NumberAnimation { from: 1.13; to: 0.88; duration: 360; easing.type: Easing.InQuad }
             }
 
             SequentialAnimation on opacity {
                 running: heartbeat.running
                 loops: Animation.Infinite
-                NumberAnimation { from: 0.62; to: 0.12; duration: 620; easing.type: Easing.OutQuad }
-                NumberAnimation { from: 0.12; to: 0.62; duration: 360; easing.type: Easing.InQuad }
+                NumberAnimation { from: 0.5; to: 0.08; duration: 620; easing.type: Easing.OutQuad }
+                NumberAnimation { from: 0.08; to: 0.5; duration: 360; easing.type: Easing.InQuad }
             }
         }
     }
