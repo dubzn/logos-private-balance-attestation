@@ -93,6 +93,55 @@ export_default_wallet_home() {
   fi
 }
 
+export_default_risc0_recursion_cache() {
+  local root_dir="$1"
+  local expected_sha="744b999f0a35b3c86753311c7efb2a0054be21727095cf105af6ee7d3f4d8849"
+  local url="https://risc0-artifacts.s3.us-west-2.amazonaws.com/zkr/${expected_sha}.zip"
+  local cache_dir="$root_dir/.risc0-cache"
+  local recursion_zkr="$root_dir/.risc0-cache/recursion_zkr.zip"
+
+  if [[ -z "${RECURSION_SRC_PATH:-}" && -f "$recursion_zkr" ]]; then
+    export RECURSION_SRC_PATH="$recursion_zkr"
+    return 0
+  fi
+
+  if [[ -n "${RECURSION_SRC_PATH:-}" || -f "$recursion_zkr" ]]; then
+    return 0
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    return 0
+  fi
+
+  mkdir -p "$cache_dir"
+  local tmp="$recursion_zkr.tmp"
+  echo "Caching RISC Zero recursion artifact at $recursion_zkr"
+  if ! curl -L --fail --retry 3 --output "$tmp" "$url"; then
+    rm -f "$tmp"
+    return 0
+  fi
+
+  local actual_sha=""
+  if command -v shasum >/dev/null 2>&1; then
+    actual_sha="$(shasum -a 256 "$tmp" | awk '{print $1}')"
+  elif command -v sha256sum >/dev/null 2>&1; then
+    actual_sha="$(sha256sum "$tmp" | awk '{print $1}')"
+  fi
+
+  if [[ "$actual_sha" != "$expected_sha" ]]; then
+    rm -f "$tmp"
+    {
+      echo "warning: downloaded RISC Zero recursion artifact failed SHA-256 check"
+      echo "  expected: $expected_sha"
+      echo "  actual:   ${actual_sha:-unknown}"
+    } >&2
+    return 0
+  fi
+
+  mv "$tmp" "$recursion_zkr"
+  export RECURSION_SRC_PATH="$recursion_zkr"
+}
+
 wallet_setup_instructions() {
   cat >&2 <<EOF
 How to fix this:

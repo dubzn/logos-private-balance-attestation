@@ -58,6 +58,7 @@ fi
 
 require_logos_lez_repo "$REPO_ROOT" wallet nssa/core
 export_default_wallet_home
+export_default_risc0_recursion_cache "$REPO_ROOT"
 
 mkdir -p "$RESULT_DIR"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/balance-attest-m2-wallet.XXXXXX")"

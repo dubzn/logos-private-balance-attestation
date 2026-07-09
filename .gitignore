@@ -1,5 +1,6 @@
 .spike-results/
 .demo-runs/
+.risc0-cache/
 target/
 result
 .DS_Store

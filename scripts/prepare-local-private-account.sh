@@ -61,6 +61,7 @@ fi
 
 require_logos_lez_repo "$ROOT_DIR" wallet nssa/core
 export_default_wallet_home
+export_default_risc0_recursion_cache "$ROOT_DIR"
 
 mkdir -p "$OUT_DIR"
 

@@ -94,6 +94,7 @@ fi
 
 require_logos_lez_repo "$ROOT_DIR" Cargo.toml wallet nssa/core
 export_default_wallet_home
+export_default_risc0_recursion_cache "$ROOT_DIR"
 
 if [[ ! -f "$BASECAMP_REPO/run-dev.sh" ]]; then
   {
