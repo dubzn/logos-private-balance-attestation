@@ -31,8 +31,8 @@
 
 use anyhow::{anyhow, bail, Context, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
-use common::transaction::NSSATransaction;
-use nssa::{program::Program, AccountId};
+use common::transaction::LeeTransaction;
+use lee::{program::Program, AccountId};
 use sequencer_service_rpc::RpcClient as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -214,7 +214,7 @@ async fn main() -> Result<()> {
     let args = parse_args()?;
     let bytecode = std::fs::read(&args.program_bin)
         .with_context(|| format!("read program bin {}", args.program_bin.display()))?;
-    let program = Program::new(bytecode).context("decode program ELF")?;
+    let program = Program::new(bytecode.into()).context("decode program ELF")?;
     eprintln!("program_id (pinned) = {:?}", program.id());
 
     let wallet_core = WalletCore::from_env().context("WalletCore::from_env")?;
@@ -289,7 +289,7 @@ async fn main() -> Result<()> {
         .get_accounts_nonces(account_ids.clone())
         .await
         .context("get_accounts_nonces")?;
-    let message = nssa::public_transaction::Message::try_new(
+    let message = lee::public_transaction::Message::try_new(
         program.id(),
         account_ids.clone(),
         nonces,
@@ -308,12 +308,12 @@ async fn main() -> Result<()> {
         .collect::<Result<Vec<_>>>()?;
     let signing_key_refs = signing_keys.iter().collect::<Vec<_>>();
     let witness_set =
-        nssa::public_transaction::WitnessSet::for_message(&message, &signing_key_refs);
-    let tx = nssa::PublicTransaction::new(message, witness_set);
+        lee::public_transaction::WitnessSet::for_message(&message, &signing_key_refs);
+    let tx = lee::PublicTransaction::new(message, witness_set);
 
     let hash = wallet_core
         .sequencer_client
-        .send_transaction(NSSATransaction::Public(tx))
+        .send_transaction(LeeTransaction::Public(tx))
         .await
         .context("sequencer_client.send_transaction")?;
 

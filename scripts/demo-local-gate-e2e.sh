@@ -78,8 +78,11 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-require_logos_lez_repo "$ROOT_DIR" wallet
+require_logos_lez_repo "$ROOT_DIR" Cargo.toml
+lez_wallet_crate_rel_path >/dev/null
+lez_core_crate_rel_path >/dev/null
 export_default_wallet_home
+export_macos_python_framework_rustflags
 ensure_repo_local_lez_link "$ROOT_DIR"
 
 step() {

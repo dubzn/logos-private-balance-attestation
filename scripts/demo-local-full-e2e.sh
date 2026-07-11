@@ -60,7 +60,9 @@ if [[ -z "${PRIVATE_ACCOUNT:-}" ]]; then
   exit 2
 fi
 
-require_logos_lez_repo "$ROOT_DIR" wallet nssa/core
+require_logos_lez_repo "$ROOT_DIR" Cargo.toml
+lez_wallet_crate_rel_path >/dev/null
+lez_core_crate_rel_path >/dev/null
 export_default_wallet_home
 
 step() {

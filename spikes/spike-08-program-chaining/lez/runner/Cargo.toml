@@ -11,11 +11,10 @@ name = "spike_08_run"
 path = "src/bin/spike_08_run.rs"
 
 [dependencies]
-nssa = { path = "../../../../logos/nssa" }
-nssa_core = { path = "../../../../logos/nssa/core" }
-wallet = { path = "../../../../logos/wallet" }
-common = { path = "../../../../logos/common" }
-sequencer_service_rpc = { path = "../../../../logos/sequencer/service/rpc" }
+lee = { path = "../../../../logos/lee/state_machine" }
+wallet = { path = "../../../../logos/lez/wallet" }
+common = { path = "../../../../logos/lez/common" }
+sequencer_service_rpc = { path = "../../../../logos/lez/sequencer/service/rpc" }
 borsh = { version = "1.5.7", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
