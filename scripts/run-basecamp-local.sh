@@ -92,7 +92,9 @@ if [[ -z "$BASECAMP_REPO" ]]; then
   fi
 fi
 
-require_logos_lez_repo "$ROOT_DIR" Cargo.toml wallet nssa/core
+require_logos_lez_repo "$ROOT_DIR" Cargo.toml
+lez_wallet_crate_rel_path >/dev/null
+lez_core_crate_rel_path >/dev/null
 export_default_wallet_home
 export_default_risc0_recursion_cache "$ROOT_DIR"
 
@@ -151,6 +153,7 @@ Basecamp local launch
   BALANCE_ATTEST_REPO=$ROOT_DIR
   LOGOS_LEZ_REPO=$LOGOS_LEZ_REPO
   NSSA_WALLET_HOME_DIR=$NSSA_WALLET_HOME_DIR
+  LEE_WALLET_HOME_DIR=$LEE_WALLET_HOME_DIR
   LOGOS_BASECAMP_REPO=$BASECAMP_REPO
   BASECAMP_USER_DIR=$BASECAMP_USER_DIR
   RISC0_DEV_MODE=$RISC0_MODE
@@ -165,5 +168,6 @@ LOGOS_BALANCE_ATTESTATION_ROOT="$ROOT_DIR" \
 LOGOS_LEZ_REPO="$LOGOS_LEZ_REPO" \
 LEZ_REPO="$LOGOS_LEZ_REPO" \
 NSSA_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR" \
+LEE_WALLET_HOME_DIR="$LEE_WALLET_HOME_DIR" \
 RISC0_DEV_MODE="$RISC0_MODE" \
 exec bash ./run-dev.sh --user-dir "$BASECAMP_USER_DIR"

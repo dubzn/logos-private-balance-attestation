@@ -30,13 +30,16 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-require_logos_lez_repo "$ROOT_DIR" wallet nssa/core
+require_logos_lez_repo "$ROOT_DIR" Cargo.toml
+lez_wallet_crate_rel_path >/dev/null
+lez_core_crate_rel_path >/dev/null
 export_default_wallet_home
 
 mkdir -p "$OUT_DIR"
 
 printf 'LOGOS_LEZ_REPO=%s\n' "$LOGOS_LEZ_REPO"
 printf 'NSSA_WALLET_HOME_DIR=%s\n' "$NSSA_WALLET_HOME_DIR"
+printf 'LEE_WALLET_HOME_DIR=%s\n' "$LEE_WALLET_HOME_DIR"
 printf 'wallet health log=%s\n' "$HEALTH_LOG"
 
 require_wallet_health "$HEALTH_LOG"

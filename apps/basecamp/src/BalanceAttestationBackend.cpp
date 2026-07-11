@@ -974,6 +974,7 @@ QProcessEnvironment BalanceAttestationBackend::processEnvironment(const QMap<QSt
     env.insert("LOGOS_LEZ_REPO", lezRepoDir());
     env.insert("LEZ_REPO", lezRepoDir());
     env.insert("NSSA_WALLET_HOME_DIR", walletHomeDir());
+    env.insert("LEE_WALLET_HOME_DIR", walletHomeDir());
     env.insert("RISC0_DEV_MODE", realProving() ? "0" : "1");
 
     const auto recursionZkr = QDir::cleanPath(repoDir() + "/.risc0-cache/recursion_zkr.zip");

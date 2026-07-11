@@ -1110,6 +1110,7 @@ fn run_inspect_private(options: InspectPrivateOptions) -> Result<(), CliError> {
     }
     if let Some(wallet_home) = &options.wallet_home {
         command.env("NSSA_WALLET_HOME_DIR", wallet_home);
+        command.env("LEE_WALLET_HOME_DIR", wallet_home);
     }
 
     match options.mode {
@@ -1404,6 +1405,7 @@ fn run_gate_runner(invocation: GateRunnerCommand<'_>) -> Result<std::process::Ou
     }
     if let Some(wallet_home) = invocation.wallet_home {
         command.env("NSSA_WALLET_HOME_DIR", wallet_home);
+        command.env("LEE_WALLET_HOME_DIR", wallet_home);
     }
 
     let output = command.output()?;

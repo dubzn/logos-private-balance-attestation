@@ -134,11 +134,14 @@ fi
 
 if [[ "$WITH_LEZ" == "1" ]]; then
   step "LEZ checks"
-  require_logos_lez_repo "$ROOT_DIR" Cargo.toml wallet nssa/core
+  require_logos_lez_repo "$ROOT_DIR" Cargo.toml
+  lez_wallet_crate_rel_path >/dev/null
+  lez_core_crate_rel_path >/dev/null
   export_default_wallet_home
   ensure_repo_local_lez_link "$ROOT_DIR"
   echo "LOGOS_LEZ_REPO=$LOGOS_LEZ_REPO"
   echo "NSSA_WALLET_HOME_DIR=$NSSA_WALLET_HOME_DIR"
+  echo "LEE_WALLET_HOME_DIR=$LEE_WALLET_HOME_DIR"
   scripts/check-risc0-version.sh
   scripts/m2-check-lez-commitment-compat.sh
   cargo test --manifest-path lez-verifier/program/Cargo.toml

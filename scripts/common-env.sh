@@ -62,13 +62,127 @@ require_logos_lez_repo() {
   fi
 }
 
+lez_core_crate_rel_path() {
+  if [[ -z "${LOGOS_LEZ_REPO:-}" ]]; then
+    echo "LOGOS_LEZ_REPO must be resolved before calling lez_core_crate_rel_path" >&2
+    return 2
+  fi
+
+  if [[ -d "$LOGOS_LEZ_REPO/nssa/core" ]]; then
+    printf '%s\n' "nssa/core"
+    return 0
+  fi
+
+  if [[ -d "$LOGOS_LEZ_REPO/lee/state_machine/core" ]]; then
+    printf '%s\n' "lee/state_machine/core"
+    return 0
+  fi
+
+  {
+    echo "Could not find the LEZ state-machine core crate in:"
+    echo "  $LOGOS_LEZ_REPO"
+    echo
+    echo "Expected one of:"
+    echo "  nssa/core"
+    echo "  lee/state_machine/core"
+  } >&2
+  return 2
+}
+
+lez_core_crate_package_name() {
+  local rel
+  rel="$(lez_core_crate_rel_path)" || return $?
+
+  case "$rel" in
+    nssa/core) printf '%s\n' "nssa_core" ;;
+    lee/state_machine/core) printf '%s\n' "lee_core" ;;
+    *)
+      echo "Unknown LEZ core crate path: $rel" >&2
+      return 2
+      ;;
+  esac
+}
+
+lez_state_crate_rel_path() {
+  if [[ -z "${LOGOS_LEZ_REPO:-}" ]]; then
+    echo "LOGOS_LEZ_REPO must be resolved before calling lez_state_crate_rel_path" >&2
+    return 2
+  fi
+
+  if [[ -d "$LOGOS_LEZ_REPO/nssa" ]]; then
+    printf '%s\n' "nssa"
+    return 0
+  fi
+
+  if [[ -d "$LOGOS_LEZ_REPO/lee/state_machine" ]]; then
+    printf '%s\n' "lee/state_machine"
+    return 0
+  fi
+
+  {
+    echo "Could not find the LEZ state-machine crate in:"
+    echo "  $LOGOS_LEZ_REPO"
+    echo
+    echo "Expected one of:"
+    echo "  nssa"
+    echo "  lee/state_machine"
+  } >&2
+  return 2
+}
+
+lez_state_crate_package_name() {
+  local rel
+  rel="$(lez_state_crate_rel_path)" || return $?
+
+  case "$rel" in
+    nssa) printf '%s\n' "nssa" ;;
+    lee/state_machine) printf '%s\n' "lee" ;;
+    *)
+      echo "Unknown LEZ state-machine crate path: $rel" >&2
+      return 2
+      ;;
+  esac
+}
+
+lez_wallet_crate_rel_path() {
+  if [[ -z "${LOGOS_LEZ_REPO:-}" ]]; then
+    echo "LOGOS_LEZ_REPO must be resolved before calling lez_wallet_crate_rel_path" >&2
+    return 2
+  fi
+
+  if [[ -d "$LOGOS_LEZ_REPO/wallet" ]]; then
+    printf '%s\n' "wallet"
+    return 0
+  fi
+
+  if [[ -d "$LOGOS_LEZ_REPO/lez/wallet" ]]; then
+    printf '%s\n' "lez/wallet"
+    return 0
+  fi
+
+  {
+    echo "Could not find the LEZ wallet crate in:"
+    echo "  $LOGOS_LEZ_REPO"
+    echo
+    echo "Expected one of:"
+    echo "  wallet"
+    echo "  lez/wallet"
+  } >&2
+  return 2
+}
+
 export_default_wallet_home() {
   if [[ -z "${LOGOS_LEZ_REPO:-}" ]]; then
     echo "LOGOS_LEZ_REPO must be resolved before calling export_default_wallet_home" >&2
     return 2
   fi
 
+  if [[ -z "${NSSA_WALLET_HOME_DIR:-}" && -n "${LEE_WALLET_HOME_DIR:-}" ]]; then
+    export NSSA_WALLET_HOME_DIR="$LEE_WALLET_HOME_DIR"
+  fi
+
   export NSSA_WALLET_HOME_DIR="${NSSA_WALLET_HOME_DIR:-$LOGOS_LEZ_REPO/.wallet-local}"
+  export LEE_WALLET_HOME_DIR="${LEE_WALLET_HOME_DIR:-$NSSA_WALLET_HOME_DIR}"
 
   local legacy_lez="$HOME/logos/src/logos-execution-zone"
   local legacy_wallet="$legacy_lez/.wallet-local"
@@ -86,8 +200,10 @@ export_default_wallet_home() {
       echo "This usually means an old shell export is overriding the fork wallet home."
       echo "Use a wallet home for the same LEZ checkout, for example:"
       echo "  unset NSSA_WALLET_HOME_DIR"
+      echo "  unset LEE_WALLET_HOME_DIR"
       echo "  export LOGOS_LEZ_REPO='$resolved_lez'"
       echo "  export NSSA_WALLET_HOME_DIR=\"\$LOGOS_LEZ_REPO/.wallet-local\""
+      echo "  export LEE_WALLET_HOME_DIR=\"\$NSSA_WALLET_HOME_DIR\""
     } >&2
     return 2
   fi
@@ -142,17 +258,39 @@ export_default_risc0_recursion_cache() {
   export RECURSION_SRC_PATH="$recursion_zkr"
 }
 
+export_macos_python_framework_rustflags() {
+  if [[ "$(uname -s)" != "Darwin" ]]; then
+    return 0
+  fi
+
+  local framework_dir="/Library/Developer/CommandLineTools/Library/Frameworks"
+  if [[ ! -d "$framework_dir/Python3.framework" ]]; then
+    return 0
+  fi
+
+  local rpath_arg="-C link-arg=-Wl,-rpath,$framework_dir"
+  if [[ " ${RUSTFLAGS:-} " != *" $rpath_arg "* ]]; then
+    export RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }$rpath_arg"
+  fi
+}
+
 wallet_setup_instructions() {
+  local wallet_rel="wallet"
+  if [[ -n "${LOGOS_LEZ_REPO:-}" && -d "$LOGOS_LEZ_REPO/lez/wallet" ]]; then
+    wallet_rel="lez/wallet"
+  fi
+
   cat >&2 <<EOF
 How to fix this:
 
   cd '$LOGOS_LEZ_REPO'
   export LOGOS_LEZ_REPO='$LOGOS_LEZ_REPO'
   export NSSA_WALLET_HOME_DIR='$NSSA_WALLET_HOME_DIR'
+  export LEE_WALLET_HOME_DIR='$LEE_WALLET_HOME_DIR'
   mkdir -p "\$NSSA_WALLET_HOME_DIR"
 
   # Make sure the wallet binary matches this LEZ checkout.
-  cargo install --path "$LOGOS_LEZ_REPO/wallet" --force
+  cargo install --path "$LOGOS_LEZ_REPO/$wallet_rel" --force
 
   # Run this one interactively. It may ask for the wallet password/setup.
   wallet account new public --label presenter
@@ -162,8 +300,28 @@ How to fix this:
   wallet account new private --label private-balance
 
 If you already have a compatible wallet home, set NSSA_WALLET_HOME_DIR to that
-directory before running the demo. Avoid reusing a wallet home from a different
+directory before running the demo. For latest LEZ checkouts, LEE_WALLET_HOME_DIR
+is exported to the same path. Avoid reusing a wallet home from a different
 logos-execution-zone checkout; wallet storage formats can drift between forks.
+EOF
+}
+
+wallet_macos_python_rpath_instructions() {
+  cat >&2 <<'EOF'
+
+macOS Python framework fix:
+
+  The wallet binary was linked against @rpath/Python3.framework, but macOS did
+  not know where to resolve that framework from. If the framework exists under
+  CommandLineTools, add that rpath to the installed wallet binary:
+
+    install_name_tool -add_rpath /Library/Developer/CommandLineTools/Library/Frameworks "$(command -v wallet)"
+
+  Then re-run:
+
+    wallet --help
+    wallet check-health
+
 EOF
 }
 
@@ -346,6 +504,9 @@ require_wallet_health() {
       echo
       print_sequencer_listener_info
       echo
+      if grep -q "@rpath/Python3.framework" "$health_log" 2>/dev/null; then
+        wallet_macos_python_rpath_instructions
+      fi
       wallet_setup_instructions
     } >&2
     return 1
