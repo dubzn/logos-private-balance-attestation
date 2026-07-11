@@ -59,7 +59,9 @@ if ! [[ "$THRESHOLD" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-require_logos_lez_repo "$ROOT_DIR" wallet nssa/core
+require_logos_lez_repo "$ROOT_DIR" Cargo.toml
+lez_wallet_crate_rel_path >/dev/null
+lez_core_crate_rel_path >/dev/null
 export_default_wallet_home
 export_default_risc0_recursion_cache "$ROOT_DIR"
 
@@ -80,6 +82,7 @@ note() {
 account_get() {
   local out="$1"
   NSSA_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR" \
+  LEE_WALLET_HOME_DIR="$LEE_WALLET_HOME_DIR" \
     wallet account get --account-id "$PRIVATE_ACCOUNT" > "$out" 2>&1
 }
 
@@ -129,6 +132,7 @@ run_logged() {
 note "Preparing local private account for LP-0005 demo"
 note "  LOGOS_LEZ_REPO=$LOGOS_LEZ_REPO"
 note "  NSSA_WALLET_HOME_DIR=$NSSA_WALLET_HOME_DIR"
+note "  LEE_WALLET_HOME_DIR=$LEE_WALLET_HOME_DIR"
 note "  PRIVATE_ACCOUNT=$PRIVATE_ACCOUNT"
 note "  THRESHOLD=$THRESHOLD"
 note "  RISC0_DEV_MODE=$RISC0_DEV_MODE"

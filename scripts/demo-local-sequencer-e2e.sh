@@ -76,9 +76,15 @@ if [[ -z "${PRIVATE_ACCOUNT:-}" ]]; then
   exit 2
 fi
 
-require_logos_lez_repo "$ROOT_DIR" wallet nssa/core
+require_logos_lez_repo "$ROOT_DIR" Cargo.toml
+LEZ_STATE_REL_PATH="$(lez_state_crate_rel_path)"
+LEZ_STATE_PACKAGE_NAME="$(lez_state_crate_package_name)"
+LEZ_CORE_REL_PATH="$(lez_core_crate_rel_path)"
+LEZ_CORE_PACKAGE_NAME="$(lez_core_crate_package_name)"
+LEZ_WALLET_REL_PATH="$(lez_wallet_crate_rel_path)"
 export_default_wallet_home
 export_default_risc0_recursion_cache "$ROOT_DIR"
+export_macos_python_framework_rustflags
 
 PRIVATE_ACCOUNT_ID="${PRIVATE_ACCOUNT#Private/}"
 
@@ -122,6 +128,7 @@ build_started="$(date +%s)"
 note "Output: $DEMO_DIR"
 note "LOGOS_LEZ_REPO=$LOGOS_LEZ_REPO"
 note "NSSA_WALLET_HOME_DIR=$NSSA_WALLET_HOME_DIR"
+note "LEE_WALLET_HOME_DIR=$LEE_WALLET_HOME_DIR"
 note "RISC0_DEV_MODE=$DEV_MODE"
 cargo build --quiet -p attestation-cli
 build_duration="$(duration "$build_started")"
@@ -143,9 +150,9 @@ edition = "2021"
 [dependencies]
 attestation-core = { path = "$ROOT_DIR/crates/attestation-core" }
 attestation-prover = { path = "$ROOT_DIR/crates/attestation-prover" }
-nssa = { path = "$LOGOS_LEZ_REPO/nssa" }
-nssa_core = { path = "$LOGOS_LEZ_REPO/nssa/core", features = ["host"] }
-wallet = { path = "$LOGOS_LEZ_REPO/wallet" }
+lez_state = { package = "$LEZ_STATE_PACKAGE_NAME", path = "$LOGOS_LEZ_REPO/$LEZ_STATE_REL_PATH" }
+lez_core = { package = "$LEZ_CORE_PACKAGE_NAME", path = "$LOGOS_LEZ_REPO/$LEZ_CORE_REL_PATH", features = ["host"] }
+wallet = { path = "$LOGOS_LEZ_REPO/$LEZ_WALLET_REL_PATH" }
 anyhow = "1"
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
@@ -165,8 +172,8 @@ use attestation_prover::{
     PrivateAccountInspectReport, PrivateAccountInspectSource, PrivateAccountInspectStatus,
     PrivateAccountWitness,
 };
-use nssa::AccountId;
-use nssa_core::compute_digest_for_path;
+use lez_core::compute_digest_for_path;
+use lez_state::AccountId;
 use serde::Serialize;
 use wallet::WalletCore;
 

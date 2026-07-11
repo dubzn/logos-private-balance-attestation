@@ -3,7 +3,9 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/scripts/common-env.sh"
-require_logos_lez_repo "$REPO_ROOT" nssa/core
+require_logos_lez_repo "$REPO_ROOT" Cargo.toml
+LEZ_CORE_REL_PATH="$(lez_core_crate_rel_path)"
+LEZ_CORE_PACKAGE_NAME="$(lez_core_crate_package_name)"
 RESULT_DIR="${RESULT_DIR:-$REPO_ROOT/.spike-results/m2-commitment-compat}"
 TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 REPORT="$RESULT_DIR/$TIMESTAMP.md"
@@ -35,7 +37,7 @@ edition = "2021"
 
 [dependencies]
 attestation-core = { path = "$REPO_ROOT/crates/attestation-core" }
-nssa_core = { path = "$LOGOS_LEZ_REPO/nssa/core", features = ["host"] }
+lez_core = { package = "$LEZ_CORE_PACKAGE_NAME", path = "$LOGOS_LEZ_REPO/$LEZ_CORE_REL_PATH", features = ["host"] }
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -47,7 +49,7 @@ use attestation_core::{
     hash_lez_commitment_leaf, Digest32, HexBytes, LezMembershipProof,
     LezPrivateAccountCommitmentInput,
 };
-use nssa_core::{
+use lez_core::{
     account::{Account, AccountId, Data, Nonce},
     compute_digest_for_path, Commitment, MembershipProof,
 };
@@ -155,8 +157,8 @@ fn compare_case(
             siblings: siblings.iter().copied().map(Digest32).collect(),
         },
     );
-    let nssa_proof: MembershipProof = (proof_index, siblings);
-    let theirs_root = compute_digest_for_path(&Commitment::from_byte_array(theirs), &nssa_proof);
+    let lez_proof: MembershipProof = (proof_index, siblings);
+    let theirs_root = compute_digest_for_path(&Commitment::from_byte_array(theirs), &lez_proof);
 
     CaseReport {
         name,
@@ -185,7 +187,7 @@ total_duration="$(duration "$started")"
   echo
   echo "| Step | Command | Status | Output | Duration |"
   echo "| --- | --- | --- | --- | --- |"
-  echo "| prepare | temp Cargo project using local nssa_core | ok | $TMP_DIR | 00:00:00 |"
+  echo "| prepare | temp Cargo project using local $LEZ_CORE_PACKAGE_NAME ($LEZ_CORE_REL_PATH) | ok | $TMP_DIR | 00:00:00 |"
   echo "| compare | cargo run --manifest-path <temp>/Cargo.toml --quiet | $run_status | $OUTPUT_JSON | $run_duration |"
   echo "| total | - | $status | $REPORT | $total_duration |"
   echo

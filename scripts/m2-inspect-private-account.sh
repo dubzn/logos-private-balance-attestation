@@ -7,6 +7,7 @@ RESULT_DIR="${RESULT_DIR:-$REPO_ROOT/.spike-results/m2-private-account-inspect}"
 TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 REPORT="$RESULT_DIR/$TIMESTAMP.md"
 OUTPUT_JSON="$RESULT_DIR/$TIMESTAMP.json"
+OUTPUT_STDERR="$RESULT_DIR/$TIMESTAMP.stderr.log"
 HEALTH_LOG="$RESULT_DIR/$TIMESTAMP-wallet-health.log"
 REQUIRE_PROOF=0
 LOCAL_ONLY=0
@@ -56,9 +57,15 @@ if [[ "$LOCAL_ONLY" == "1" && "$REQUIRE_PROOF" == "1" ]]; then
   exit 2
 fi
 
-require_logos_lez_repo "$REPO_ROOT" wallet nssa/core
+require_logos_lez_repo "$REPO_ROOT" Cargo.toml
+LEZ_STATE_REL_PATH="$(lez_state_crate_rel_path)"
+LEZ_STATE_PACKAGE_NAME="$(lez_state_crate_package_name)"
+LEZ_CORE_REL_PATH="$(lez_core_crate_rel_path)"
+LEZ_CORE_PACKAGE_NAME="$(lez_core_crate_package_name)"
+LEZ_WALLET_REL_PATH="$(lez_wallet_crate_rel_path)"
 export_default_wallet_home
 export_default_risc0_recursion_cache "$REPO_ROOT"
+export_macos_python_framework_rustflags
 
 mkdir -p "$RESULT_DIR"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/balance-attest-m2-wallet.XXXXXX")"
@@ -109,9 +116,9 @@ edition = "2021"
 [dependencies]
 attestation-core = { path = "$REPO_ROOT/crates/attestation-core" }
 attestation-prover = { path = "$REPO_ROOT/crates/attestation-prover" }
-nssa = { path = "$LOGOS_LEZ_REPO/nssa" }
-nssa_core = { path = "$LOGOS_LEZ_REPO/nssa/core", features = ["host"] }
-wallet = { path = "$LOGOS_LEZ_REPO/wallet" }
+lez_state = { package = "$LEZ_STATE_PACKAGE_NAME", path = "$LOGOS_LEZ_REPO/$LEZ_STATE_REL_PATH" }
+lez_core = { package = "$LEZ_CORE_PACKAGE_NAME", path = "$LOGOS_LEZ_REPO/$LEZ_CORE_REL_PATH", features = ["host"] }
+wallet = { path = "$LOGOS_LEZ_REPO/$LEZ_WALLET_REL_PATH" }
 anyhow = "1"
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
@@ -126,8 +133,8 @@ use attestation_prover::{
     build_private_account_inspect_report, inspect_membership_proof, PrivateAccountInspectSource,
     PrivateAccountInspectStatus, PrivateAccountWitness,
 };
-use nssa::AccountId;
-use nssa_core::compute_digest_for_path;
+use lez_core::compute_digest_for_path;
+use lez_state::AccountId;
 use wallet::WalletCore;
 
 #[tokio::main]
@@ -228,7 +235,7 @@ EOF
 
   inspect_started="$(date +%s)"
   if cargo run --manifest-path "$TMP_DIR/Cargo.toml" --quiet -- "${inspect_args[@]}" \
-    > "$OUTPUT_JSON"
+    > "$OUTPUT_JSON" 2> "$OUTPUT_STDERR"
   then
     inspect_status="ok"
   else
@@ -258,6 +265,14 @@ total_duration="$(duration "$started")"
     echo "null"
   fi
   echo '```'
+  if [[ "$inspect_status" == "fail" && -s "$OUTPUT_STDERR" ]]; then
+    echo
+    echo "## Inspect stderr"
+    echo
+    echo '```text'
+    sed -n '1,120p' "$OUTPUT_STDERR"
+    echo '```'
+  fi
 } > "$REPORT"
 
 cat "$REPORT"
