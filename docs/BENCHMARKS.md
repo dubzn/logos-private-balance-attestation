@@ -1,6 +1,6 @@
 # Benchmarks
 
-Last updated: 2026-07-01
+Last updated: 2026-07-10
 
 This document records measured runs for LP-0005 without turning wall-clock
 numbers into compute-unit claims. The local benchmark source is a full local E2E
@@ -11,11 +11,11 @@ recorded separately in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
 ## Scope And Caveats
 
 - Run source:
-  `.demo-runs/local-full/20260508T150913Z/run.json`
+  `.demo-runs/local-full/20260710T225915Z/run.json`
 - Proof source:
-  `.demo-runs/local-full/20260508T150913Z/proof/run.json`
+  `.demo-runs/local-full/20260710T225915Z/proof/run.json`
 - Gate source:
-  `.demo-runs/local-full/20260508T150913Z/gate/run.json`
+  `.demo-runs/local-full/20260710T225915Z/gate/run.json`
 - `RISC0_DEV_MODE=0`.
 - The proof path uses real wallet private state and the real wallet/sequencer
   membership-proof path.
@@ -24,9 +24,12 @@ recorded separately in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
   and deduplicates the context nullifier.
 - Spike 09 PPE-native gate timing is included below as separate local evidence.
 - These are wall-clock timings, not LEZ CU measurements.
-- A 2026-07-01 refresh of `logos-execution-zone` `upstream/main` found the
-  upstream `tools/cycle_bench` harness and `docs/benchmarks/cycle_bench.md`.
-  That is the best available model for future cycle/CU-style reporting.
+- The 2026-07-10 local run used a clean latest LEZ checkout tracking
+  `upstream/dev` at `1b4d8fbc`, including the current `lee_core` and
+  `lez/wallet` layout.
+- A 2026-07 refresh of `logos-execution-zone` found the upstream
+  `tools/cycle_bench` harness and `docs/benchmarks/cycle_bench.md`. That is the
+  best available model for future cycle/CU-style reporting.
 - Build steps are included where the scripts include them, so warmed-run timings
   may be lower.
 - `witness.json` is private and must not be published.
@@ -46,9 +49,9 @@ Run result:
 | Status | `ok` |
 | Verify status | `ok` |
 | RISC Zero mode | `RISC0_DEV_MODE=0` |
-| Gate account | `Public/6VtWyvdEPAwVJdGSLEH2CH6D5rnp7eaXGz5dEbhm5hvv` |
-| Presenter account | `Public/AAJzVHgfDFMsY2Ugs1rGd2Wb1MvL8W1vCwJd3a3r7PEs` |
-| Context nullifier | `0ff1e803775d28ff6b4830630a2ffd8b51a98e5e6b3db7a4f47f034434443872` |
+| Gate account | `Public/BysJqfnFeKdCnJc3Np4vTDRrDeXpCrjmo3T8Hp8zaK1s` |
+| Presenter account | `Public/AtfSjcnBATpgLvVR6i4wLLBjycJrPw11T213AT8C43uY` |
+| Context nullifier | `8abf1b416cbab7eadf30d28cc10164d5486156304fc15942db62432497210b70` |
 | Nullifier count in gate data | `1` |
 | Duplicate admit | `not-applied` |
 
@@ -56,9 +59,9 @@ Phase timing:
 
 | Phase | Duration | Output |
 | --- | ---: | --- |
-| Proof | 00:01:48 | `.demo-runs/local-full/20260508T150913Z/proof/report.md` |
-| Gate | 00:01:42 | `.demo-runs/local-full/20260508T150913Z/gate/report.md` |
-| Total | 00:03:30 | `.demo-runs/local-full/20260508T150913Z/report.md` |
+| Proof | 00:01:49 | `.demo-runs/local-full/20260710T225915Z/proof/report.md` |
+| Gate | 00:01:47 | `.demo-runs/local-full/20260710T225915Z/gate/report.md` |
+| Total | 00:03:36 | `.demo-runs/local-full/20260710T225915Z/report.md` |
 
 ## Proof Benchmark
 
@@ -68,11 +71,11 @@ This phase builds a witness from private wallet state, proves
 | Step | Duration | Notes |
 | --- | ---: | --- |
 | Build | 00:00:02 | Workspace/guest build as invoked by the script. |
-| Wallet health | 00:00:01 | Local wallet/sequencer health check. |
-| Build witness | 00:01:17 | Reads private wallet state and calls the real `getProofForCommitment` path. |
+| Wallet health | 00:00:00 | Local wallet/sequencer health check. |
+| Build witness | 00:01:19 | Reads private wallet state and calls the real `getProofForCommitment` path. |
 | Prove | 00:00:24 | RISC Zero proof generation with `RISC0_DEV_MODE=0`. |
 | Verify | 00:00:03 | Local off-chain verifier over the public envelope. |
-| Total | 00:01:47 | Proof script total from `proof/run.json`. |
+| Total | 00:01:48 | Proof script total from `proof/run.json`. |
 
 Proof metadata:
 
@@ -80,8 +83,8 @@ Proof metadata:
 | --- | --- |
 | Threshold | `1` |
 | Proof index | `4` |
-| Proof depth | `4` |
-| Public envelope size | `1,322,931` bytes |
+| Proof depth | `3` |
+| Public envelope size | `1,323,175` bytes |
 | Gate file size | `366` bytes |
 | Verify output size | `373` bytes |
 
@@ -102,23 +105,23 @@ submitting the gate `admit` transaction.
 | Step | Duration | Notes |
 | --- | ---: | --- |
 | Build | 00:00:03 | CLI, deployable LEZ program, and runner build work. |
-| Wallet health + deploy | 00:00:15 | Local wallet health check and program deployment path. |
+| Wallet health + deploy | 00:00:16 | Local wallet health check and program deployment path. |
 | Create accounts | 00:00:00 | Fresh public accounts for gate, presenter, and admins. |
 | Dry run | 00:00:01 | Prepared register/init/admit commands without execution. |
-| Register presenter | 00:00:05 | Stores presenter pubkey in the presenter account. |
-| Init gate | 00:00:16 | Initializes gate account with expected context and threshold. |
-| Admit | 00:00:15 | Host-verifies envelope, submits admit, observes nullifier in gate data. |
+| Register presenter | 00:00:10 | Stores presenter pubkey in the presenter account. |
+| Init gate | 00:00:15 | Initializes gate account with expected context and threshold. |
+| Admit | 00:00:16 | Host-verifies envelope, submits admit, observes nullifier in gate data. |
 | Duplicate admit | 00:00:46 | Replays same admit and confirms duplicate is not applied after settle. |
-| Total | 00:01:42 | Gate script total from `gate/run.json`. |
+| Total | 00:01:47 | Gate script total from `gate/run.json`. |
 
 Local transaction hashes captured by the run:
 
 | Operation | Transaction hash |
 | --- | --- |
-| Register presenter | `5d891e7eee1dc83c45eb9c98e641c9677b79d2d48339e86a62d7fcf4b57c1e30` |
-| Init gate | `aec571de83f348aed0e61838beb9b38813121a547c6e8d95c49d10648ca1b6f2` |
-| Admit | `db781510a073680fb67776859d254aca2f2b84f4157921c47abca77a1e4d2289` |
-| Duplicate admit | `00f02b10abee37e36667440135c431bdf32885d50a5d77c7a3bbb1f0a91e1cb4` |
+| Register presenter | `3ea6054bec7db598b67cbe51558d6d7c6a801eb77db002f4e12cd8e8a25b7a7c` |
+| Init gate | `81bc68e5da0a1071e95ff17143019b1f42c6553a74ff06a2795d4f28beb14e75` |
+| Admit | `7943b9ee65484f99f36b7518554b1bb2087645ef4672bcf2f587275acdd2477a` |
+| Duplicate admit | `3197af1aaea44bad73ed4e2797d758ac1fa7039a92728eaea9ab952978fe379e` |
 
 The duplicate transaction was submitted, but the final gate state still contains
 one copy of the context nullifier.

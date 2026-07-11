@@ -149,10 +149,14 @@ The scripts resolve the LEZ checkout in this order: `LOGOS_LEZ_REPO`,
 source scripts/env.example
 ```
 
-The current local fork baseline is synced with
-`logos-blockchain/logos-execution-zone` `main` at `4079b0c9` (2026-05-18). If
-you update LEZ again and hit wallet storage errors, create a fresh wallet home
-for that checkout and rerun `scripts/check-wallet-preflight.sh`.
+The latest full wallet/sequencer E2E baseline passed against a clean
+`logos-execution-zone` checkout tracking `upstream/dev` at `1b4d8fbc`
+(2026-07-09): RISC Zero versions match, commitment compatibility passes against
+official `lee_core`, the deployable LEZ program builds/tests against
+`lee_core`, the real-witness adapter uses the current `lez/wallet` crate, and
+`scripts/demo-local-full-e2e.sh` passes with `RISC0_DEV_MODE=0`. If you update
+LEZ and hit wallet storage errors, create a fresh wallet home for that checkout
+and rerun `scripts/check-wallet-preflight.sh`.
 
 Run the default clean-room demo. This does not require a wallet or sequencer:
 
@@ -419,9 +423,9 @@ Latest recorded local run with `RISC0_DEV_MODE=0`:
 
 | Phase | Duration |
 | --- | ---: |
-| Proof phase | 00:01:48 |
-| Gate phase | 00:01:42 |
-| Total | 00:03:30 |
+| Proof phase | 00:01:49 |
+| Gate phase | 00:01:47 |
+| Total | 00:03:36 |
 
 Latest Spike 09 PPE-native local run with `RISC0_DEV_MODE=0`:
 

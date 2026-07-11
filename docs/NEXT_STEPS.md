@@ -50,9 +50,9 @@ Done locally:
   wallet storage, and sequencer-checkout mismatches before heavy E2E runs
 - `scripts/prepare-local-private-account.sh` initializes/funds a selected
   private account for local demos and confirms `getProofForCommitment`
-- latest full local E2E against the synced LEZ fork passed with
-  `RISC0_DEV_MODE=0`: proof phase 00:01:48, gate phase 00:01:42, total
-  00:03:30, verify `ok`, nullifier count `1`, duplicate admit `not-applied`
+- latest full local E2E against a clean latest LEZ checkout passed with
+  `RISC0_DEV_MODE=0`: proof phase 00:01:49, gate phase 00:01:47, total
+  00:03:36, verify `ok`, nullifier count `1`, duplicate admit `not-applied`
 - `apps/basecamp/` contains a backend-backed `ui_qml` MVP that wraps preflight,
   proof generation, envelope verification, and Workable gate admit
 - the local `logos-execution-zone` fork was synced with upstream `main` at
@@ -89,6 +89,13 @@ Done locally:
   actions, clearer `Real proving` / `Dev proving` labeling, visible in-progress
   node pulse, and local RISC Zero recursion artifact cache support for proof
   generation from the UI
+- latest LEZ static compatibility refresh: a clean
+  `/Users/dub/Desktop/logos/logos-execution-zone-latest` checkout tracks
+  `logos-blockchain/logos-execution-zone` `upstream/dev` at `1b4d8fbc`
+  (2026-07-09); RISC Zero versions match, M2 commitment compatibility passes
+  byte-for-byte against official `lee_core`, and the deployable LEZ program
+  builds/tests against `lee_core` (`cargo test --manifest-path
+  lez-verifier/program/Cargo.toml`, 6/6)
 
 Current command set:
 
@@ -148,15 +155,19 @@ Checked on 2026-07-09 with non-destructive `git fetch` only:
   this repo: `view` is the QML entry point and core dependencies are loaded
   before the UI plugin. Before final video, re-test the module against the
   latest local Basecamp checkout rather than relying only on the older dev app.
-- `logos-execution-zone upstream/main`: do not blindly pull into the current
+- `logos-execution-zone upstream/dev`: do not blindly pull into the older
   working checkout. It is dirty with wallet/RocksDB state and local spike
   sources, and upstream has breaking layout/naming changes, including
-  `nssa` -> `lee`. The current commitment formula still uses the
+  `nssa` -> `lee`. A clean latest clone now lives at
+  `/Users/dub/Desktop/logos/logos-execution-zone-latest` and should be used for
+  migration work. The current commitment formula still uses the
   `/LEE/v0.3/Commitment/` domain separator and private `account_id`, which
-  matches this repo's production circuit. No direct public LEZ external receipt
-  verification support was found in the fetched upstream tree. Upstream does
-  include `tools/cycle_bench` and `docs/benchmarks/cycle_bench.md`, which
-  should be the model for LP-0005 CU/cycle reporting.
+  matches this repo's production circuit. Static compatibility against
+  `lee_core` is green, and the live wallet/sequencer full E2E now passes
+  against that latest checkout. No direct public LEZ external receipt
+  verification support was found in the fetched upstream tree. Upstream includes
+  `tools/cycle_bench` and `docs/benchmarks/cycle_bench.md`, which should be the
+  model for LP-0005 CU/cycle reporting.
 
 ## Ordered Backlog
 
@@ -192,6 +203,8 @@ Checked on 2026-07-09 with non-destructive `git fetch` only:
      the closest available cycle/executor metrics without relabeling them as CU.
 
 4. Add live local-sequencer E2E to CI if practical.
+   - The local wallet/sequencer E2E is now ported and validated against the
+     clean latest LEZ checkout (`logos-execution-zone-latest`).
    - Prefer a fast `RISC0_DEV_MODE=1` CI job for wallet/sequencer/API drift.
    - Upload sanitized `.demo-runs/.../report.md` artifacts.
    - Keep real-prover `RISC0_DEV_MODE=0` in manual evidence and video unless

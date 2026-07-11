@@ -155,14 +155,15 @@ does not vendor code from those reference projects.
 
 ## Current Local Evidence
 
-Latest full local E2E evidence, after switching to the synced LEZ fork:
+Latest full local E2E evidence, after switching to a clean latest LEZ checkout
+with the current `lee_core` / `lez/wallet` layout:
 
 ```text
-run: .demo-runs/local-full/20260508T150913Z
+run: .demo-runs/local-full/20260710T225915Z
 RISC0_DEV_MODE: 0
-proof phase: 00:01:48
-gate phase: 00:01:42
-total: 00:03:30
+proof phase: 00:01:49
+gate phase: 00:01:47
+total: 00:03:36
 verify status: ok
 nullifier count: 1
 duplicate admit: not-applied

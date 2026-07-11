@@ -95,8 +95,13 @@ Stop the old sequencer, then start it from the same checkout:
 
 ```sh
 cd "$LOGOS_LEZ_REPO"
-RISC0_DEV_MODE=0 RUST_LOG=info cargo run --features standalone -p sequencer_service \
-  sequencer/service/configs/debug/sequencer_config.json
+if [ -d lez/sequencer/service/configs/debug ]; then
+  RISC0_DEV_MODE=0 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    lez/sequencer/service/configs/debug/sequencer_config.json
+else
+  RISC0_DEV_MODE=0 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    sequencer/service/configs/debug/sequencer_config.json
+fi
 ```
 
 Common setup for a fresh LEZ fork:
@@ -104,16 +109,35 @@ Common setup for a fresh LEZ fork:
 ```sh
 export LOGOS_LEZ_REPO="/absolute/path/to/logos-execution-zone"
 export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+export LEE_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR"
 mkdir -p "$NSSA_WALLET_HOME_DIR"
 
 # Make the installed wallet CLI match this fork.
 cd "$LOGOS_LEZ_REPO"
-cargo install --path wallet --force
+if [ -d lez/wallet ]; then
+  cargo install --path lez/wallet --force
+else
+  cargo install --path wallet --force
+fi
 
 # Run interactively; this initializes wallet storage if needed.
 wallet account new public --label presenter
 wallet check-health
 wallet account new private --label private-balance
+```
+
+On macOS, a freshly installed `wallet` can occasionally fail with:
+
+```text
+Library not loaded: @rpath/Python3.framework/Versions/3.9/Python3
+```
+
+If `/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework`
+exists, add the missing runtime search path to the installed wallet binary:
+
+```sh
+install_name_tool -add_rpath /Library/Developer/CommandLineTools/Library/Frameworks "$(command -v wallet)"
+wallet --help
 ```
 
 Then prepare the private account for proving:
@@ -149,7 +173,11 @@ Install or refresh wallet:
 
 ```sh
 cd "$LOGOS_LEZ_REPO"
-cargo install --path wallet --force
+if [ -d lez/wallet ]; then
+  cargo install --path lez/wallet --force
+else
+  cargo install --path wallet --force
+fi
 ```
 
 The inspected LEZ checkout currently pins:
@@ -303,8 +331,13 @@ In terminal 1:
 
 ```sh
 cd "$LOGOS_LEZ_REPO"
-RUST_LOG=info cargo run --features standalone -p sequencer_service \
-  sequencer/service/configs/debug/sequencer_config.json
+if [ -d lez/sequencer/service/configs/debug ]; then
+  RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    lez/sequencer/service/configs/debug/sequencer_config.json
+else
+  RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    sequencer/service/configs/debug/sequencer_config.json
+fi
 ```
 
 Healthy signs:
@@ -577,8 +610,13 @@ For Spike 01 private execution tests, start the sequencer in dev mode too:
 
 ```sh
 cd "$LOGOS_LEZ_REPO"
-RISC0_DEV_MODE=1 RUST_LOG=info cargo run --features standalone -p sequencer_service \
-  sequencer/service/configs/debug/sequencer_config.json
+if [ -d lez/sequencer/service/configs/debug ]; then
+  RISC0_DEV_MODE=1 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    lez/sequencer/service/configs/debug/sequencer_config.json
+else
+  RISC0_DEV_MODE=1 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    sequencer/service/configs/debug/sequencer_config.json
+fi
 ```
 
 Then run the automated private balance gate fixture from this repo:

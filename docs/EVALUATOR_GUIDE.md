@@ -101,22 +101,33 @@ Set the environment:
 source scripts/env.example
 export LOGOS_LEZ_REPO=/absolute/path/to/logos-execution-zone
 export NSSA_WALLET_HOME_DIR="$LOGOS_LEZ_REPO/.wallet-local"
+export LEE_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR"
 ```
 
 Start the sequencer from the same LEZ checkout:
 
 ```sh
 cd "$LOGOS_LEZ_REPO"
-rm -rf sequencer/service/data/debug
-RISC0_DEV_MODE=0 RUST_LOG=info cargo run --features standalone -p sequencer_service \
-  sequencer/service/configs/debug/sequencer_config.json
+if [ -d lez/sequencer/service/configs/debug ]; then
+  rm -rf lez/sequencer/service/data/debug
+  RISC0_DEV_MODE=0 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    lez/sequencer/service/configs/debug/sequencer_config.json
+else
+  rm -rf sequencer/service/data/debug
+  RISC0_DEV_MODE=0 RUST_LOG=info cargo run --features standalone -p sequencer_service \
+    sequencer/service/configs/debug/sequencer_config.json
+fi
 ```
 
 In another terminal, initialize wallet state if needed:
 
 ```sh
 cd "$LOGOS_LEZ_REPO"
-cargo install --path wallet --force
+if [ -d lez/wallet ]; then
+  cargo install --path lez/wallet --force
+else
+  cargo install --path wallet --force
+fi
 wallet account new public --label presenter
 wallet check-health
 wallet account new private --label private-balance

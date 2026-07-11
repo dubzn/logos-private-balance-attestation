@@ -85,6 +85,7 @@ Launch Basecamp from the local Nix-built checkout:
 BALANCE_ATTEST_REPO=/Users/dub/Desktop/logos/logos-private-balance-attestation \
 LOGOS_LEZ_REPO=/Users/dub/Desktop/logos/logos-execution-zone \
 NSSA_WALLET_HOME_DIR=/Users/dub/Desktop/logos/logos-execution-zone/.wallet-local \
+LEE_WALLET_HOME_DIR=/Users/dub/Desktop/logos/logos-execution-zone/.wallet-local \
 RISC0_DEV_MODE=0 \
   /Users/dub/Desktop/logos/logos-basecamp/run-dev.sh --user-dir "$BASECAMP_USER_DIR"
 ```
@@ -118,8 +119,8 @@ Use the app fields:
 | Field | Expected value |
 | --- | --- |
 | Repository | `/Users/dub/Desktop/logos/logos-private-balance-attestation` |
-| LEZ checkout | `/Users/dub/Desktop/logos/logos-execution-zone` |
-| Wallet home | `/Users/dub/Desktop/logos/logos-execution-zone/.wallet-local` |
+| LEZ checkout | `/Users/dub/Desktop/logos/logos-execution-zone` or `/Users/dub/Desktop/logos/logos-execution-zone-latest` |
+| Wallet home | matching `.wallet-local` or fresh demo wallet under that same LEZ checkout |
 | Private account | `Private/<private-account-id>` |
 | Threshold | `1` |
 | Real proving | enabled for final recording |
