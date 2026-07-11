@@ -8,12 +8,12 @@
 //! cargo test --manifest-path lez-verifier/program/Cargo.toml
 //! ```
 //!
-//! Requires the LEZ checkout at `<repo-root>/logos/` (path dep `nssa_core`).
+//! Requires the LEZ checkout at `<repo-root>/logos/` (path dep `lee_core`).
 
 use borsh::{BorshDeserialize, BorshSerialize};
+use lee_core::account::{Account, AccountId, AccountWithMetadata};
+use lee_core::program::{Claim, ProgramId, ProgramOutput};
 use lez_verifier_program::{BALANCE_ATTESTATION_PROGRAM_ELF, BALANCE_ATTESTATION_PROGRAM_ID};
-use nssa_core::account::{Account, AccountId, AccountWithMetadata};
-use nssa_core::program::{Claim, ProgramId, ProgramOutput};
 use risc0_zkvm::{default_executor, serde::to_vec, ExecutorEnv};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

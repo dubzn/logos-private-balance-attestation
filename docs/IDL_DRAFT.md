@@ -8,7 +8,7 @@ authoritative for our tooling, this file is authoritative for prose.
 > not ingest a SPEL/IDL artifact at deployment time — instruction dispatch
 > is static Rust code in the deployed program guest, with calldata
 > serialized via `risc0_zkvm::serde` (the `Vec<u32>` instruction words
-> consumed by `read_nssa_inputs`). The IDL JSON in this repo is the public
+> consumed by `read_lee_inputs`). The IDL JSON in this repo is the public
 > contract our developers and external integrators read; the deployed
 > program's wire format is whatever `serde::Deserialize` accepts on its
 > `Instruction` enum and whatever `borsh` accepts on its `OuterJournal` /

@@ -3,13 +3,13 @@
 Deployable LEZ program for the balance-attestation gate.
 
 The guest binary at `guest/src/bin/balance_attestation_program.rs` follows the
-LEZ program contract (`read_nssa_inputs::<Instruction>()` →
+LEZ program contract (`read_lee_inputs::<Instruction>()` →
 `ProgramOutput::write()`) and is shipped to a sequencer via
 `wallet deploy-program <bin>.bin`. The assigned LEZ `ProgramId` is the RISC0
 image id of the ELF, computed deterministically by `risc0-build` at compile
 time and re-exported as `BALANCE_ATTESTATION_PROGRAM_ID`.
 
-This crate is an **isolated workspace**: it depends on `nssa_core` from the
+This crate is an **isolated workspace**: it depends on `lee_core` from the
 local LEZ checkout (`logos/`). Default `cargo build --workspace` from the
 repository root does not touch this crate; the workspace member list in the
 root `Cargo.toml` deliberately excludes it.

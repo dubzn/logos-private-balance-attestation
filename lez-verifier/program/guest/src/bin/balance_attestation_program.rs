@@ -1,6 +1,6 @@
 //! Deployable LEZ program for the balance-attestation gate.
 //!
-//! Reads the LEZ program input via `read_nssa_inputs::<Instruction>()`,
+//! Reads the LEZ program input via `read_lee_inputs::<Instruction>()`,
 //! dispatches `InitGate` or `Admit`, and emits a [`ProgramOutput`] that the
 //! LEZ runtime persists.
 //!
@@ -22,9 +22,9 @@
 //! `data` field, (e) the nullifier has not been admitted before.
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use nssa_core::account::{Account, AccountWithMetadata};
-use nssa_core::program::{
-    AccountPostState, Claim, DEFAULT_PROGRAM_ID, ProgramInput, ProgramOutput, read_nssa_inputs,
+use lee_core::account::{Account, AccountWithMetadata};
+use lee_core::program::{
+    AccountPostState, Claim, DEFAULT_PROGRAM_ID, ProgramInput, ProgramOutput, read_lee_inputs,
 };
 use risc0_zkvm::sha::{Impl as Sha256Impl, Sha256};
 use serde::{Deserialize, Serialize};
@@ -89,7 +89,7 @@ fn main() {
             instruction,
         },
         instruction_words,
-    ) = read_nssa_inputs::<Instruction>();
+    ) = read_lee_inputs::<Instruction>();
 
     if pre_states.len() != 2 {
         panic!("BA503 InvalidGateAccount: program requires exactly 2 pre states (gate, presenter)");
@@ -199,7 +199,7 @@ fn init_gate(
     // `validate_execution` passes — see `logos/programs/token/src/initialize.rs`
     // for the canonical pattern. Returning an account with program_owner
     // already set to `self_program_id` would trip rule 4 of
-    // `nssa_core::program::validate_execution` (Unallowed modification of
+    // `lee_core::program::validate_execution` (Unallowed modification of
     // program owner).
     let _ = self_program_id;
     vec![
