@@ -166,6 +166,8 @@ Then run:
 5. **Delivery send**
    - Press **Create node** in the Delivery toolbar.
    - Expected: Delivery card shows a peer id or node status.
+   - If the log says the Delivery context was already initialized, continue;
+     the UI reuses the existing node and enables Subscribe.
    - Press **Subscribe**.
    - Expected: Delivery log records the subscribed topic.
    - Press **Send proof**.

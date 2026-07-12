@@ -122,6 +122,8 @@ Use this when recording the off-chain Messaging portion of the final demo.
      ```
 
    - press **Create node**
+   - if Delivery reports that the context is already initialized, keep going;
+     the app reuses that node for the current Basecamp session
    - press **Subscribe**
    - press **Send proof**
 

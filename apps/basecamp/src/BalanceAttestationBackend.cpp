@@ -109,6 +109,13 @@ QString privateAccountDisplay(QString account)
     return bare.isEmpty() ? QString() : QString("Private/") + bare;
 }
 
+bool isDeliveryAlreadyActiveError(const QString &error)
+{
+    const auto lower = error.toLower();
+    return lower.contains(QStringLiteral("already initialized"))
+        || lower.contains(QStringLiteral("already started"));
+}
+
 void addPrivateAccount(
     const QString &label,
     const QString &accountId,
@@ -426,18 +433,26 @@ void BalanceAttestationBackend::deliveryCreateNode()
 
     LogosResult created = m_logos->delivery_module.createNode(cfgJson);
     if (!created.success) {
-        const auto error = "createNode failed: " + created.getError();
-        setDeliveryStatus(error);
-        appendDeliveryLog(error);
-        return;
+        const auto error = created.getError();
+        if (!isDeliveryAlreadyActiveError(error)) {
+            const auto message = "createNode failed: " + error;
+            setDeliveryStatus(message);
+            appendDeliveryLog(message);
+            return;
+        }
+        appendDeliveryLog("createNode reused existing Delivery context");
     }
 
     LogosResult started = m_logos->delivery_module.start();
     if (!started.success) {
-        const auto error = "start failed: " + started.getError();
-        setDeliveryStatus(error);
-        appendDeliveryLog(error);
-        return;
+        const auto error = started.getError();
+        if (!isDeliveryAlreadyActiveError(error)) {
+            const auto message = "start failed: " + error;
+            setDeliveryStatus(message);
+            appendDeliveryLog(message);
+            return;
+        }
+        appendDeliveryLog("start reused active Delivery node");
     }
 
     setDeliveryStatus("Delivery node started");
