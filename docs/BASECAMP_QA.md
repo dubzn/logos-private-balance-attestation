@@ -48,6 +48,19 @@ Basecamp user plugin directory, installs `delivery_module` into the local
 Basecamp user module directory, and launches the Nix-built Basecamp dev app in
 the foreground. Keep that terminal open while using the UI.
 
+For the final two-instance Delivery walkthrough, prepare both user dirs first:
+
+```sh
+scripts/prepare-basecamp-delivery-pair.sh --reset --real-prover
+```
+
+Then launch the generated sender and receiver scripts from two terminals:
+
+```sh
+.demo-runs/basecamp-delivery-pair/<timestamp>/launch-sender.sh
+.demo-runs/basecamp-delivery-pair/<timestamp>/launch-receiver.sh
+```
+
 Expected install paths:
 
 ```text
