@@ -286,7 +286,8 @@ Implementation:
   not yet stable. **Implemented as `LocalFileTransport` plus CLI commands.**
 - Add a Basecamp Logos Delivery adapter for the real module path.
   **Implemented with `delivery_module` create/start/subscribe/send/receive and
-  local `message-verify`; final two-instance recording pending.**
+  local `message-verify`; validated across two Basecamp instances with a
+  chunked 1.3 MB real-prover message. Final recording pending.**
 - Preserve the proof envelope format so the transport can be replaced later.
 
 Acceptance:
@@ -298,7 +299,8 @@ Acceptance:
 - Recipient verifies proof and presenter challenge locally. **Implemented:
   `message-verify`.**
 - Basecamp sends and receives the same proof-message bytes over Logos Delivery.
-  **Implemented in the UI/backend; manual two-instance evidence pending.**
+  **Validated on 2026-07-13: 17 chunks reassembled to the sender SHA-256 and
+  passed receiver-side `message-verify`.**
 - Messaging failure surfaces a clear error without dumping witness data.
   **Implemented via `MessagingError` and BA400/BA401 mapping.**
 

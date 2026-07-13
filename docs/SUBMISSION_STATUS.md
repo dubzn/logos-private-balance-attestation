@@ -1,12 +1,12 @@
 # Submission Status
 
-Last updated: 2026-07-01.
+Last updated: 2026-07-13.
 
 This repository is a public technical implementation for LP-0005. It is close
 to a submission package, but it should not be represented as an award-ready
-solution until the on-chain verifier path, CU metrics, final Delivery
-walkthrough, and narrated demo are complete. Public testnet deployment evidence
-now exists for both implemented candidate paths.
+solution until the on-chain verifier path, CU metrics, live-sequencer CI, and
+narrated demo are complete. Public testnet deployment evidence now exists for
+both implemented candidate paths.
 
 ## Current Readiness
 
@@ -16,7 +16,7 @@ now exists for both implemented candidate paths.
 | Circuit/proof | ready locally | `methods/` proves LEZ private commitment membership, `balance >= threshold`, context binding, presenter binding, and context nullifier derivation. |
 | Real wallet witness path | ready locally | `scripts/demo-local-sequencer-e2e.sh` builds a witness from local wallet private state and real `getProofForCommitment`. |
 | Off-chain verifier | ready locally | `crates/attestation-verifier` verifies the public proof envelope. |
-| Messaging path | local tested + Basecamp Delivery wired | `crates/attestation-messaging`, `./demo.sh --messaging`, and `examples/chat-gate` export, receive, verify, admit, and reject duplicate nullifiers over local JSON transport. `apps/basecamp` now declares `delivery_module` and wires create/start/subscribe/send/receive/verify for the same proof-message bytes. Final two-instance Delivery recording pending. |
+| Messaging path | validated locally over real Logos Delivery | `crates/attestation-messaging`, `./demo.sh --messaging`, and `examples/chat-gate` cover deterministic local transport. The Basecamp adapter uses `delivery_module`; a two-instance run transferred a 1,323,577-byte real-prover proof message in 17 chunks, reassembled the expected SHA-256, and passed local `message-verify` with `status: ok`. Final narrated recording pending. |
 | Workable LEZ gate | testnet evidence / partial | `lez-verifier/program` records/deduplicates gate state after mandatory host-side proof verification. It was deployed and exercised on public LEZ testnet on 2026-06-01. It does not verify the RISC Zero receipt inside public LEZ execution. |
 | PPE-native LEZ gate | testnet evidence / evaluator decision | `./demo.sh --ppe-gate --real-prover` passed locally and the Spike 09 PPE-native flow passed on public LEZ testnet on 2026-06-01 with private balance check, public nullifier write, duplicate rejection, and insufficient-balance rejection. Evaluator acceptance pending because it is not the same portable proof envelope used off-chain. |
 | Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin, wraps the local CLI/script flows, and includes a Logos Delivery panel backed by `delivery_module`; `scripts/check-basecamp-package.sh` validates the package install tree and `scripts/run-basecamp-local.sh` launches the local app. |

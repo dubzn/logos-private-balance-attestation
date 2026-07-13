@@ -2,10 +2,10 @@
 
 This repository is a technical LP-0005 implementation. It is not an award-ready
 submission yet because the evaluator-approved on-chain verification model,
-CU measurements, final Delivery walkthrough, and final video are still pending.
+CU measurements, live-sequencer CI, and final video are still pending.
 Public testnet evidence now exists for both current on-chain candidate paths.
 The local proof, off-chain verification, Messaging-style CLI transport,
-Basecamp Delivery wiring, standalone consumer integrations, and Workable
+Basecamp Delivery transfer/verification, standalone consumer integrations, and Workable
 host-preverified LEZ gate path are implemented.
 Spike 09 also demonstrates a PPE-native LEZ gate candidate where private
 execution checks `balance >= threshold` and writes public gate/nullifier state.
@@ -71,8 +71,14 @@ and deterministic smoke tests.
 
 For the real Logos Messaging/Delivery path, use the Basecamp module. It declares
 `delivery_module`, creates and starts a Delivery node, subscribes to the LP-0005
-proof-message topic, sends the same proof message bytes, stores received
-messages, and verifies them locally with `message-verify`.
+proof-message topic, sends the same proof message bytes as sub-150 KiB Delivery
+chunks, stores the reassembled message, validates its SHA-256 digest, and
+verifies it locally with `message-verify`.
+
+The Basecamp flake currently includes a documented, removable patch for an
+upstream `logos-cpp-sdk 0.2.0` cdylib codegen issue that otherwise turns `bstr`
+event arguments into empty payloads. See [LOGOS_DELIVERY.md](LOGOS_DELIVERY.md)
+for the exact pin, scope, and removal condition.
 
 ```sh
 scripts/check-basecamp-package.sh
@@ -276,7 +282,8 @@ do not publish those artifacts without removing `witness.json`.
   still a spike and does not consume the same portable off-chain proof
   envelope.
 - The CLI Messaging path is local JSON by design, but the Basecamp MVP now wires
-  the real `delivery_module`. Final submission still needs a recorded
-  two-instance Delivery walkthrough.
+  the real `delivery_module`. A two-instance run transferred and verified a
+  chunked 1.3 MB real-prover proof message. Final submission still needs the
+  narrated recording of that walkthrough.
 - Public testnet deployment evidence exists, but CU measurements and narrated
   video artifacts are still pending.

@@ -83,12 +83,22 @@ Install the Delivery dependency into the same user dir when using the manual
 copy path:
 
 ```sh
-DELIVERY_INSTALL="$(nix build --print-out-paths github:logos-co/logos-delivery-module/v0.1.3#install)"
+DELIVERY_INSTALL="$(nix build --print-out-paths .#delivery-install)"
 rm -rf "$BASECAMP_USER_DIR/modules/delivery_module"
 mkdir -p "$BASECAMP_USER_DIR/modules"
 cp -R "$DELIVERY_INSTALL/modules/delivery_module" "$BASECAMP_USER_DIR/modules/"
 chmod -R u+w "$BASECAMP_USER_DIR/modules/delivery_module"
 ```
+
+The Delivery commit is pinned because it uses `logos-cpp-sdk 0.2.0`, including
+the provider-event thread marshalling required by the two-instance workflow.
+The app flake also applies the narrow patch under
+`nix/logos-cpp-sdk-patched/`: the current cdylib code generator serializes
+`bstr` event arguments as empty tagged bytes. Without that patch, Delivery
+propagates each chunk but Basecamp receives `messageReceived(..., bytes=0)`.
+The wrapper is pinned to an official SDK commit and can be removed once the
+same fix lands upstream. Upstream tracking:
+[`logos-cpp-sdk#99`](https://github.com/logos-co/logos-cpp-sdk/issues/99).
 
 The install tree must contain both backend libraries:
 
@@ -177,6 +187,15 @@ Typical receiver flow in another Basecamp instance/user dir:
 3. Press **Subscribe**.
 4. Wait for **Delivery Msg** to show the received proof message.
 5. Press **Verify received**.
+
+The receiver log should show each non-empty chunk, a successful SHA-256
+reassembly, and then `status: ok` after verification.
+
+This exact path was validated across two Basecamp instances on 2026-07-13. A
+1,323,577-byte real-prover message arrived in 17 out-of-order chunks,
+reassembled to SHA-256
+`f042487460a8485f144d0735577d4163ee63cde38860f4a270da07462b63a075`,
+and passed `message-verify` with `status: ok`.
 
 `Verify received` delegates to:
 

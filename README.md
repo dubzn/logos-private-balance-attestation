@@ -124,7 +124,7 @@ These files are intentionally easy to find from the repository root:
 | Real wallet + `getProofForCommitment` witness path | Implemented in the full local E2E. |
 | Off-chain verification | Implemented via `attestation-verifier`. |
 | Presenter binding and nullifier | Implemented with challenge-bound BIP-340 presentation signatures and context nullifiers. |
-| Off-chain Messaging path | Implemented with a local/pluggable CLI transport and a Basecamp adapter wired to the real `delivery_module`; final two-instance recording pending. |
+| Off-chain Messaging path | Implemented with a local/pluggable CLI transport and a Basecamp adapter wired to the real `delivery_module`. A two-instance Basecamp run transferred, reassembled, and locally verified a real 1.3 MB proof envelope; final video recording pending. |
 | LEZ gate path | Workable/host-preverified public gate plus Spike 09 PPE-native private execution candidate. Both have public testnet evidence; evaluator-approved in-LEZ proof verification model is still pending. |
 | Basecamp app | Backend-backed `ui_qml` MVP builds and loads locally. |
 | Consumer integration demo | Governance gate, chat gate, and fee-tier gate are implemented locally; updated LP-0005 now asks for a standalone runnable consumer integration demo rather than an outside-team integration. |

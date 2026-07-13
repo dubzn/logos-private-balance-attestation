@@ -165,20 +165,29 @@ Then run:
 
 5. **Delivery send**
    - Press **Create node** in the Delivery toolbar.
-   - Expected: Delivery card shows a peer id or node status.
+   - Expected: Delivery card shows `Node: started` and, when available, a peer id.
    - If the log says the Delivery context was already initialized, continue;
      the UI reuses the existing node and enables Subscribe.
    - Press **Subscribe**.
-   - Expected: Delivery log records the subscribed topic.
+   - Expected: Delivery card shows `Subscription: subscribed to topic`.
    - Press **Send proof**.
-   - Expected: Delivery log records a request id and `Delivery Msg` contains a
-     V1 proof message with an embedded public envelope.
+   - Expected: Delivery log records chunk request ids. Real proof envelopes are
+     larger than the Delivery default message limit, so the app sends multiple
+     sub-150 KiB chunks instead of changing the node limit.
+   - Expected: `Delivery Msg` contains the V1 proof message with an embedded
+     public envelope before chunking.
+   - Expected: sender-side `Message` shows `prepared/sent`; this is not yet a
+     received message.
 
 6. **Delivery receive / verify**
    - In a second Basecamp instance using a different user directory, use the
      same Delivery topic and gate/context fields.
    - Press **Create node**, then **Subscribe**.
-   - Expected: `Delivery Msg` receives the proof message.
+   - Expected: Delivery log shows `messageReceived chunk 1/N` through `N/N`;
+     chunk payloads must not be empty.
+   - Expected: Delivery log reports successful SHA-256 reassembly.
+   - Expected: `Delivery Msg` receives the reassembled proof message.
+   - Expected: receiver-side `Message` shows `received`.
    - Press **Verify received**.
    - Expected: `Delivery Verify` reports `status: ok`.
 
