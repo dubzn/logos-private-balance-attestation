@@ -12,7 +12,7 @@ SKIP_BUILD=0
 SKIP_DELIVERY=0
 RESET=0
 RISC0_MODE="${RISC0_DEV_MODE:-0}"
-DELIVERY_MODULE_FLAKE="${DELIVERY_MODULE_FLAKE:-github:logos-co/logos-delivery-module/v0.1.3#install}"
+DELIVERY_MODULE_FLAKE="${DELIVERY_MODULE_FLAKE:-github:logos-co/logos-delivery-module/c21ffb83b2b891843de9a940dd60e5e56c8803de#install}"
 
 usage() {
   cat >&2 <<'EOF'
@@ -98,12 +98,13 @@ lez_core_crate_rel_path >/dev/null
 export_default_wallet_home
 export_default_risc0_recursion_cache "$ROOT_DIR"
 
-if [[ ! -f "$BASECAMP_REPO/run-dev.sh" ]]; then
+if [[ ! -x "$BASECAMP_REPO/result/bin/LogosBasecamp" && ! -f "$BASECAMP_REPO/run-dev.sh" ]]; then
   {
-    echo "Basecamp run-dev.sh not found:"
+    echo "Basecamp launcher not found. Expected either:"
+    echo "  $BASECAMP_REPO/result/bin/LogosBasecamp"
     echo "  $BASECAMP_REPO/run-dev.sh"
     echo
-    echo "Set LOGOS_BASECAMP_REPO or pass --basecamp-repo <path>."
+    echo "Run 'nix build' in the Basecamp checkout, or select another checkout."
   } >&2
   exit 2
 fi
@@ -163,11 +164,16 @@ Keep this terminal open while using Basecamp.
 EOF
 
 cd "$BASECAMP_REPO"
-BALANCE_ATTEST_REPO="$ROOT_DIR" \
-LOGOS_BALANCE_ATTESTATION_ROOT="$ROOT_DIR" \
-LOGOS_LEZ_REPO="$LOGOS_LEZ_REPO" \
-LEZ_REPO="$LOGOS_LEZ_REPO" \
-NSSA_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR" \
-LEE_WALLET_HOME_DIR="$LEE_WALLET_HOME_DIR" \
-RISC0_DEV_MODE="$RISC0_MODE" \
-exec bash ./run-dev.sh --user-dir "$BASECAMP_USER_DIR"
+export BALANCE_ATTEST_REPO="$ROOT_DIR"
+export LOGOS_BALANCE_ATTESTATION_ROOT="$ROOT_DIR"
+export LOGOS_LEZ_REPO="$LOGOS_LEZ_REPO"
+export LEZ_REPO="$LOGOS_LEZ_REPO"
+export NSSA_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR"
+export LEE_WALLET_HOME_DIR="$LEE_WALLET_HOME_DIR"
+export RISC0_DEV_MODE="$RISC0_MODE"
+
+if [[ -x ./result/bin/LogosBasecamp ]]; then
+  exec ./result/bin/LogosBasecamp --user-dir "$BASECAMP_USER_DIR"
+else
+  exec bash ./run-dev.sh --user-dir "$BASECAMP_USER_DIR"
+fi

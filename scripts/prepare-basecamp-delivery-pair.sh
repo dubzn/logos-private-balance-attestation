@@ -9,7 +9,7 @@ source "$ROOT_DIR/scripts/common-env.sh"
 BASECAMP_REPO="${LOGOS_BASECAMP_REPO:-}"
 SENDER_USER_DIR="${SENDER_USER_DIR:-/Users/dub/Desktop/logos/basecamp-balance-attestation-sender}"
 RECEIVER_USER_DIR="${RECEIVER_USER_DIR:-/Users/dub/Desktop/logos/basecamp-balance-attestation-receiver}"
-DELIVERY_MODULE_FLAKE="${DELIVERY_MODULE_FLAKE:-github:logos-co/logos-delivery-module/v0.1.3#install}"
+DELIVERY_MODULE_FLAKE="${DELIVERY_MODULE_FLAKE:-$ROOT_DIR/apps/basecamp#delivery-install}"
 OUT_DIR="${OUT_DIR:-$ROOT_DIR/.demo-runs/basecamp-delivery-pair/$(date -u +%Y%m%dT%H%M%SZ)}"
 RISC0_MODE="${RISC0_DEV_MODE:-0}"
 SKIP_BUILD=0
@@ -134,14 +134,19 @@ write_launcher() {
 set -euo pipefail
 
 cd "$BASECAMP_REPO"
-BALANCE_ATTEST_REPO="$ROOT_DIR" \\
-LOGOS_BALANCE_ATTESTATION_ROOT="$ROOT_DIR" \\
-LOGOS_LEZ_REPO="$LOGOS_LEZ_REPO" \\
-LEZ_REPO="$LOGOS_LEZ_REPO" \\
-NSSA_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR" \\
-LEE_WALLET_HOME_DIR="$LEE_WALLET_HOME_DIR" \\
-RISC0_DEV_MODE="$RISC0_MODE" \\
-exec bash ./run-dev.sh --user-dir "$user_dir"
+export BALANCE_ATTEST_REPO="$ROOT_DIR"
+export LOGOS_BALANCE_ATTESTATION_ROOT="$ROOT_DIR"
+export LOGOS_LEZ_REPO="$LOGOS_LEZ_REPO"
+export LEZ_REPO="$LOGOS_LEZ_REPO"
+export NSSA_WALLET_HOME_DIR="$NSSA_WALLET_HOME_DIR"
+export LEE_WALLET_HOME_DIR="$LEE_WALLET_HOME_DIR"
+export RISC0_DEV_MODE="$RISC0_MODE"
+
+if [[ -x ./result/bin/LogosBasecamp ]]; then
+  exec ./result/bin/LogosBasecamp --user-dir "$user_dir"
+else
+  exec bash ./run-dev.sh --user-dir "$user_dir"
+fi
 EOF
   chmod +x "$path"
 }
@@ -154,7 +159,9 @@ lez_core_crate_rel_path >/dev/null
 export_default_wallet_home
 export_default_risc0_recursion_cache "$ROOT_DIR"
 
-[[ -f "$BASECAMP_REPO/run-dev.sh" ]] || fail "Basecamp run-dev.sh not found: $BASECAMP_REPO/run-dev.sh"
+if [[ ! -x "$BASECAMP_REPO/result/bin/LogosBasecamp" && ! -f "$BASECAMP_REPO/run-dev.sh" ]]; then
+  fail "Basecamp launcher not found; run 'nix build' in $BASECAMP_REPO"
+fi
 command -v nix >/dev/null || fail "nix is required to build/install delivery_module"
 
 step "1/4 Build and inspect balance_attestation package"
