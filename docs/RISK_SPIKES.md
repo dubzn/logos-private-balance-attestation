@@ -16,6 +16,7 @@ before the next layer depends on it.
 | 05 Dev/prod proving baseline | passed locally | Dev-mode and prod-mode baselines completed with step-by-step timing tables. |
 | 06 On-chain path decision | passed locally | Use off-chain proof envelope plus Logos-native private execution fallback pending evaluator confirmation. |
 | 09 PPE-native balance gate | passed locally and on public testnet | A LEZ privacy-preserving transaction proved private `balance >= threshold`, wrote public `BAP1` gate/nullifier state, rejected duplicate admission with `BA206`, and rejected insufficient balance with `BA201`. Evaluator acceptance is still required. |
+| 10 Explicit receipt verification | cryptographically passed / exceeds LEZ limit | Direct `Receipt::verify` inside a guest accepted real succinct and Groth16 receipts and rejected tampering. Succinct used 313,056,015 cycles; Groth16 used 162,362,189 cycles. Both exceed the current 33,554,432-cycle public LEZ limit. |
 
 ## Blocker 0: On-Chain Proof Path
 
@@ -99,6 +100,13 @@ RISC Zero recursion/succinct tooling exists and LEZ private execution uses
 assumptions, but the local public LEZ execution path exposes no assumption
 injection point or native verifier API for an external standalone receipt.
 ```
+
+Spike 10 tested a separate route: explicit cryptographic `Receipt::verify`
+inside the guest, without `env::verify` or assumptions. This works
+cryptographically, including tamper rejection, but cannot run as a current
+public LEZ program because even a 470-byte Groth16 receipt consumes 162,362,189
+cycles against LEZ's hard 33,554,432-cycle public execution limit. See
+`spikes/spike-10-direct-receipt-verifier/README.md`.
 
 ### Spike 0C: Logos-Native Private Execution Gate
 

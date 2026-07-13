@@ -250,6 +250,22 @@ current LEZ executor and match the upstream benchmark convention. They are not
 labeled as network CU because the wallet/sequencer RPC does not expose a
 per-transaction CU field.
 
+## Spike 10 Direct Receipt Verification
+
+Spike 10 measures explicit cryptographic receipt verification inside a RISC
+Zero guest without the assumptions channel:
+
+| Receipt | Bytes | User cycles | Segments | LEZ 32M limit |
+| --- | ---: | ---: | ---: | --- |
+| Succinct | 223,191 | 313,056,015 | 315 | rejected |
+| Groth16 | 470 | 162,362,189 | 167 | rejected |
+
+Both positive receipts verified with `RISC0_DEV_MODE=0` and both modified
+journals were rejected. Groth16 removes the transaction-size concern, but its
+verifier still consumes about 4.8 times the current public LEZ budget. Full
+reproduction details are in
+`spikes/spike-10-direct-receipt-verifier/README.md`.
+
 ## Remaining Performance Evidence
 
 The LP requires compute-unit documentation for on-chain operations. The current

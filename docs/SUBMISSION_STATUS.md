@@ -18,7 +18,7 @@ wording. Public testnet deployment evidence exists for both candidate paths.
 | Real wallet witness path | ready locally | `scripts/demo-local-sequencer-e2e.sh` builds a witness from local wallet private state and real `getProofForCommitment`. |
 | Off-chain verifier | ready locally | `crates/attestation-verifier` verifies the public proof envelope. |
 | Messaging path | validated locally over real Logos Delivery | `crates/attestation-messaging`, `./demo.sh --messaging`, and `examples/chat-gate` cover deterministic local transport. The Basecamp adapter uses `delivery_module`; a two-instance run transferred a 1,323,577-byte real-prover proof message in 17 chunks, reassembled the expected SHA-256, and passed local `message-verify` with `status: ok`. Final narrated recording pending. |
-| Workable LEZ gate | testnet evidence / partial | `lez-verifier/program` records/deduplicates gate state after mandatory host-side proof verification. It was deployed and exercised on public LEZ testnet on 2026-06-01. It does not verify the RISC Zero receipt inside public LEZ execution. |
+| Workable LEZ gate | testnet evidence / partial | `lez-verifier/program` records/deduplicates gate state after mandatory host-side proof verification. It was deployed and exercised on public LEZ testnet on 2026-06-01. Spike 10 proved direct in-guest receipt verification works cryptographically, but even Groth16 requires 162,362,189 cycles against the current 33,554,432-cycle public limit. |
 | PPE-native LEZ gate | testnet evidence / evaluator decision | `./demo.sh --ppe-gate --real-prover` passed locally and the Spike 09 PPE-native flow passed on public LEZ testnet on 2026-06-01 with private balance check, public nullifier write, duplicate rejection, and insufficient-balance rejection. Evaluator acceptance pending because it is not the same portable proof envelope used off-chain. |
 | Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin, wraps the local CLI/script flows, and includes a Logos Delivery panel backed by `delivery_module`; `scripts/check-basecamp-package.sh` validates the package install tree and `scripts/run-basecamp-local.sh` launches the local app. |
 | IDL | present | Root `balance-attestation-verifier.idl.json` points to `idl/balance-attestation-verifier.json`. |
@@ -82,6 +82,8 @@ This adds the live wallet/sequencer E2E and PPE-native gate candidate.
 - Local Basecamp MVP wiring.
 - Basecamp package build/inspection through `scripts/check-basecamp-package.sh`.
 - Workable gate-ledger implementation and its documented trust boundary.
+- Spike 10 explicit succinct/Groth16 receipt verification and measured public
+  LEZ cycle-limit rejection.
 - PPE-native LEZ private execution candidate and local benchmark evidence.
 - Public LEZ testnet deploy/admit evidence for both Workable and PPE-native
   paths.

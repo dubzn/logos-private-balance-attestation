@@ -5,6 +5,9 @@ Date: 2026-05-02.
 Updated: 2026-06-01 with public LEZ testnet evidence for both implemented
 candidate paths. See [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
 
+Updated: 2026-07-13 with Spike 10 explicit receipt-verification results against
+the cycle limit in current LEZ.
+
 Spike 06 closes the current on-chain verifier-path decision for the next
 implementation milestone.
 
@@ -264,3 +267,31 @@ Therefore the repository keeps the same two candidate paths:
 2. PPE-native private execution gate, where LEZ's own privacy-preserving proof
    system verifies the private balance condition before public gate state is
    written.
+
+## Spike 10: Explicit Receipt Verification
+
+Spike 10 tested an option that does not use the assumptions channel:
+deserialize a portable receipt inside the guest and call Receipt::verify
+directly.
+
+This passed cryptographically:
+
+| Receipt | Payload | Verifier cycles | Current public limit | Result |
+| --- | ---: | ---: | ---: | --- |
+| Succinct | 223,191 bytes | 313,056,015 | 33,554,432 | over limit |
+| Groth16 | 470 bytes | 162,362,189 | 33,554,432 | over limit |
+
+Both valid receipts verified without assumptions, and both tampered journals
+were rejected. The runner then applied the exact
+MAX_NUM_CYCLES_PUBLIC_EXECUTION value from latest LEZ; both executions stopped
+at the 32M limit.
+
+This changes the diagnosis but not the current architecture decision:
+
+- direct verification is not API-impossible
+- transaction size is not a blocker for Groth16
+- the current blocker is the public LEZ execution budget
+
+The evaluator question is now concrete: is there a supported native verifier,
+receipt-assumption path, or higher-budget verifier program for LP-0005, or
+should the submission use the already working PPE-native gate?
