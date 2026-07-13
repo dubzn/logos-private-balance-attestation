@@ -42,6 +42,8 @@ Item {
     property int selectedStep: 0
     property int runningStep: -1
     property int failedStep: -1
+    property bool deliveryBusy: false
+    property string deliveryAction: ""
     readonly property var steps: [
         {"label": "STEP 1", "title": "Setup", "detail": "Paths and gate"},
         {"label": "STEP 2", "title": "Account", "detail": "Wallet preflight"},
@@ -73,12 +75,11 @@ Item {
         || root.fieldValue(root.gateRun.verify_status, "") === "ok"
         || root.fieldValue(root.gateRun.duplicate_status, "") === "not-applied"
     readonly property bool deliveryNodeReady: d.backend && (
-        d.backend.deliveryPeerId.length > 0
-        || d.backend.deliveryStatus.indexOf("Delivery node started") >= 0
-        || d.backend.deliveryStatus.indexOf("Subscribed") >= 0
-        || d.backend.deliveryStatus.indexOf("Sent proof message") >= 0
-        || d.backend.deliveryStatus.indexOf("Received proof message") >= 0
+        d.backend.deliveryNodeStarted
+        || d.backend.deliveryPeerId.length > 0
     )
+    readonly property bool deliverySubscribed: d.backend && d.backend.deliverySubscribed
+    readonly property bool deliveryReceivedReady: d.backend && d.backend.deliveryReceived && d.backend.deliveryMessageJson.length > 0
     readonly property bool deliveryMessageReady: d.backend && d.backend.deliveryMessageJson.length > 0
     readonly property bool deliveryComplete: root.fieldValue(root.deliveryVerifyResult.status, "") === "ok"
 
@@ -154,7 +155,7 @@ Item {
         if (failedStep === index && !stepComplete(index)) {
             return "failed"
         }
-        if (d.backend && d.backend.busy && runningStep === index) {
+        if (runningStep === index && ((d.backend && d.backend.busy) || deliveryBusy)) {
             return "running"
         }
         if (stepComplete(index)) {
@@ -198,6 +199,41 @@ Item {
         showConsole = true
     }
 
+    function runDeliveryAction(action, callback) {
+        if (!d.backend || d.backend.busy || deliveryBusy) {
+            return
+        }
+        selectedStep = 5
+        runningStep = 5
+        failedStep = -1
+        showConsole = true
+        deliveryBusy = true
+        deliveryAction = action
+        Qt.callLater(function() {
+            callback()
+            deliveryReleaseTimer.restart()
+        })
+    }
+
+    function finishDeliveryAction(failed) {
+        deliveryBusy = false
+        deliveryAction = ""
+        if (runningStep === 5) {
+            runningStep = -1
+        }
+        if (failed) {
+            failedStep = 5
+            selectedStep = 5
+        }
+    }
+
+    Timer {
+        id: deliveryReleaseTimer
+        interval: 120000
+        repeat: false
+        onTriggered: root.finishDeliveryAction(root.statusLooksFailed(d.backend ? d.backend.deliveryStatus : ""))
+    }
+
     Connections {
         target: d.backend
         function onStatusChanged() {
@@ -209,6 +245,18 @@ Item {
             }
             if (root.runningStep >= 0 && root.statusLooksFailed(status)) {
                 root.failedStep = root.runningStep
+            }
+        }
+
+        function onDeliveryStatusChanged() {
+            var status = d.backend ? d.backend.deliveryStatus : ""
+            if (root.runningStep === 5 && root.statusLooksFailed(status)) {
+                root.finishDeliveryAction(true)
+            } else if (root.deliveryBusy
+                    && status.length > 0
+                    && status.indexOf("...") < 0
+                    && status.indexOf("Preparing Delivery") < 0) {
+                root.finishDeliveryAction(false)
             }
         }
 
@@ -638,14 +686,14 @@ Item {
                         FieldLabel { text: "Preset" }
                         FormTextField {
                             text: d.backend ? d.backend.deliveryPreset : "logos.test"
-                            enabled: d.backend && !d.backend.busy
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy && !root.deliveryNodeReady
                             onEditingFinished: if (d.backend) d.backend.configureDeliveryPreset(text)
                         }
 
                         FieldLabel { text: "Mode" }
                         FormTextField {
                             text: d.backend ? d.backend.deliveryMode : "Core"
-                            enabled: d.backend && !d.backend.busy
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy && !root.deliveryNodeReady
                             onEditingFinished: if (d.backend) d.backend.configureDeliveryMode(text)
                         }
 
@@ -653,21 +701,21 @@ Item {
                         FormTextField {
                             Layout.columnSpan: content.width > 820 ? 3 : 1
                             text: d.backend ? d.backend.deliveryTopic : ""
-                            enabled: d.backend && !d.backend.busy
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy && !root.deliverySubscribed
                             onEditingFinished: if (d.backend) d.backend.configureDeliveryTopic(text)
                         }
 
                         FieldLabel { text: "Group" }
                         FormTextField {
                             text: d.backend ? d.backend.deliveryGroupId : ""
-                            enabled: d.backend && !d.backend.busy
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy
                             onEditingFinished: if (d.backend) d.backend.configureDeliveryGroupId(text)
                         }
 
                         FieldLabel { text: "Sender" }
                         FormTextField {
                             text: d.backend ? d.backend.deliverySender : ""
-                            enabled: d.backend && !d.backend.busy
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy
                             onEditingFinished: if (d.backend) d.backend.configureDeliverySender(text)
                         }
                     }
@@ -677,39 +725,41 @@ Item {
                         spacing: 8
 
                         ActionButton {
-                            text: "Create node"
+                            text: root.deliveryNodeReady ? "Node ready"
+                                : (root.deliveryBusy && root.deliveryAction === "create" ? "Starting..." : "Create node")
+                            loading: root.deliveryBusy && root.deliveryAction === "create"
                             primary: !root.deliveryNodeReady && !root.deliveryComplete
-                            enabled: d.backend && !d.backend.busy
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy && !root.deliveryNodeReady
                             onClicked: {
-                                root.startStep(5)
-                                d.backend.deliveryCreateNode()
+                                root.runDeliveryAction("create", function() { d.backend.deliveryCreateNode() })
                             }
                         }
 
                         ActionButton {
-                            text: "Subscribe"
-                            primary: root.deliveryNodeReady && !root.deliveryMessageReady && !root.deliveryComplete
-                            enabled: d.backend && !d.backend.busy && root.deliveryNodeReady
+                            text: root.deliverySubscribed ? "Subscribed"
+                                : (root.deliveryBusy && root.deliveryAction === "subscribe" ? "Subscribing..." : "Subscribe")
+                            working: root.deliveryBusy && root.deliveryAction === "subscribe"
+                            primary: root.deliveryNodeReady && !root.deliverySubscribed && !root.deliveryComplete
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy && root.deliveryNodeReady && !root.deliverySubscribed
                             onClicked: {
-                                root.startStep(5)
-                                d.backend.deliverySubscribe()
+                                root.runDeliveryAction("subscribe", function() { d.backend.deliverySubscribe() })
                             }
                         }
 
                         ActionButton {
-                            text: "Send proof"
+                            text: root.deliveryBusy && root.deliveryAction === "send" ? "Sending..." : "Send proof"
+                            loading: root.deliveryBusy && root.deliveryAction === "send"
                             primary: root.proofComplete && !root.deliveryMessageReady && !root.deliveryComplete
-                            enabled: d.backend && !d.backend.busy && root.proofComplete
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy && root.proofComplete && root.deliveryNodeReady
                             onClicked: {
-                                root.startStep(5)
-                                d.backend.deliverySendProofMessage()
+                                root.runDeliveryAction("send", function() { d.backend.deliverySendProofMessage() })
                             }
                         }
 
                         ActionButton {
-                            text: "Verify received"
-                            primary: root.deliveryMessageReady && !root.deliveryComplete
-                            enabled: d.backend && !d.backend.busy && root.deliveryMessageReady
+                            text: d.backend && d.backend.busy && root.runningStep === 5 ? "Verifying..." : "Verify received"
+                            primary: root.deliveryReceivedReady && !root.deliveryComplete
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy && root.deliveryReceivedReady
                             onClicked: {
                                 root.startStep(5)
                                 d.backend.deliveryVerifyReceivedMessage()
@@ -718,7 +768,7 @@ Item {
 
                         ActionButton {
                             text: "Clear delivery"
-                            enabled: d.backend && !d.backend.busy
+                            enabled: d.backend && !d.backend.busy && !root.deliveryBusy
                             onClicked: d.backend.clearDelivery()
                         }
                     }
@@ -727,9 +777,30 @@ Item {
                         Layout.fillWidth: true
                         text: root.deliveryComplete
                             ? "Delivery message verified"
-                            : (root.deliveryMessageReady
+                            : (root.deliveryReceivedReady
                                 ? "Proof message received. Verify it to finish Delivery."
+                                : (root.deliveryMessageReady
+                                    ? "Proof message prepared/sent. Use the receiver window to verify inbound delivery."
                                 : (d.backend ? root.statusTail(d.backend.deliveryStatus) : "Delivery unavailable"))
+                            )
+                    }
+
+                    InfoRow {
+                        name: "Node"
+                        value: root.deliveryNodeReady ? "started" : "not started"
+                    }
+                    InfoRow {
+                        name: "Subscription"
+                        value: root.deliverySubscribed ? "subscribed to topic" : "not subscribed"
+                    }
+                    InfoRow {
+                        name: "Peer id"
+                        value: d.backend && d.backend.deliveryPeerId.length > 0 ? root.shortValue(d.backend.deliveryPeerId) : "-"
+                    }
+                    InfoRow {
+                        name: "Message"
+                        value: root.deliveryReceivedReady ? "received"
+                            : (root.deliveryMessageReady ? "prepared/sent" : "-")
                     }
                 }
             }
@@ -1142,6 +1213,8 @@ Item {
     component ActionButton: Button {
         id: control
         property bool primary: false
+        property bool loading: false
+        property bool working: false
         implicitHeight: 40
         implicitWidth: Math.max(122, label.implicitWidth + 32)
         leftPadding: 14
@@ -1149,20 +1222,35 @@ Item {
         topPadding: 0
         bottomPadding: 0
 
-        contentItem: Label {
-            id: label
-            text: control.text
-            color: !control.enabled ? theme.faint : (control.primary ? "#ffffff" : theme.text)
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 13
-            font.weight: Font.Medium
+        contentItem: RowLayout {
+            spacing: 8
+
+            Item { Layout.fillWidth: true }
+
+            BusyIndicator {
+                visible: control.loading
+                running: control.loading
+                Layout.preferredWidth: 16
+                Layout.preferredHeight: 16
+            }
+
+            Label {
+                id: label
+                text: control.text
+                color: (control.loading || control.working) ? "#ffffff" : (!control.enabled ? theme.faint : (control.primary ? "#ffffff" : theme.text))
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 13
+                font.weight: Font.Medium
+            }
+
+            Item { Layout.fillWidth: true }
         }
 
         background: Rectangle {
             radius: 6
-            color: !control.enabled ? "#eef1f4" : (control.primary ? theme.blue : theme.surfaceSoft)
-            border.color: !control.enabled ? theme.border : (control.primary ? theme.blue : theme.borderStrong)
+            color: (control.loading || control.working) ? theme.blue : (!control.enabled ? "#eef1f4" : (control.primary ? theme.blue : theme.surfaceSoft))
+            border.color: (control.loading || control.working) ? theme.blue : (!control.enabled ? theme.border : (control.primary ? theme.blue : theme.borderStrong))
         }
     }
 

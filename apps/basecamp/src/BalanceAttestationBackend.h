@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QByteArray>
+#include <QList>
 #include <QMap>
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -9,7 +11,6 @@
 
 class LogosAPI;
 class LogosModules;
-class QTimer;
 
 class BalanceAttestationBackend : public BalanceAttestationSimpleSource {
     Q_OBJECT
@@ -77,6 +78,9 @@ protected:
     void setDeliveryStatus(QString value) override;
     void setDeliveryPeerId(QString value) override;
     void setDeliveryVersion(QString value) override;
+    void setDeliveryNodeStarted(bool value) override;
+    void setDeliverySubscribed(bool value) override;
+    void setDeliveryReceived(bool value) override;
     void setDeliveryRunDir(QString value) override;
     void setDeliveryMessageJson(QString value) override;
     void setDeliveryVerifyJson(QString value) override;
@@ -105,6 +109,11 @@ private:
     bool writeDeliveryGateFile(const QString &path);
     bool writeDeliveryMessageFile(const QString &path, QString *messageJson);
     bool ensureDeliveryReady(bool requireProofRun = false);
+    void handleDeliveryPayload(const QString &topic, const QByteArray &payload, const QString &messageHash, qint64 timestampNs);
+    void handleDeliveryChunk(const QString &topic, const QJsonObject &chunk, const QString &messageHash, qint64 timestampNs);
+    void persistReceivedDeliveryMessage(const QString &topic, const QByteArray &payload, const QString &messageHash, qint64 timestampNs);
+    void sendNextDeliveryChunk();
+    void clearPendingDeliverySend();
     void appendDeliveryLog(const QString &line);
     void wireDeliveryEvents();
     void refreshDeliveryPeerId();
@@ -118,6 +127,14 @@ private:
     );
 
     LogosModules *m_logos = nullptr;
-    QTimer *m_deliveryPollTimer = nullptr;
     bool m_deliveryNodeStarted = false;
+    bool m_deliverySubscribed = false;
+    QMap<QString, QMap<int, QByteArray>> m_deliveryChunks;
+    QMap<QString, int> m_deliveryChunkTotals;
+    QMap<QString, QString> m_deliveryChunkSha256;
+    QList<QByteArray> m_deliveryPendingChunks;
+    QString m_deliveryPendingTopic;
+    QString m_deliveryPendingMessageId;
+    QString m_deliveryPendingPayloadHash;
+    int m_deliveryPendingChunkIndex = 0;
 };

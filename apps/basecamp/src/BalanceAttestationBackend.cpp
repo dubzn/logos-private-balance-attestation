@@ -5,6 +5,7 @@
 #include "logos_types.h"
 
 #include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -15,6 +16,7 @@
 #include <QJsonParseError>
 #include <QMap>
 #include <QProcessEnvironment>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QSet>
 #include <QTimer>
@@ -22,6 +24,9 @@
 #include <memory>
 
 namespace {
+
+constexpr qsizetype kDeliveryDirectMaxBytes = 120 * 1024;
+constexpr qsizetype kDeliveryChunkDataBytes = 80 * 1024;
 
 QString repeatByte(const QString &byte)
 {
@@ -116,6 +121,51 @@ bool isDeliveryAlreadyActiveError(const QString &error)
         || lower.contains(QStringLiteral("already started"));
 }
 
+QString deliveryFailureMessage(const QString &operation, const QString &context, const QString &error)
+{
+    const auto cleaned = error.trimmed();
+    const auto reason = cleaned.isEmpty()
+        ? QStringLiteral("delivery_module returned success=false without an error string")
+        : cleaned;
+    return context.isEmpty()
+        ? operation + " failed: " + reason
+        : operation + " failed (" + context + "): " + reason;
+}
+
+bool isLip23ContentTopic(const QString &topic)
+{
+    static const QRegularExpression pattern(
+        QStringLiteral("^/[A-Za-z0-9][A-Za-z0-9_.-]*/[0-9]+/[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$")
+    );
+    return pattern.match(topic.trimmed()).hasMatch();
+}
+
+QString sha256Hex(const QByteArray &payload)
+{
+    return QString::fromLatin1(QCryptographicHash::hash(payload, QCryptographicHash::Sha256).toHex());
+}
+
+QByteArray chunkPayloadJson(
+    const QString &messageId,
+    int index,
+    int total,
+    int totalBytes,
+    const QString &payloadSha256,
+    const QByteArray &data
+)
+{
+    QJsonObject chunk{
+        {"lp0005_delivery_chunk", 1},
+        {"message_id", messageId},
+        {"index", index},
+        {"total", total},
+        {"total_bytes", totalBytes},
+        {"sha256", payloadSha256},
+        {"data_base64", QString::fromLatin1(data.toBase64())},
+    };
+    return QJsonDocument(chunk).toJson(QJsonDocument::Compact);
+}
+
 void addPrivateAccount(
     const QString &label,
     const QString &accountId,
@@ -198,11 +248,14 @@ BalanceAttestationBackend::BalanceAttestationBackend(QObject *parent)
     setRealProving(true);
     setDeliveryPreset("logos.test");
     setDeliveryMode("Core");
-    setDeliveryTopic("/lp0005-balance-attestation/1/proof-envelope/json");
+    setDeliveryTopic("/lp0005/1/proof/json");
     setDeliveryGroupId("lp0005-balance-gated-chat");
     setDeliverySender("basecamp-presenter");
     setDeliveryRecipient({});
     setDeliveryStatus("Delivery backend waiting for Logos API");
+    setDeliveryNodeStarted(false);
+    setDeliverySubscribed(false);
+    setDeliveryReceived(false);
     setStatus("Ready");
 }
 
@@ -297,7 +350,12 @@ void BalanceAttestationBackend::setDeliveryMode(QString value)
 
 void BalanceAttestationBackend::setDeliveryTopic(QString value)
 {
-    BalanceAttestationSimpleSource::setDeliveryTopic(value.trimmed());
+    const auto cleaned = value.trimmed();
+    if (cleaned != deliveryTopic()) {
+        m_deliverySubscribed = false;
+        setDeliverySubscribed(false);
+    }
+    BalanceAttestationSimpleSource::setDeliveryTopic(cleaned);
 }
 
 void BalanceAttestationBackend::setDeliveryGroupId(QString value)
@@ -420,8 +478,11 @@ void BalanceAttestationBackend::deliveryCreateNode()
     if (m_deliveryNodeStarted) {
         setDeliveryStatus("Delivery node already started");
         appendDeliveryLog("Delivery node already started");
+        setDeliveryNodeStarted(true);
         return;
     }
+
+    setDeliveryStatus("Starting Delivery node...");
 
     QJsonObject cfg{
         {"logLevel", "INFO"},
@@ -458,19 +519,14 @@ void BalanceAttestationBackend::deliveryCreateNode()
     setDeliveryStatus("Delivery node started");
     appendDeliveryLog("Delivery node started");
     m_deliveryNodeStarted = true;
+    setDeliveryNodeStarted(true);
 
     LogosResult version = m_logos->delivery_module.getNodeInfo(QStringLiteral("Version"));
     if (version.success) {
         setDeliveryVersion(version.getString());
     }
 
-    if (!m_deliveryPollTimer) {
-        m_deliveryPollTimer = new QTimer(this);
-        m_deliveryPollTimer->setInterval(3000);
-        connect(m_deliveryPollTimer, &QTimer::timeout, this, &BalanceAttestationBackend::refreshDeliveryPeerId);
-    }
     refreshDeliveryPeerId();
-    m_deliveryPollTimer->start();
 }
 
 void BalanceAttestationBackend::deliverySubscribe()
@@ -482,16 +538,43 @@ void BalanceAttestationBackend::deliverySubscribe()
         setDeliveryStatus("Delivery topic is required");
         return;
     }
-
-    LogosResult result = m_logos->delivery_module.subscribe(deliveryTopic());
-    if (!result.success) {
-        const auto error = "subscribe failed: " + result.getError();
-        setDeliveryStatus(error);
-        appendDeliveryLog(error);
+    if (!isLip23ContentTopic(deliveryTopic())) {
+        setDeliveryStatus("Delivery topic must follow LIP-23: /app/version/topic/encoding");
+        appendDeliveryLog("subscribe blocked: invalid LIP-23 topic " + deliveryTopic());
         return;
     }
-    setDeliveryStatus("Subscribed to " + deliveryTopic());
-    appendDeliveryLog("Subscribed to " + deliveryTopic());
+    if (!m_deliveryNodeStarted) {
+        setDeliveryStatus("Create the Delivery node before subscribing");
+        appendDeliveryLog("subscribe blocked: Delivery node is not started");
+        return;
+    }
+    if (m_deliverySubscribed) {
+        setDeliveryStatus("Already subscribed to " + deliveryTopic());
+        appendDeliveryLog("Already subscribed to " + deliveryTopic());
+        setDeliverySubscribed(true);
+        return;
+    }
+
+    const auto topic = deliveryTopic();
+    setDeliveryStatus("Subscribing to " + topic + "...");
+    appendDeliveryLog("Subscribing to " + topic);
+
+    QPointer<BalanceAttestationBackend> self(this);
+    m_logos->delivery_module.subscribeAsync(topic, [self, topic](LogosResult result) {
+        if (!self) {
+            return;
+        }
+        if (!result.success) {
+            const auto error = deliveryFailureMessage("subscribe", topic, result.getError());
+            self->setDeliveryStatus(error);
+            self->appendDeliveryLog(error);
+            return;
+        }
+        self->m_deliverySubscribed = true;
+        self->setDeliverySubscribed(true);
+        self->setDeliveryStatus("Subscribed to " + topic);
+        self->appendDeliveryLog("Subscribed to " + topic);
+    });
 }
 
 void BalanceAttestationBackend::deliverySendProofMessage()
@@ -503,9 +586,20 @@ void BalanceAttestationBackend::deliverySendProofMessage()
         setDeliveryStatus("Delivery topic, group id, and sender are required");
         return;
     }
+    if (!isLip23ContentTopic(deliveryTopic())) {
+        setDeliveryStatus("Delivery topic must follow LIP-23: /app/version/topic/encoding");
+        appendDeliveryLog("send blocked: invalid LIP-23 topic " + deliveryTopic());
+        return;
+    }
+    if (!m_deliveryNodeStarted) {
+        setDeliveryStatus("Create the Delivery node before sending");
+        appendDeliveryLog("send blocked: Delivery node is not started");
+        return;
+    }
 
     const auto dir = deliveryRunDir().isEmpty() ? deliveryDemoDir() : deliveryRunDir();
     setDeliveryRunDir(dir);
+    setDeliveryStatus("Preparing Delivery proof message...");
 
     QString messageJson;
     const auto path = deliveryMessagePath();
@@ -513,17 +607,119 @@ void BalanceAttestationBackend::deliverySendProofMessage()
         return;
     }
 
-    LogosResult result = m_logos->delivery_module.send(deliveryTopic(), messageJson.toUtf8());
-    if (!result.success) {
-        const auto error = "send failed: " + result.getError();
-        setDeliveryStatus(error);
-        appendDeliveryLog(error);
+    const QByteArray payload = messageJson.toUtf8();
+    if (payload.size() <= kDeliveryDirectMaxBytes) {
+        appendDeliveryLog(
+            QStringLiteral("Sending proof message bytes=%1 topic=%2").arg(payload.size()).arg(deliveryTopic()));
+        setDeliveryStatus("Sending proof message on " + deliveryTopic() + "...");
+        const auto topic = deliveryTopic();
+        QPointer<BalanceAttestationBackend> self(this);
+        m_logos->delivery_module.sendAsync(topic, payload, [self, topic, size = payload.size()](LogosResult result) {
+            if (!self) {
+                return;
+            }
+            if (!result.success) {
+                const auto error = deliveryFailureMessage("send", topic, result.getError());
+                self->setDeliveryStatus(error);
+                self->appendDeliveryLog(error);
+                return;
+            }
+
+            auto requestId = result.getString();
+            if (requestId.trimmed().isEmpty()) {
+                requestId = "(delivery_module returned an empty request id)";
+            }
+            self->setDeliveryStatus("Sent proof message: " + requestId);
+            self->appendDeliveryLog(
+                "Sent proof message request_id=" + requestId + " bytes=" + QString::number(size));
+        });
         return;
     }
 
-    const auto requestId = result.getString();
-    setDeliveryStatus("Sent proof message: " + requestId);
-    appendDeliveryLog("Sent proof message request_id=" + requestId);
+    const auto payloadHash = sha256Hex(payload);
+    const auto messageId = "lp0005-" + payloadHash.left(16) + "-" + timestamp();
+    const int total = static_cast<int>((payload.size() + kDeliveryChunkDataBytes - 1) / kDeliveryChunkDataBytes);
+
+    appendDeliveryLog(
+        QStringLiteral("Proof message is %1 bytes; sending %2 chunks of <=%3 bytes")
+            .arg(payload.size())
+            .arg(total)
+            .arg(kDeliveryChunkDataBytes));
+
+    clearPendingDeliverySend();
+    m_deliveryPendingTopic = deliveryTopic();
+    m_deliveryPendingMessageId = messageId;
+    m_deliveryPendingPayloadHash = payloadHash;
+
+    for (int index = 0; index < total; ++index) {
+        const auto offset = index * kDeliveryChunkDataBytes;
+        const auto length = qMin(kDeliveryChunkDataBytes, payload.size() - offset);
+        const auto chunkData = payload.mid(offset, length);
+        const auto chunkPayload = chunkPayloadJson(messageId, index, total, payload.size(), payloadHash, chunkData);
+        m_deliveryPendingChunks.append(chunkPayload);
+    }
+    sendNextDeliveryChunk();
+}
+
+void BalanceAttestationBackend::sendNextDeliveryChunk()
+{
+    const int total = m_deliveryPendingChunks.size();
+    if (m_deliveryPendingChunkIndex >= total) {
+        const auto messageId = m_deliveryPendingMessageId;
+        const auto payloadHash = m_deliveryPendingPayloadHash;
+        setDeliveryStatus(QStringLiteral("Sent proof message in %1 chunks").arg(total));
+        appendDeliveryLog(
+            QStringLiteral("Sent chunked proof message id=%1 sha256=%2").arg(messageId, payloadHash));
+        clearPendingDeliverySend();
+        return;
+    }
+
+    const int index = m_deliveryPendingChunkIndex;
+    const auto topic = m_deliveryPendingTopic;
+    const auto chunkPayload = m_deliveryPendingChunks.at(index);
+    setDeliveryStatus(QStringLiteral("Sending proof chunk %1/%2...").arg(index + 1).arg(total));
+    appendDeliveryLog(
+        QStringLiteral("Sending chunk %1/%2 bytes=%3").arg(index + 1).arg(total).arg(chunkPayload.size()));
+
+    QPointer<BalanceAttestationBackend> self(this);
+    m_logos->delivery_module.sendAsync(topic, chunkPayload, [self, topic, index, total](LogosResult result) {
+        if (!self) {
+            return;
+        }
+        if (!result.success) {
+            const auto error = deliveryFailureMessage(
+                QStringLiteral("send chunk %1/%2").arg(index + 1).arg(total),
+                topic,
+                result.getError()
+            );
+            self->setDeliveryStatus(error);
+            self->appendDeliveryLog(error);
+            self->clearPendingDeliverySend();
+            return;
+        }
+
+        auto requestId = result.getString();
+        if (requestId.trimmed().isEmpty()) {
+            requestId = "(empty request id)";
+        }
+        self->appendDeliveryLog(
+            QStringLiteral("Sent chunk %1/%2 request_id=%3").arg(index + 1).arg(total).arg(requestId));
+        self->m_deliveryPendingChunkIndex = index + 1;
+        QTimer::singleShot(0, self, [self]() {
+            if (self) {
+                self->sendNextDeliveryChunk();
+            }
+        });
+    });
+}
+
+void BalanceAttestationBackend::clearPendingDeliverySend()
+{
+    m_deliveryPendingChunks.clear();
+    m_deliveryPendingTopic.clear();
+    m_deliveryPendingMessageId.clear();
+    m_deliveryPendingPayloadHash.clear();
+    m_deliveryPendingChunkIndex = 0;
 }
 
 void BalanceAttestationBackend::deliveryVerifyReceivedMessage()
@@ -537,6 +733,11 @@ void BalanceAttestationBackend::deliveryVerifyReceivedMessage()
     const auto messagePath = deliveryMessagePath();
     if (!QFileInfo::exists(messagePath)) {
         setDeliveryStatus("No received Delivery proof message is available");
+        return;
+    }
+    if (!deliveryReceived()) {
+        setDeliveryStatus("Wait for a received Delivery proof message before verifying");
+        appendDeliveryLog("verify received blocked: no inbound Delivery message");
         return;
     }
     if (!writeDeliveryGateFile(deliveryGatePath())) {
@@ -573,11 +774,22 @@ void BalanceAttestationBackend::clearOutputs()
 
 void BalanceAttestationBackend::clearDelivery()
 {
+    clearPendingDeliverySend();
+    m_deliveryChunks.clear();
+    m_deliveryChunkTotals.clear();
+    m_deliveryChunkSha256.clear();
     setDeliveryRunDir({});
     setDeliveryMessageJson({});
     setDeliveryVerifyJson({});
+    setDeliveryReceived(false);
     setDeliveryLog({});
-    setDeliveryStatus(m_logos ? QString("Delivery backend ready") : QString("Delivery backend waiting for Logos API"));
+    if (m_deliverySubscribed) {
+        setDeliveryStatus("Subscribed to " + deliveryTopic());
+    } else if (m_deliveryNodeStarted) {
+        setDeliveryStatus("Delivery node started");
+    } else {
+        setDeliveryStatus(m_logos ? QString("Delivery backend ready") : QString("Delivery backend waiting for Logos API"));
+    }
 }
 
 void BalanceAttestationBackend::setBusy(bool value)
@@ -629,6 +841,21 @@ void BalanceAttestationBackend::setDeliveryPeerId(QString value)
 void BalanceAttestationBackend::setDeliveryVersion(QString value)
 {
     BalanceAttestationSimpleSource::setDeliveryVersion(value.trimmed());
+}
+
+void BalanceAttestationBackend::setDeliveryNodeStarted(bool value)
+{
+    BalanceAttestationSimpleSource::setDeliveryNodeStarted(value);
+}
+
+void BalanceAttestationBackend::setDeliverySubscribed(bool value)
+{
+    BalanceAttestationSimpleSource::setDeliverySubscribed(value);
+}
+
+void BalanceAttestationBackend::setDeliveryReceived(bool value)
+{
+    BalanceAttestationSimpleSource::setDeliveryReceived(value);
 }
 
 void BalanceAttestationBackend::setDeliveryRunDir(QString value)
@@ -876,11 +1103,151 @@ bool BalanceAttestationBackend::writeDeliveryMessageFile(const QString &path, QS
     }
     file.write(json.toUtf8());
     setDeliveryMessageJson(json);
+    setDeliveryReceived(false);
     if (messageJson) {
         *messageJson = json;
     }
     appendDeliveryLog("Prepared proof message " + path);
     return true;
+}
+
+void BalanceAttestationBackend::handleDeliveryPayload(
+    const QString &topic,
+    const QByteArray &payload,
+    const QString &messageHash,
+    qint64 timestampNs
+)
+{
+    QJsonParseError parseError;
+    const auto doc = QJsonDocument::fromJson(payload, &parseError);
+    if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+        const auto object = doc.object();
+        if (object.value("lp0005_delivery_chunk").toInt() == 1) {
+            handleDeliveryChunk(topic, object, messageHash, timestampNs);
+            return;
+        }
+    }
+
+    persistReceivedDeliveryMessage(topic, payload, messageHash, timestampNs);
+}
+
+void BalanceAttestationBackend::handleDeliveryChunk(
+    const QString &topic,
+    const QJsonObject &chunk,
+    const QString &messageHash,
+    qint64 timestampNs
+)
+{
+    const auto messageId = chunk.value("message_id").toString().trimmed();
+    const auto payloadSha256 = chunk.value("sha256").toString().trimmed();
+    const auto dataBase64 = chunk.value("data_base64").toString();
+    const int index = chunk.value("index").toInt(-1);
+    const int total = chunk.value("total").toInt(-1);
+    const int totalBytes = chunk.value("total_bytes").toInt(-1);
+
+    if (messageId.isEmpty() || payloadSha256.size() != 64 || index < 0 || total <= 0 || index >= total
+        || totalBytes <= 0 || dataBase64.isEmpty()) {
+        setDeliveryStatus("Received malformed Delivery chunk");
+        appendDeliveryLog("messageReceived malformed chunk hash=" + messageHash);
+        return;
+    }
+
+    const QByteArray chunkData = QByteArray::fromBase64(dataBase64.toLatin1());
+    if (chunkData.isEmpty()) {
+        setDeliveryStatus("Received empty Delivery chunk");
+        appendDeliveryLog("messageReceived empty chunk message_id=" + messageId);
+        return;
+    }
+
+    if (m_deliveryChunkTotals.contains(messageId) && m_deliveryChunkTotals.value(messageId) != total) {
+        setDeliveryStatus("Received inconsistent Delivery chunk total");
+        appendDeliveryLog("messageReceived inconsistent total message_id=" + messageId);
+        return;
+    }
+    if (m_deliveryChunkSha256.contains(messageId) && m_deliveryChunkSha256.value(messageId) != payloadSha256) {
+        setDeliveryStatus("Received inconsistent Delivery chunk hash");
+        appendDeliveryLog("messageReceived inconsistent hash message_id=" + messageId);
+        return;
+    }
+
+    m_deliveryChunkTotals[messageId] = total;
+    m_deliveryChunkSha256[messageId] = payloadSha256;
+    m_deliveryChunks[messageId][index] = chunkData;
+
+    const auto received = m_deliveryChunks.value(messageId).size();
+    setDeliveryStatus(QStringLiteral("Received proof chunk %1/%2").arg(received).arg(total));
+    appendDeliveryLog(
+        QStringLiteral("messageReceived chunk %1/%2 message_id=%3 hash=%4")
+            .arg(index + 1)
+            .arg(total)
+            .arg(messageId, messageHash));
+
+    if (received < total) {
+        return;
+    }
+
+    QByteArray assembled;
+    assembled.reserve(totalBytes);
+    const auto chunks = m_deliveryChunks.value(messageId);
+    for (int i = 0; i < total; ++i) {
+        if (!chunks.contains(i)) {
+            setDeliveryStatus(QStringLiteral("Waiting for missing proof chunk %1/%2").arg(i + 1).arg(total));
+            return;
+        }
+        assembled += chunks.value(i);
+    }
+
+    if (assembled.size() != totalBytes) {
+        setDeliveryStatus("Reassembled proof message has the wrong size");
+        appendDeliveryLog(
+            QStringLiteral("chunk reassembly size mismatch expected=%1 actual=%2")
+                .arg(totalBytes)
+                .arg(assembled.size()));
+        return;
+    }
+
+    const auto actualHash = sha256Hex(assembled);
+    if (actualHash != payloadSha256) {
+        setDeliveryStatus("Reassembled proof message hash mismatch");
+        appendDeliveryLog("chunk reassembly hash mismatch expected=" + payloadSha256 + " actual=" + actualHash);
+        return;
+    }
+
+    m_deliveryChunks.remove(messageId);
+    m_deliveryChunkTotals.remove(messageId);
+    m_deliveryChunkSha256.remove(messageId);
+
+    appendDeliveryLog(
+        QStringLiteral("Reassembled proof message bytes=%1 sha256=%2").arg(assembled.size()).arg(actualHash));
+    persistReceivedDeliveryMessage(topic, assembled, actualHash, timestampNs);
+}
+
+void BalanceAttestationBackend::persistReceivedDeliveryMessage(
+    const QString &topic,
+    const QByteArray &payload,
+    const QString &messageHash,
+    qint64 timestampNs
+)
+{
+    const auto dir = deliveryRunDir().isEmpty() ? deliveryDemoDir() : deliveryRunDir();
+    setDeliveryRunDir(dir);
+    QDir().mkpath(dir);
+
+    const auto path = deliveryMessagePath();
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        setDeliveryStatus("Could not write received Delivery proof message:\n" + path);
+        appendDeliveryLog("messageReceived write failed " + path);
+        return;
+    }
+    file.write(payload);
+    file.close();
+
+    setDeliveryMessageJson(QString::fromUtf8(payload));
+    setDeliveryReceived(true);
+    setDeliveryStatus("Received proof message on " + topic);
+    appendDeliveryLog("messageReceived topic=" + topic + " hash=" + messageHash + " bytes=" + QString::number(payload.size()));
+    emit deliveryMessageReceived(topic, messageHash, timestampNs);
 }
 
 bool BalanceAttestationBackend::ensureDeliveryReady(bool requireProofRun)
@@ -928,19 +1295,7 @@ void BalanceAttestationBackend::wireDeliveryEvents()
         const auto hash = data.at(0).toString();
         const auto timestampNs = data.at(3).toLongLong();
 
-        const auto dir = deliveryRunDir().isEmpty() ? deliveryDemoDir() : deliveryRunDir();
-        setDeliveryRunDir(dir);
-        QDir().mkpath(dir);
-
-        const auto path = deliveryMessagePath();
-        QFile file(path);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            file.write(payload);
-        }
-        setDeliveryMessageJson(QString::fromUtf8(payload));
-        setDeliveryStatus("Received proof message on " + topic);
-        appendDeliveryLog("messageReceived topic=" + topic + " hash=" + hash);
-        emit deliveryMessageReceived(topic, hash, timestampNs);
+        handleDeliveryPayload(topic, payload, hash, timestampNs);
     });
 
     m_logos->delivery_module.on("messageSent", [this](const QVariantList &data) {
