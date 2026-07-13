@@ -12,9 +12,6 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   RUST_BACKTRACE: "1"
-  LOGOS_BLOCKCHAIN_REF: "d8711bbc3d43d3ef9755ef9b73af32fd0f703160"
-  LOGOS_BLOCKCHAIN_CIRCUITS_VERSION: "v0.5.3"
-  LOGOS_BLOCKCHAIN_CIRCUITS: "${{ github.workspace }}/.logos-blockchain-circuits"
   LIVE_LEZ_REF: "1b4d8fbcf4caa1448473fd99b4ac9d386abf3bc3"
 
 jobs:
@@ -108,14 +105,11 @@ jobs:
           ITERATIONS: "3"
           OUT_DIR: ${{ github.workspace }}/.demo-runs/ci-cycle-bench
         run: scripts/benchmark-lez-cycles.sh
-      - name: Install Logos blockchain circuits
-        # The Spike 08 live runner depends on the LEZ wallet/nssa stack, which
-        # pulls Logos Blockchain proof crates whose build scripts require the
-        # matching verification-key bundle even for `cargo check`.
-        run: |
-          curl -sSL "https://raw.githubusercontent.com/logos-blockchain/logos-blockchain/${LOGOS_BLOCKCHAIN_REF}/scripts/setup-logos-blockchain-circuits.sh" \
-            | bash -s -- "$LOGOS_BLOCKCHAIN_CIRCUITS_VERSION" "$LOGOS_BLOCKCHAIN_CIRCUITS"
       - name: Check Spike 08 live runner
+        # The pinned LEZ lockfile uses logos-blockchain-circuits v0.5.3 with
+        # its default `prebuilt` feature. Its build scripts provision and cache
+        # the matching release bundle; no legacy manual circuit install is
+        # required here.
         run: cargo check --manifest-path spikes/spike-08-program-chaining/lez/runner/Cargo.toml
       - name: Upload cycle benchmark report
         if: always()
