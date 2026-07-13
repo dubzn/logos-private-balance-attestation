@@ -37,8 +37,9 @@ Done locally:
 - full local E2E passed with `RISC0_DEV_MODE=0`: proof phase 00:02:20, gate
   phase 00:02:49, total 00:05:09, verify `ok`, nullifier count `1`, duplicate
   admit `not-applied`
-- `docs/BENCHMARKS.md` records the local proof benchmark, gate transaction
-  timings, and the still-open devnet/testnet CU measurements
+- `scripts/benchmark-lez-cycles.sh` follows upstream LEZ `tools/cycle_bench`
+  and records deterministic RISC Zero user cycles for register, init, and
+  admit; `docs/BENCHMARKS.md` keeps those distinct from unavailable network CU
 - `scripts/clean-local-artifacts.sh` added for dry-run-first cleanup of build
   outputs and optional run artifacts
 - `scripts/common-env.sh` centralizes `LOGOS_LEZ_REPO` resolution with
@@ -70,6 +71,12 @@ Done locally:
 - Basecamp Logos Delivery adapter: `apps/basecamp` declares `delivery_module`,
   builds with the real module dependency, and wires create, start, subscribe,
   send, receive, and verify for the same V1 proof-message bytes
+- two-instance Basecamp Logos Delivery passed with a 1,323,577-byte real-prover
+  message split into 17 chunks, out-of-order reassembly, matching SHA-256, and
+  local proof verification with `status: ok`
+- `.github/workflows/ci.yml` now includes a pinned standalone-sequencer E2E;
+  `scripts/ci-live-sequencer-e2e.sh` passed against a disposable LEZ clone with
+  an ephemeral wallet, real `getProofForCommitment`, and sanitized outputs
 - third local reference integration: `examples/fee-tier-gate`
 - Spike 09 PPE-native gate is available from the root demo entrypoint via
   `./demo.sh --ppe-gate --real-prover`; it writes a local benchmark report for
@@ -128,9 +135,9 @@ Track them here as the submission checklist of record:
 | Feedback item | Current state | Next action |
 | --- | --- | --- |
 | On-chain LEZ proof verification is missing. | Not closed. The repo has two candidate paths: Workable host-preverified gate and Spike 09 PPE-native gate. Public external receipt verification remains unsupported in the tested LEZ runtime. | Get evaluator confirmation that the PPE-native path satisfies LP-0005, or implement the supported public receipt-verifier path if Logos provides one. Keep the Workable path framed as evidence, not final proof verification. |
-| Off-chain transmission over Logos Messaging does not seem to work. | Improved. CLI local JSON transport works; Basecamp now uses the real `delivery_module` dependency and manual single-instance send/receive/verify has passed locally. | Record a two-instance Basecamp Delivery walkthrough with sender/receiver evidence and keep `docs/LOGOS_DELIVERY.md` updated with exact commands and screenshots/log notes. |
-| CU cost documentation is missing. | Still open. `docs/BENCHMARKS.md` has wall-clock local/testnet timings, not chain CU. | Use upstream LEZ `tools/cycle_bench` or any exposed testnet/devnet CU source to measure the accepted path. Document `register_presenter`, `init_gate`, `admit`, duplicate rejection, and PPE-native positive/rejection costs if applicable. |
-| E2E-vs-sequencer in CI is missing. | Partial. Live sequencer E2E scripts pass locally, but CI only runs workspace/deployable checks. | Add a CI job that starts standalone LEZ, initializes a fresh wallet/private account, runs a bounded `RISC0_DEV_MODE=1` local sequencer E2E, and uploads sanitized reports. Keep `RISC0_DEV_MODE=0` for manual/video evidence if CI runtime is too expensive. |
+| Off-chain transmission over Logos Messaging does not seem to work. | Closed locally. A two-instance Basecamp run transferred a 1,323,577-byte real-prover envelope over real Logos Delivery in 17 out-of-order chunks, reassembled the expected SHA-256, and verified with `status: ok`. | Capture the same flow in the narrated submission video and link the related SDK issue/PR. |
+| CU cost documentation is missing. | Partially closed with the official LEZ metric. `scripts/benchmark-lez-cycles.sh` now reports deterministic RISC Zero user cycles for register, init, and admit. The current RPC does not expose network CU, and failed execution does not expose `SessionInfo`. | Ask evaluators whether this upstream-compatible cycle report satisfies the requirement; instrument the final accepted on-chain path if it changes. |
+| E2E-vs-sequencer in CI is missing. | Implemented. The new CI job uses a pinned official LEZ checkout, ephemeral wallet/private account, real `getProofForCommitment`, dev-mode proving, verification, cleanup, and sanitized artifacts. A disposable-clone local run passed. | Push and confirm the first GitHub Actions run; keep `RISC0_DEV_MODE=0` for manual/video evidence. |
 | YouTube video is missing. | Open. `docs/DEMO_VIDEO_SCRIPT.md` exists. | Record the final narrated video after on-chain-path wording is settled enough to avoid overstating the solution. Must show `RISC0_DEV_MODE=0`, CLI proof generation, Basecamp Delivery, and accepted on-chain path evidence. |
 
 ## Latest Upstream Refresh
@@ -186,45 +193,34 @@ Checked on 2026-07-09 with non-destructive `git fetch` only:
      verifier requirement, or whether the final submission must still use a
      public LEZ program that verifies an externally supplied receipt.
 
-2. Record and harden the Logos Delivery path.
-   - Current deterministic adapter: `attestation-messaging::LocalFileTransport`.
-   - Current Basecamp adapter: `delivery_module` create, start, subscribe,
-     send, receive, and verify.
-   - Run a two-instance Basecamp Delivery pass and capture the received
-     `proof-message.json`, `message-verify` output, and UI notes.
-   - Keep the proof message bytes stable across local JSON and Delivery.
+2. Confirm the new evidence in public CI.
+   - Push the live-sequencer job and verify its first GitHub Actions run.
+   - Keep uploads limited to the sanitized report, verification output, and
+     redacted witness summary.
+   - Ask evaluators whether upstream-compatible RISC Zero user cycles satisfy
+     the LP's CU wording; do not relabel them as network CU.
 
-3. Add CU / cycle measurements for the accepted path.
-   - CU measurements for the operations already listed in
-     `docs/BENCHMARKS.md`.
-   - Use upstream LEZ `tools/cycle_bench` as the model for cycle/CU-style
-     reporting where possible.
-   - If true chain CU is not exposed, document the exact limitation and include
-     the closest available cycle/executor metrics without relabeling them as CU.
+3. Record the validated Logos Delivery path.
+   - Re-run the two-instance Basecamp flow for the narrated video.
+   - Show out-of-order chunk reception, matching reassembled SHA-256, local
+     proof verification, and token-gated admission semantics.
+   - Link the SDK event-payload issue/PR in the submission notes.
 
-4. Add live local-sequencer E2E to CI if practical.
-   - The local wallet/sequencer E2E is now ported and validated against the
-     clean latest LEZ checkout (`logos-execution-zone-latest`).
-   - Prefer a fast `RISC0_DEV_MODE=1` CI job for wallet/sequencer/API drift.
-   - Upload sanitized `.demo-runs/.../report.md` artifacts.
-   - Keep real-prover `RISC0_DEV_MODE=0` in manual evidence and video unless
-     CI runtime is acceptable.
-
-5. Turn the successful `RISC0_DEV_MODE=0` run into final demo evidence.
+4. Turn the successful `RISC0_DEV_MODE=0` run into final demo evidence.
    - Record a clean-room narrated run.
    - Run `scripts/check-wallet-preflight.sh` before recording.
    - Run `./demo.sh --clean-room --real-prover --with-tests --with-lez`
      before publishing demo artifacts.
    - Keep `witness.json` private and publish only envelope/report artifacts.
 
-6. Harden Basecamp GUI.
+5. Harden Basecamp GUI.
    - Run a final manual end-to-end UX pass from inside Basecamp for recording.
    - Run `scripts/check-basecamp-package.sh` before manual QA.
    - Keep the `nix build .#install` packaging path aligned with the active
    Basecamp build.
    - Keep the UI limited to public/sanitized proof state.
 
-7. Submission hardening.
+6. Submission hardening.
    - Keep the Lambda Prize PR title exactly
      `Solution: LP-0005 — Private Token Balance Attestation`.
    - Do not reopen as a draft submission; use Discord or a separate discussion

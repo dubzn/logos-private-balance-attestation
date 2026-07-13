@@ -4,9 +4,10 @@ Last updated: 2026-07-13.
 
 This repository is a public technical implementation for LP-0005. It is close
 to a submission package, but it should not be represented as an award-ready
-solution until the on-chain verifier path, CU metrics, live-sequencer CI, and
-narrated demo are complete. Public testnet deployment evidence now exists for
-both implemented candidate paths.
+solution until the on-chain verifier path and narrated demo are complete. LEZ
+guest cycles and a live-sequencer CI job are now implemented; evaluator
+confirmation is still needed on whether those cycles satisfy the LP's CU
+wording. Public testnet deployment evidence exists for both candidate paths.
 
 ## Current Readiness
 
@@ -22,8 +23,8 @@ both implemented candidate paths.
 | Basecamp | ready as MVP | `apps/basecamp` builds as a backend-backed `ui_qml` plugin, wraps the local CLI/script flows, and includes a Logos Delivery panel backed by `delivery_module`; `scripts/check-basecamp-package.sh` validates the package install tree and `scripts/run-basecamp-local.sh` launches the local app. |
 | IDL | present | Root `balance-attestation-verifier.idl.json` points to `idl/balance-attestation-verifier.json`. |
 | Consumer integration demo | ready locally | Governance gate, chat gate, and fee-tier gate examples exist and have local tests. This matches the updated LP-0005 standalone consumer integration requirement; final submission should choose the clearest one to feature in the video. |
-| Benchmarks | wall-clock evidence recorded / CU pending | `docs/BENCHMARKS.md` records local proof/gate/PPE timings plus public testnet wall-clock evidence. Per-transaction CU metrics remain pending. |
-| CI | ready for current local scope | Workspace tests and deployable-program checks are covered by `.github/workflows/ci.yml`. |
+| Benchmarks | gate cycles documented / chain CU unavailable | `scripts/benchmark-lez-cycles.sh` follows upstream LEZ `tools/cycle_bench` and records deterministic RISC Zero user cycles for register, init, and admit. `docs/BENCHMARKS.md` also records wall-clock evidence and clearly separates unavailable network CU. |
+| CI | live sequencer job implemented | In addition to workspace/deployable checks, `.github/workflows/ci.yml` now runs a pinned standalone LEZ sequencer with an ephemeral wallet, real `getProofForCommitment`, dev-mode proof, verification, private cleanup, and sanitized artifacts. Local disposable-clone validation passed; first GitHub run pending. |
 
 ## One-Command Review Paths
 
@@ -95,8 +96,8 @@ This adds the live wallet/sequencer E2E and PPE-native gate candidate.
    `docs/TESTNET_DEPLOYMENT.md`, but the accepted architecture is still open.
 3. Record a two-instance Basecamp Delivery walkthrough showing proof send,
    receive, local verification, and token-gated admission semantics.
-4. Record CU or equivalent chain execution costs for the accepted on-chain
-   operations.
+4. Confirm that the documented RISC Zero user cycles satisfy the evaluator's
+   CU requirement, or capture network CU if Logos exposes that metric.
 5. Record a narrated demo with `RISC0_DEV_MODE=0` that shows CLI, Basecamp, and
    the accepted on-chain path.
 
