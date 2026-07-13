@@ -1,5 +1,7 @@
 # Logos Private Balance Attestation
 
+[![CI](https://github.com/dubzn/logos-private-balance-attestation/actions/workflows/ci.yml/badge.svg)](https://github.com/dubzn/logos-private-balance-attestation/actions/workflows/ci.yml)
+
 Implementation workspace for [LP-0005: Private Token Balance Attestation](LP-0005.md).
 
 This repository builds a reusable Logos primitive that lets a holder of a private
@@ -36,8 +38,8 @@ Implemented:
   state.
 - Backend-backed Basecamp GUI MVP that loads as a `ui_qml` plugin locally.
 - Three reference integrations: governance gate, chat gate, and fee-tier gate.
-- IDL artifact, deterministic error codes, CI, local E2E scripts, and local
-  benchmark documentation.
+- IDL artifact, deterministic error codes, green public CI including a live
+  standalone-sequencer E2E, local E2E scripts, and benchmark documentation.
 - Public LEZ testnet evidence for both current on-chain candidate paths.
 
 Still pending for final LP-0005 submission:

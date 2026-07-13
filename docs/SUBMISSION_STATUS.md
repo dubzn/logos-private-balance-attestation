@@ -24,7 +24,7 @@ wording. Public testnet deployment evidence exists for both candidate paths.
 | IDL | present | Root `balance-attestation-verifier.idl.json` points to `idl/balance-attestation-verifier.json`. |
 | Consumer integration demo | ready locally | Governance gate, chat gate, and fee-tier gate examples exist and have local tests. This matches the updated LP-0005 standalone consumer integration requirement; final submission should choose the clearest one to feature in the video. |
 | Benchmarks | gate cycles documented / chain CU unavailable | `scripts/benchmark-lez-cycles.sh` follows upstream LEZ `tools/cycle_bench` and records deterministic RISC Zero user cycles for register, init, and admit. `docs/BENCHMARKS.md` also records wall-clock evidence and clearly separates unavailable network CU. |
-| CI | live sequencer job implemented | In addition to workspace/deployable checks, `.github/workflows/ci.yml` now runs a pinned standalone LEZ sequencer with an ephemeral wallet, real `getProofForCommitment`, dev-mode proof, verification, private cleanup, and sanitized artifacts. Local disposable-clone validation passed; first GitHub run pending. |
+| CI | green on the public default branch | [GitHub Actions run 29247360268](https://github.com/dubzn/logos-private-balance-attestation/actions/runs/29247360268) passed all five jobs on 2026-07-13, including the pinned standalone LEZ sequencer with an ephemeral wallet, real `getProofForCommitment`, dev-mode proof, verification, private cleanup, and sanitized artifacts. |
 
 ## One-Command Review Paths
 

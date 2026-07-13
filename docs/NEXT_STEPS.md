@@ -141,7 +141,7 @@ Track them here as the submission checklist of record:
 | On-chain LEZ proof verification is missing. | Not closed. Spike 10 now proves direct portable receipt verification is cryptographically possible without assumptions, but succinct costs 313,056,015 cycles and Groth16 costs 162,362,189 against LEZ's 33,554,432-cycle public limit. The Workable and PPE-native paths remain available. | Ask Logos for a native verifier, assumption channel, higher verifier budget, or explicit confirmation that the PPE-native gate satisfies LP-0005. |
 | Off-chain transmission over Logos Messaging does not seem to work. | Closed locally. A two-instance Basecamp run transferred a 1,323,577-byte real-prover envelope over real Logos Delivery in 17 out-of-order chunks, reassembled the expected SHA-256, and verified with `status: ok`. | Capture the same flow in the narrated submission video and link the related SDK issue/PR. |
 | CU cost documentation is missing. | Partially closed with the official LEZ metric. `scripts/benchmark-lez-cycles.sh` now reports deterministic RISC Zero user cycles for register, init, and admit. The current RPC does not expose network CU, and failed execution does not expose `SessionInfo`. | Ask evaluators whether this upstream-compatible cycle report satisfies the requirement; instrument the final accepted on-chain path if it changes. |
-| E2E-vs-sequencer in CI is missing. | Implemented. The new CI job uses a pinned official LEZ checkout, ephemeral wallet/private account, real `getProofForCommitment`, dev-mode proving, verification, cleanup, and sanitized artifacts. A disposable-clone local run passed. | Push and confirm the first GitHub Actions run; keep `RISC0_DEV_MODE=0` for manual/video evidence. |
+| E2E-vs-sequencer in CI is missing. | Closed. [GitHub Actions run 29247360268](https://github.com/dubzn/logos-private-balance-attestation/actions/runs/29247360268) passed the pinned official LEZ checkout, ephemeral wallet/private account, real `getProofForCommitment`, dev-mode proving, verification, cleanup, and sanitized-artifact flow. | Keep `RISC0_DEV_MODE=0` for manual/video evidence. |
 | YouTube video is missing. | Open. `docs/DEMO_VIDEO_SCRIPT.md` exists. | Record the final narrated video after on-chain-path wording is settled enough to avoid overstating the solution. Must show `RISC0_DEV_MODE=0`, CLI proof generation, Basecamp Delivery, and accepted on-chain path evidence. |
 
 ## Latest Upstream Refresh
@@ -200,8 +200,8 @@ Checked on 2026-07-09 with non-destructive `git fetch` only:
      verification works but uses 162,362,189 cycles under a 33,554,432-cycle
      public limit.
 
-2. Confirm the new evidence in public CI.
-   - Push the live-sequencer job and verify its first GitHub Actions run.
+2. Preserve the now-green public CI evidence.
+   - The first full run passed all five jobs on 2026-07-13.
    - Keep uploads limited to the sanitized report, verification output, and
      redacted witness summary.
    - Ask evaluators whether upstream-compatible RISC Zero user cycles satisfy

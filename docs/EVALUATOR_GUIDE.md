@@ -2,7 +2,9 @@
 
 This repository is a technical LP-0005 implementation. It is not an award-ready
 submission yet because the evaluator-approved on-chain verification model,
-CU measurements, live-sequencer CI, and final video are still pending.
+evaluator acceptance of the documented cycle metric, and final video are still
+pending. Public CI is green and includes a live standalone-sequencer E2E with
+real `getProofForCommitment`.
 Public testnet evidence now exists for both current on-chain candidate paths.
 The local proof, off-chain verification, Messaging-style CLI transport,
 Basecamp Delivery transfer/verification, standalone consumer integrations, and Workable
