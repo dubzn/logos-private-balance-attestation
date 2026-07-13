@@ -12,10 +12,10 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   RUST_BACKTRACE: "1"
-  LEZ_REFERENCE_REF: "f6d56cb3e44150f07f15772e9fbe6d545532f4fe"
-  LOGOS_BLOCKCHAIN_REF: "1da154c74b911318fb853d37261f8a05ffe513b4"
-  LOGOS_BLOCKCHAIN_CIRCUITS_VERSION: "v0.4.2"
+  LOGOS_BLOCKCHAIN_REF: "d8711bbc3d43d3ef9755ef9b73af32fd0f703160"
+  LOGOS_BLOCKCHAIN_CIRCUITS_VERSION: "v0.5.3"
   LOGOS_BLOCKCHAIN_CIRCUITS: "${{ github.workspace }}/.logos-blockchain-circuits"
+  LIVE_LEZ_REF: "1b4d8fbcf4caa1448473fd99b4ac9d386abf3bc3"
 
 jobs:
   fmt:
@@ -89,12 +89,12 @@ jobs:
       - name: Checkout LEZ reference dependency
         # `lez-verifier/program` and the Spike 08 runner are intentionally
         # isolated from the root workspace, but they depend on the same LEZ
-        # checkout layout used locally at `<repo-root>/logos`. Keep the commit
-        # pinned so CI does not silently change nssa_core under the deployable
-        # program.
+        # checkout layout used locally at `<repo-root>/logos`. Keep the official
+        # commit pinned so CI does not silently change lee_core under the
+        # deployable program.
         run: |
-          git clone https://github.com/dubzn/logos-execution-zone.git logos
-          git -C logos checkout --detach "$LEZ_REFERENCE_REF"
+          git clone https://github.com/logos-blockchain/logos-execution-zone.git logos
+          git -C logos checkout --detach "$LIVE_LEZ_REF"
       - name: Install risc0 toolchain
         run: |
           curl -L https://risczero.com/install | bash
@@ -102,6 +102,12 @@ jobs:
           "$HOME/.risc0/bin/rzup" install
       - name: Test deployable program
         run: cargo test --manifest-path lez-verifier/program/Cargo.toml
+      - name: Benchmark deployable program cycles
+        env:
+          LOGOS_LEZ_REPO: ${{ github.workspace }}/logos
+          ITERATIONS: "3"
+          OUT_DIR: ${{ github.workspace }}/.demo-runs/ci-cycle-bench
+        run: scripts/benchmark-lez-cycles.sh
       - name: Install Logos blockchain circuits
         # The Spike 08 live runner depends on the LEZ wallet/nssa stack, which
         # pulls Logos Blockchain proof crates whose build scripts require the
@@ -111,3 +117,73 @@ jobs:
             | bash -s -- "$LOGOS_BLOCKCHAIN_CIRCUITS_VERSION" "$LOGOS_BLOCKCHAIN_CIRCUITS"
       - name: Check Spike 08 live runner
         run: cargo check --manifest-path spikes/spike-08-program-chaining/lez/runner/Cargo.toml
+      - name: Upload cycle benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lp0005-cycle-benchmark
+          path: .demo-runs/ci-cycle-bench/
+          if-no-files-found: error
+
+  live-sequencer-e2e:
+    name: live standalone sequencer E2E (dev-mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang libclang-dev libssl-dev pkg-config jq
+
+      - name: Install RISC Zero toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
+          "$HOME/.risc0/bin/rzup" install
+
+      - name: Checkout pinned official LEZ
+        run: |
+          git clone https://github.com/logos-blockchain/logos-execution-zone.git "$RUNNER_TEMP/logos-execution-zone"
+          git -C "$RUNNER_TEMP/logos-execution-zone" checkout --detach "$LIVE_LEZ_REF"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            ${{ runner.temp }}/logos-execution-zone -> target
+          shared-key: live-sequencer-e2e
+
+      - name: Build standalone sequencer and wallet
+        working-directory: ${{ runner.temp }}/logos-execution-zone
+        env:
+          RISC0_DEV_MODE: "1"
+        run: |
+          cargo build -p sequencer_service --features standalone
+          cargo build -p wallet
+
+      - name: Run wallet/sequencer proof E2E
+        env:
+          LOGOS_LEZ_REPO: ${{ runner.temp }}/logos-execution-zone
+          NSSA_WALLET_HOME_DIR: ${{ runner.temp }}/lp0005-wallet
+          LEE_WALLET_HOME_DIR: ${{ runner.temp }}/lp0005-wallet
+          RISC0_DEV_MODE: "1"
+        run: scripts/ci-live-sequencer-e2e.sh
+
+      - name: Publish summary
+        if: always()
+        run: |
+          if [[ -f .demo-runs/ci-live/public/report.md ]]; then
+            cat .demo-runs/ci-live/public/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload sanitized live E2E reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lp0005-live-sequencer-e2e
+          path: .demo-runs/ci-live/public/
+          if-no-files-found: error
