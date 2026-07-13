@@ -1,12 +1,13 @@
 # Benchmarks
 
-Last updated: 2026-07-10
+Last updated: 2026-07-13
 
-This document records measured runs for LP-0005 without turning wall-clock
-numbers into compute-unit claims. The local benchmark source is a full local E2E
-run against a local LEZ sequencer, local wallet private state, and the real
-`getProofForCommitment` path. Public testnet deployment/admission evidence is
-recorded separately in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
+This document records measured runs for LP-0005 without turning wall-clock or
+RISC Zero cycle numbers into unsupported chain compute-unit claims. It includes
+a full local E2E against a local LEZ sequencer and a deterministic guest-cycle
+benchmark modeled on upstream LEZ `tools/cycle_bench`. Public testnet
+deployment/admission evidence is recorded separately in
+[TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
 
 ## Scope And Caveats
 
@@ -23,13 +24,13 @@ recorded separately in [TESTNET_DEPLOYMENT.md](TESTNET_DEPLOYMENT.md).
   `attestation-verifier`, followed by a LEZ gate-ledger transaction that records
   and deduplicates the context nullifier.
 - Spike 09 PPE-native gate timing is included below as separate local evidence.
-- These are wall-clock timings, not LEZ CU measurements.
+- The E2E and testnet tables are wall-clock timings, not LEZ CU measurements.
 - The 2026-07-10 local run used a clean latest LEZ checkout tracking
   `upstream/dev` at `1b4d8fbc`, including the current `lee_core` and
   `lez/wallet` layout.
-- A 2026-07 refresh of `logos-execution-zone` found the upstream
-  `tools/cycle_bench` harness and `docs/benchmarks/cycle_bench.md`. That is the
-  best available model for future cycle/CU-style reporting.
+- The cycle benchmark below follows the metric and execution shape used by
+  upstream `tools/cycle_bench`: RISC Zero `SessionInfo::cycles()` over the
+  deployable guest ELF.
 - Build steps are included where the scripts include them, so warmed-run timings
   may be lower.
 - `witness.json` is private and must not be published.
@@ -204,18 +205,63 @@ of the context nullifier after duplicate admit settlement.
 | Insufficient-balance rejection | 00:00:03 | Rejected during proving with `BA201 ThresholdMismatch` |
 | Total | 00:13:16 | Passed with `RISC0_DEV_MODE=0` |
 
-## What Still Needs CU Measurement
+## LEZ Program Cycle Benchmark
+
+Command:
+
+```sh
+LOGOS_LEZ_REPO=/path/to/logos-execution-zone-latest \
+  scripts/benchmark-lez-cycles.sh
+```
+
+Canonical run:
+
+```text
+.demo-runs/cycle-bench/20260713T025856Z/benchmark.json
+.demo-runs/cycle-bench/20260713T025856Z/report.md
+```
+
+Environment:
+
+| Field | Value |
+| --- | --- |
+| LEZ ref | `1b4d8fbcf4caa1448473fd99b4ac9d386abf3bc3` |
+| RISC Zero | `3.0.5` |
+| Samples | 10 timed executions after one warmup |
+| Metric | RISC Zero `SessionInfo::cycles()` user cycles |
+
+Results:
+
+| Operation | User cycles | Segments | Best | Mean |
+| --- | ---: | ---: | ---: | ---: |
+| `register_presenter` | 113,667 | 1 | 28.081 ms | 29.395 ms |
+| `init_gate` | 173,308 | 1 | 27.486 ms | 29.453 ms |
+| `admit_empty_gate` | 234,496 | 1 | 28.192 ms | 28.787 ms |
+| `admit_after_10` | 385,290 | 1 | 30.703 ms | 32.609 ms |
+
+The rejected duplicate path returned deterministic error `BA206`. Its measured
+mean wall time was 29.076 ms, but no cycle count is reported: the RISC Zero
+executor returns the guest failure before exposing `SessionInfo`. Reporting a
+made-up or successful-path cycle count for that rejection would be misleading.
+
+These values are deterministic guest execution cycles for the current
+deployable Workable gate program. They are the closest metric exposed by the
+current LEZ executor and match the upstream benchmark convention. They are not
+labeled as network CU because the wallet/sequencer RPC does not expose a
+per-transaction CU field.
+
+## Remaining Performance Evidence
 
 The LP requires compute-unit documentation for on-chain operations. The current
-wallet/RPC path did not expose per-transaction CU data, so these remain open:
+wallet/RPC path does not expose per-transaction CU data. The current gate guest
+cycles are now documented; the remaining work is:
 
-- Adapt or run upstream `tools/cycle_bench` for the accepted LP-0005 on-chain
-  path. It already reports RISC Zero `SessionInfo::cycles()`, executor
-  calibration, PPE proof metadata, and receipt verification timing for upstream
-  benchmark cases.
-- Measure CU cost for `register_presenter`, `init_gate`, `admit`, and rejected
-  duplicate admit if the chain exposes per-transaction CU metrics.
-- Measure CU cost for the PPE-native positive admit if the chain exposes it.
+- Confirm whether evaluators accept RISC Zero user cycles as the current LEZ
+  equivalent for the LP's CU documentation requirement.
+- Capture per-transaction chain CU for `register_presenter`, `init_gate`,
+  `admit`, and duplicate rejection if a future RPC/runtime exposes it.
+- Add equivalent cycle or CU instrumentation for the final accepted on-chain
+  path, including the PPE-native candidate if selected.
 - Re-run Spike 09 without `SKIP_BUILD=1` when you want build timing included in
   the canonical evidence run.
 - Record inclusion/finality timing on devnet/testnet separately from local

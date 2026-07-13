@@ -13,9 +13,11 @@ methods = ["guest"]
 risc0-build = "3.0.5"
 
 [dev-dependencies]
+anyhow = "1"
 risc0-zkvm = { version = "3.0.5", features = ["std"] }
 lee_core = { path = "../../logos/lee/state_machine/core" }
 borsh = "1.5.7"
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 sha2 = "0.10"
 hex = "0.4"

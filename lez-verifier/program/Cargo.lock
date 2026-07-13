@@ -1608,12 +1608,14 @@ dependencies = [
 name = "lez-verifier-program"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "borsh",
  "hex",
  "lee_core",
  "risc0-build",
  "risc0-zkvm",
  "serde",
+ "serde_json",
  "sha2",
 ]
 
